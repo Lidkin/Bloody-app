@@ -315,9 +315,6 @@ function openCard(el, card){
     .to(s,{x:innerWidth/2, y:top+h/2, rot:0, w, h, ry:180, duration:1, ease:'power2.out', onUpdate:render,
       onComplete:()=>{
         meaningPanel.classList.add('show');
-        let drip=el.querySelector('.drip');
-        if(!drip){ drip=document.createElement('div'); drip.className='drip'; el.querySelector('.face.front').appendChild(drip); }
-        drip.classList.add('run');
         busy=false;
       }});
 }
@@ -326,7 +323,6 @@ document.getElementById('returnBtn').addEventListener('click', ()=>{
   if(!activeCard || busy) return;
   busy=true; const el=activeCard;
   meaningPanel.classList.remove('show');
-  const drip=el.querySelector('.drip'); if(drip) drip.classList.remove('run');
   // the exact reverse: shrink and flip back to just outside the arc, then slide into the slot
   const s=el._state, render=()=>renderCard(el,s);
   gsap.killTweensOf(s);

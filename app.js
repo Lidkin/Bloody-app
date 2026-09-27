@@ -141,7 +141,7 @@ function layoutFan(){
 }
 
 function buildFan(onReady){
-  fan.innerHTML=''; fan.appendChild(dimOverlay); dimOverlay.classList.remove('on');
+  hoverCard=null; fan.innerHTML=''; fan.appendChild(dimOverlay); dimOverlay.classList.remove('on');
   meaningPanel.classList.remove('show'); gsap.to(spreadOpts,{opacity:1,duration:.4});
   deckOrder=[...DECK.keys()];
   for(let i=deckOrder.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[deckOrder[i],deckOrder[j]]=[deckOrder[j],deckOrder[i]];}
@@ -163,7 +163,7 @@ function buildFan(onReady){
       front.querySelector('.ftext').textContent=card.name;
     }
     el.appendChild(inner);
-    el.addEventListener('click', ()=>{ if(!busy) pickCard(el, card); });
+    el._card=card;
     return el;
   };
 
@@ -179,14 +179,16 @@ function buildFan(onReady){
   setMover();
 
   // cards are dropped when the mover actually passes their slot, so an eased sweep stays in sync
-  const dropper=(indices, radius)=>{
+  // the whole upper arc stacks above the lower one, so a card leaving the upper arc passes over it
+  const dropper=(indices, radius, zBase)=>{
     const n=indices.length; let next=0;
     const slotAngle=i=> n>1 ? angleStart+(angleEnd-angleStart)*i/(n-1) : angleStart;
     return ()=>{
       while(next<n && slotAngle(next)<=pop.a+1e-6){
         const slot=next++, angle=slotAngle(slot);
-        const el=makeCard(DECK[indices[slot]]); el.style.zIndex=slot;
-        el.dataset.angle=angle; el.dataset.radius=radius; el.dataset.slot=slot;
+        const el=makeCard(DECK[indices[slot]]);
+        el.dataset.z=zBase+slot; el.style.zIndex=el.dataset.z;
+        el.dataset.angle=angle; el.dataset.radius=radius;
         el.style.transform=`rotate(${angle}deg) translateY(-${radius}px)`;
         fan.insertBefore(el, mover);
       }
@@ -194,7 +196,7 @@ function buildFan(onReady){
   };
   const outerIdx = deckOrder.slice(0, nOuter);
   const innerIdx = deckOrder.slice(nOuter).slice().reverse();
-  const dropOuter=dropper(outerIdx, rOuter), dropInner=dropper(innerIdx, rInner);
+  const dropOuter=dropper(outerIdx, rOuter, 100), dropInner=dropper(innerIdx, rInner, 0);
   const sweepDur=count=>Math.max(.9, count*0.065);
 
   // wait until the mover's image is decoded, otherwise it blinks for a frame on appear
@@ -214,12 +216,12 @@ function buildFan(onReady){
 }
 
 /* "Card of the day" interaction:
-   1st click - the card slides half its length out of the arc towards the arc's centre
-   (a previously slid-out card goes back);
-   2nd click on the same card - it leaves the arc, grows to fit the viewport minus FIT_MARGIN
-   on every side and at the same time flips face up around its own vertical axis. */
+   hover - the card under the cursor slides half its length out of the arc towards the arc's
+   centre, staying between its neighbours; it slides back when the cursor moves on;
+   click - the card slides fully out of the arc and, right as it clears the arc, grows to fit
+   the viewport minus FIT_MARGIN and flips face up around its own vertical axis. */
 const FIT_MARGIN=50;
-let extendedCard=null;
+let hoverCard=null;
 
 // While a card is animated its geometry lives in el._state = {x,y (centre), rot, w, h, ry}.
 function arcState(el, lift=0){
@@ -242,28 +244,46 @@ function restoreInArc(el){
   el.style.left=el.dataset.pivotX+'px'; el.style.top=el.dataset.pivotY+'px';
   el.style.removeProperty('--cw'); el.style.removeProperty('--ch');
   el.style.transform=`rotate(${el.dataset.angle}deg) translateY(-${el.dataset.radius}px)`;
-  el.firstElementChild.style.transform=''; el.style.zIndex=el.dataset.slot;
+  el.firstElementChild.style.transform=''; el.style.zIndex=el.dataset.z;
 }
 
-function pickCard(el, card){
-  if(el!==extendedCard){
-    if(extendedCard){
-      const prev=extendedCard;
-      animateCard(prev, arcState(prev), {duration:.35, ease:'power2.inOut', onComplete:()=>restoreInArc(prev)});
-    }
-    // keeps its own z-index, so it slides out between its neighbours instead of over them
-    extendedCard=el;
-    animateCard(el, arcState(el, cardH/2), {duration:.4, ease:'power2.out'});
-    return;
-  }
-  openCard(el, card);
+// Hit-testing uses the cards' fixed slots in the arcs, not their animated positions: otherwise a
+// card sliding out from under the cursor would hand the hover to its neighbour and the two would
+// flicker back and forth. The slid-out card keeps the hover while the cursor is anywhere over it.
+function inCard(s, x, y){
+  const t=s.rot*Math.PI/180, dx=x-s.x, dy=y-s.y;
+  const lx=dx*Math.cos(t)+dy*Math.sin(t), ly=-dx*Math.sin(t)+dy*Math.cos(t);
+  return Math.abs(lx)<=s.w/2 && Math.abs(ly)<=s.h/2;
 }
+function cardAt(x, y){
+  if(hoverCard && inCard(hoverCard._state||arcState(hoverCard), x, y)) return hoverCard;
+  let best=null;
+  fan.querySelectorAll('.fcard:not(.mover)').forEach(el=>{
+    if((!best || +el.dataset.z>+best.dataset.z) && inCard(arcState(el), x, y)) best=el;
+  });
+  return best;
+}
+function setHover(el){
+  if(el===hoverCard) return;
+  if(hoverCard){
+    const prev=hoverCard;
+    animateCard(prev, arcState(prev), {duration:.3, ease:'power2.inOut', onComplete:()=>restoreInArc(prev)});
+  }
+  hoverCard=el;
+  fan.style.cursor = el ? 'pointer' : '';
+  if(el) animateCard(el, arcState(el, cardH/2), {duration:.3, ease:'power2.out'});
+}
+const fanIdle=()=>!busy && !activeCard;
+fan.addEventListener('pointermove', e=>{ if(fanIdle() && e.pointerType==='mouse') setHover(cardAt(e.clientX, e.clientY)); });
+fan.addEventListener('pointerleave', ()=>{ if(fanIdle()) setHover(null); });
+fan.addEventListener('click', e=>{
+  if(!fanIdle()) return;
+  const el=cardAt(e.clientX, e.clientY);
+  if(el) openCard(el, el._card);
+});
 
 function openCard(el, card){
-  busy=true; extendedCard=null; activeCard=el; el.style.zIndex=100;
-  document.querySelectorAll('.fcard').forEach(c=>{ if(c!==el) c.classList.add('dim'); });
-  dimOverlay.classList.add('on');
-  gsap.to(spreadOpts,{opacity:0,duration:.3});
+  busy=true; activeCard=el; hoverCard=null; fan.style.cursor='';
   const reversed = Math.random()<0.5; el.dataset.reversed=reversed;
   el.querySelector('.fart').classList.toggle('reversed', reversed);
 
@@ -277,14 +297,28 @@ function openCard(el, card){
   const h=Math.min(availH, availW*cardH/cardW), w=h*cardW/cardH;
   const top=Math.max(FIT_MARGIN, (innerHeight-(h+GAP+panelH))/2);
   meaningPanel.style.top=(top+h+GAP)+'px'; meaningPanel.style.bottom='auto';
-  animateCard(el, {x:innerWidth/2, y:top+h/2, rot:0, w, h, ry:180}, {duration:1.1, ease:'power2.inOut',
-    onComplete:()=>{
-      meaningPanel.classList.add('show');
-      let drip=el.querySelector('.drip');
-      if(!drip){ drip=document.createElement('div'); drip.className='drip'; el.querySelector('.face.front').appendChild(drip); }
-      drip.classList.add('run');
-      busy=false;
-    }});
+
+  // slide fully out of the arc, then - without stopping - grow, straighten and flip
+  const s=el._state || (el._state=arcState(el));
+  const render=()=>renderCard(el,s);
+  gsap.killTweensOf(s);
+  gsap.timeline()
+    .to(s,{...arcState(el, cardH), duration:.35, ease:'power1.in', onUpdate:render})
+    .call(()=>{
+      // clear of its own arc now, so rising above everything shows no jump
+      el.style.zIndex=1000;
+      document.querySelectorAll('.fcard').forEach(c=>{ if(c!==el) c.classList.add('dim'); });
+      dimOverlay.classList.add('on');
+      gsap.to(spreadOpts,{opacity:0,duration:.3});
+    })
+    .to(s,{x:innerWidth/2, y:top+h/2, rot:0, w, h, ry:180, duration:1, ease:'power2.out', onUpdate:render,
+      onComplete:()=>{
+        meaningPanel.classList.add('show');
+        let drip=el.querySelector('.drip');
+        if(!drip){ drip=document.createElement('div'); drip.className='drip'; el.querySelector('.face.front').appendChild(drip); }
+        drip.classList.add('run');
+        busy=false;
+      }});
 }
 
 document.getElementById('returnBtn').addEventListener('click', ()=>{
@@ -292,12 +326,17 @@ document.getElementById('returnBtn').addEventListener('click', ()=>{
   busy=true; const el=activeCard;
   meaningPanel.classList.remove('show');
   const drip=el.querySelector('.drip'); if(drip) drip.classList.remove('run');
-  animateCard(el, arcState(el), {duration:.9, ease:'power2.inOut',
-    onComplete:()=>{
-      restoreInArc(el);
+  // the exact reverse: shrink and flip back to just outside the arc, then slide into the slot
+  const s=el._state, render=()=>renderCard(el,s);
+  gsap.killTweensOf(s);
+  gsap.timeline()
+    .to(s,{...arcState(el, cardH), duration:.9, ease:'power2.inOut', onUpdate:render})
+    .call(()=>{
+      el.style.zIndex=el.dataset.z;
       document.querySelectorAll('.fcard').forEach(c=>c.classList.remove('dim'));
       dimOverlay.classList.remove('on');
       gsap.to(spreadOpts,{opacity:1,duration:.3});
-      activeCard=null; busy=false;
-    }});
+    })
+    .to(s,{...arcState(el), duration:.35, ease:'power2.out', onUpdate:render,
+      onComplete:()=>{ restoreInArc(el); activeCard=null; busy=false; }});
 });

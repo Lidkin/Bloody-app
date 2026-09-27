@@ -48,6 +48,9 @@ canvas#dust{position:fixed; inset:0; z-index:1; pointer-events:none;}
   will-change:opacity;} /* own layer: the pulse doesn't make the glyphs re-rasterize and shimmer */
 /* the texts appear only once the web fonts are in, so they never jump from a fallback font */
 body:not(.fonts-ready) .ask-btn, body:not(.fonts-ready) h1.title, body:not(.fonts-ready) .theme-toggle{visibility:hidden;}
+.ask-sub{margin-top:6px; color:var(--muted); font-size:13px; font-style:italic; letter-spacing:1px; transition:opacity .3s;}
+.ask-sub.gone{opacity:0;}
+body:not(.fonts-ready) .ask-sub{visibility:hidden;}
 @keyframes pulse{0%,100%{opacity:.45}50%{opacity:1}}
 
 /* ---------- FAN ---------- */

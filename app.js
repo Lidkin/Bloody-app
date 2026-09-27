@@ -121,6 +121,7 @@ function showAskBtn(html){
 askBtn.addEventListener('click', ()=>{
   if(shufflePhase==='idle'){
     if(busy) return; busy=true; shufflePhase='shuffling';
+    document.getElementById('askSub').classList.add('gone');
     hideAskBtn(()=>gsap.delayedCall(.5, ()=>{ if(shufflePhase==='shuffling') showAskBtn(STOP_HTML); }));
     shuffleDeck(flyToFan);
   } else if(shufflePhase==='shuffling' && askBtn.style.visibility!=='hidden'){
@@ -216,7 +217,7 @@ function returnToDeck(el){
     .to(s,{y:rest.y, duration:.5, ease:'sine.out', onUpdate:render})
     .call(()=>{
       topImg.style.visibility=''; el.remove(); fanScreen.hidden=true; activeCard=null;
-      settleDeck(dip, ()=>{ showAskBtn(ASK_HTML); busy=false; });
+      settleDeck(dip, ()=>{ showAskBtn(ASK_HTML); document.getElementById('askSub').classList.remove('gone'); busy=false; });
     });
 }
 

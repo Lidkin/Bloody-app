@@ -102,50 +102,79 @@ if(!SHOW_SPREAD_OPTS) spreadOpts.style.display='none';
 
 function showToast(msg){toast.textContent=msg; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'),1600);}
 
-document.getElementById('askBtn').addEventListener('click', ()=>{
-  if(busy) return; busy=true;
-  const btn=document.getElementById('askBtn');
+// The ask button starts the shuffle and then turns into "Довольно": the deck keeps shuffling until
+// the user stops it, like in a real reading.
+const askBtn=document.getElementById('askBtn');
+const STOP_HTML='<span class="orn">✦</span> Довольно <span class="orn">✦</span>';
+let shufflePhase='idle'; // idle -> shuffling -> stopping
+function hideAskBtn(then){
   // the pulse keyframes would override the inline opacity, so freeze the pulse where it is and fade from there
-  gsap.set(btn,{opacity:getComputedStyle(btn).opacity}); btn.style.animation='none';
-  gsap.to(btn,{opacity:0, duration:.3, onComplete:()=>btn.style.visibility='hidden'});
-  shuffleDeck(flyToFan);
+  gsap.set(askBtn,{opacity:getComputedStyle(askBtn).opacity}); askBtn.style.animation='none';
+  gsap.to(askBtn,{opacity:0, duration:.3, onComplete:()=>{ askBtn.style.visibility='hidden'; then&&then(); }});
+}
+function showAskBtn(html){
+  askBtn.innerHTML=html; askBtn.style.visibility='';
+  // fade in to the pulse's starting opacity, then hand over to the pulse
+  gsap.fromTo(askBtn,{opacity:0},{opacity:.45, duration:.4,
+    onComplete:()=>{ gsap.set(askBtn,{clearProps:'opacity'}); askBtn.style.animation=''; }});
+}
+askBtn.addEventListener('click', ()=>{
+  if(shufflePhase==='idle'){
+    if(busy) return; busy=true; shufflePhase='shuffling';
+    hideAskBtn(()=>gsap.delayedCall(.5, ()=>{ if(shufflePhase==='shuffling') showAskBtn(STOP_HTML); }));
+    shuffleDeck(flyToFan);
+  } else if(shufflePhase==='shuffling' && askBtn.style.visibility!=='hidden'){
+    shufflePhase='stopping'; hideAskBtn();
+  }
 });
 
-// The deck grows, shuffles (the bottom card slides out to alternating sides and goes back on top)
-// and is cut - 2.5 s together - then settles back to its original size and pose.
+// The deck grows and shuffles (the bottom card slides out to alternating sides and goes back on top)
+// until shufflePhase leaves 'shuffling'; then it is cut and settles back to its original size and pose.
 const DECK_REST=[{rotation:-4, x:-3, y:1}, {rotation:2, x:2, y:-1}, {rotation:0, x:0, y:0}]; // by DOM order, as in style.css
 function shuffleDeck(onDone){
-  const imgs=[...deckStack.querySelectorAll('img')], PASSES=10, HALF=.15, STEP=(1.5-2*HALF)/(PASSES-1), GROW=.35;
+  const imgs=[...deckStack.querySelectorAll('img')], HALF=.2, STEP=.24, GROW=.4;
   const w=deckStack.offsetWidth, h=deckStack.offsetHeight, out=w*.7;
   // the cut needs about 2.3 deck heights of room vertically; shrink the zoom on low screens
   // CLEAR: lift (in deck heights) at which even the corners of the turning part stay above the rest
   const CLEAR=.5+Math.hypot(w,h)/2/h+.03, HIGHER=CLEAR+.22, span=HIGHER+1, zoom=Math.min(1.4, innerHeight*.85/(span*h));
-  const tl=gsap.timeline({onComplete:onDone});
-  tl.to(deckStack,{scale:zoom, duration:GROW, ease:'sine.inOut'});
-  tl.to(imgs,{rotation:0, x:0, y:0, duration:GROW, ease:'sine.inOut'}, 0);
-  const order=[...imgs]; // DOM order as it will be after each pass
-  for(let i=0;i<PASSES;i++){
-    const card=order.shift(), dir=i%2 ? 1 : -1, at=GROW+i*STEP;
-    order.push(card);
-    tl.to(card,{x:dir*out, y:-6, rotation:dir*9, duration:HALF, ease:'sine.out'}, at)
-      .call(()=>deckStack.appendChild(card), null, at+HALF)
-      .to(card,{x:0, y:0, rotation:0, duration:HALF, ease:'sine.in'}, at+HALF);
+  const dip=(span-1)/2*h*zoom;
+  let dir=1;
+
+  gsap.to(deckStack,{scale:zoom, duration:GROW, ease:'sine.inOut'});
+  gsap.to(imgs,{rotation:0, x:0, y:0, duration:GROW, ease:'sine.inOut'});
+  gsap.delayedCall(GROW, pass);
+
+  // STEP > HALF, so the previous card is already on top when the next pass takes the bottom one
+  function pass(){
+    if(shufflePhase!=='shuffling'){ gsap.delayedCall(2*HALF-STEP, cut); return; } // let the last card land
+    const card=deckStack.firstElementChild; dir=-dir;
+    gsap.timeline()
+      .to(card,{x:dir*out, y:-6, rotation:dir*9, duration:HALF, ease:'sine.out'})
+      .call(()=>deckStack.appendChild(card))
+      .to(card,{x:0, y:0, rotation:0, duration:HALF, ease:'sine.in'});
+    gsap.delayedCall(STEP, pass);
   }
+
   // cut: the top of the deck slides straight up until it clears the rest, turns upside down, rises a bit
-  // more and slides down under the rest; meanwhile the whole deck dips so the cut stays on screen
-  const top=order.pop(), cut=tl.duration(), dip=(span-1)/2*h*zoom;
-  order.unshift(top);
-  // 1 s in all; the stages overlap a little so the motion never stops dead
-  tl.to(deckStack,{y:`+=${dip}`, duration:.4, ease:'sine.inOut'}, cut)
-    .to(top,{y:-h*CLEAR, duration:.34, ease:'sine.inOut'}, cut)
-    .to(top,{rotation:180, duration:.34, ease:'sine.inOut'}, cut+.3) // starts as it clears the rest
-    .to(top,{y:-h*HIGHER, duration:.2, ease:'sine.inOut'}, cut+.5)
-    .call(()=>deckStack.prepend(top), null, cut+.7)
-    .to(top,{y:0, duration:.3, ease:'sine.in'}, cut+.7)
-    .set(top,{rotation:0}, cut+1); // hidden under the deck by now; 0 and 180 look the same from outside
-  const settle=tl.duration();
-  tl.to(deckStack,{scale:1, y:`-=${dip}`, duration:GROW, ease:'sine.inOut'}, settle);
-  order.forEach((img,i)=>tl.to(img,{...DECK_REST[i], duration:GROW, ease:'sine.inOut'}, settle));
+  // more and slides down under the rest; meanwhile the whole deck dips so the cut stays on screen.
+  // 1.4 s in all; the stages overlap a little so the motion never stops dead
+  function cut(){
+    const top=deckStack.lastElementChild;
+    const tl=gsap.timeline({onComplete:settle});
+    tl.to(deckStack,{y:`+=${dip}`, duration:.56, ease:'sine.inOut'}, 0)
+      .to(top,{y:-h*CLEAR, duration:.48, ease:'sine.inOut'}, 0)
+      .to(top,{rotation:180, duration:.48, ease:'sine.inOut'}, .42) // starts as it clears the rest
+      .to(top,{y:-h*HIGHER, duration:.28, ease:'sine.inOut'}, .7)
+      .call(()=>deckStack.prepend(top), null, .98)
+      .to(top,{y:0, duration:.42, ease:'sine.in'}, .98)
+      .set(top,{rotation:0}, 1.4); // hidden under the deck by now; 0 and 180 look the same from outside
+  }
+
+  function settle(){
+    const tl=gsap.timeline({onComplete:()=>{ shufflePhase='idle'; onDone(); }});
+    tl.to(deckStack,{scale:1, y:`-=${dip}`, duration:GROW, ease:'sine.inOut'}, 0);
+    [...deckStack.children].forEach((img,i)=>tl.to(img,{...DECK_REST[i], duration:GROW, ease:'sine.inOut'}, 0));
+  }
 }
 
 // The deck flies from the velvet to the first slot of the upper arc; dealing starts from there.
@@ -171,7 +200,7 @@ document.querySelectorAll('.opt').forEach(o=>o.addEventListener('click',()=>{
 
 /* Cards deal out from the common centre of two concentric arcs (a downward-opening rainbow):
    the outer band first, then the inner band. */
-let fanLayout=null;
+let fanLayout=null, dealTl=null;
 function layoutFan(){
   const n=DECK.length, nOuter=Math.ceil(n/2)+10, nInner=n-nOuter;
 
@@ -280,7 +309,8 @@ function buildFan(onReady){
   const img=mover.querySelector('img');
   (img.decode ? img.decode().catch(()=>{}) : Promise.resolve()).then(()=>{
     onReady&&onReady();
-    const tl=gsap.timeline({onComplete:()=>{
+    const tl=dealTl=gsap.timeline({onComplete:()=>{
+      dealTl=null;
       gsap.to(mover,{opacity:0,duration:.2,onComplete:()=>mover.remove()});
     }});
     tl.to(pop,{a:angleEnd,duration:sweepDur(outerIdx.length),ease:'sine.inOut',
@@ -354,7 +384,10 @@ function setHover(el){
 const fanIdle=()=>!busy && !activeCard;
 fan.addEventListener('pointermove', e=>{ if(fanIdle() && e.pointerType==='mouse') setHover(cardAt(e.clientX, e.clientY)); });
 fan.addEventListener('pointerleave', ()=>{ if(fanIdle()) setHover(null); });
+const SKIP_TIME=.4;
 fan.addEventListener('click', e=>{
+  // a tap while the cards are being dealt fast-forwards the dealing instead of picking a card
+  if(dealTl){ dealTl.timeScale(Math.max(1, (dealTl.duration()-dealTl.time())/SKIP_TIME)); return; }
   if(!fanIdle()) return;
   const el=cardAt(e.clientX, e.clientY);
   if(el) openCard(el, el._card);

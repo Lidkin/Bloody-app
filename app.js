@@ -312,7 +312,7 @@ function makeCard(card, pivotX, pivotY){
 
 function buildFan(onReady){
   hoverCard=null; fan.innerHTML=''; fan.appendChild(dimOverlay); dimOverlay.classList.remove('on');
-  meaningPanel.classList.remove('show'); gsap.to(spreadOpts,{opacity:1,duration:.4});
+  meaningPanel.classList.remove('show'); finale.classList.remove('show'); gsap.to(spreadOpts,{opacity:1,duration:.4});
   deckOrder=[...DECK.keys()];
   for(let i=deckOrder.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[deckOrder[i],deckOrder[j]]=[deckOrder[j],deckOrder[i]];}
   const {nOuter, angleStart, angleEnd, rOuter, rInner, pivotX, pivotY} = fanLayout || layoutFan();
@@ -447,11 +447,15 @@ function openedPose(el, card){
   document.getElementById('mName').textContent=card.name;
   document.getElementById('mOrient').textContent=reversed?'Перевёрнутое положение':'Прямое положение';
   document.getElementById('mText').textContent=reversed?card.rev:card.up;
-  const GAP=16, panelH=meaningPanel.offsetHeight, ASPECT=76/118;
+  return fitAbove(meaningPanel);
+}
+// pose of a face-up card that, together with `panel` right under it, fits the viewport minus FIT_MARGIN
+function fitAbove(panel){
+  const GAP=16, panelH=panel.offsetHeight, ASPECT=76/118;
   const availW=innerWidth-2*FIT_MARGIN, availH=innerHeight-2*FIT_MARGIN-GAP-panelH;
   const h=Math.min(availH, availW/ASPECT), w=h*ASPECT;
   const top=Math.max(FIT_MARGIN, (innerHeight-(h+GAP+panelH))/2);
-  meaningPanel.style.top=(top+h+GAP)+'px'; meaningPanel.style.bottom='auto';
+  panel.style.top=(top+h+GAP)+'px'; panel.style.bottom='auto';
   return {x:innerWidth/2, y:top+h/2, rot:0, w, h, ry:180};
 }
 
@@ -479,10 +483,29 @@ function openCard(el, card){
       }});
 }
 
-document.getElementById('returnBtn').addEventListener('click', ()=>{
+/* ---------- end of a reading ---------- */
+const ETSY_URL='https://illusbyme.etsy.com/il-en/listing/4487488141/bloody-feast-tarot-deck-printable-dark';
+const finale=document.getElementById('finale');
+// tagged so the shop's stats show visits coming from the app and which card led to them
+const etsyLink=card=>`${ETSY_URL}?utm_source=tarot-app&utm_medium=card-of-the-day&utm_content=${encodeURIComponent(card.id)}`;
+
+// "Завершить гадание": the description gives way to the closing screen, the card makes room for it
+document.getElementById('finishBtn').addEventListener('click', ()=>{
+  if(!activeCard || busy) return;
+  busy=true; const el=activeCard, s=el._state;
+  meaningPanel.classList.remove('show');
+  document.getElementById('etsyBtn').href=etsyLink(el._card);
+  const pose=fitAbove(finale);
+  gsap.to(s,{...pose, duration:.7, ease:'power2.inOut', onUpdate:()=>renderCard(el,s),
+    onComplete:()=>{ finale.classList.add('show'); busy=false; }});
+});
+document.getElementById('shareBtn').addEventListener('click', ()=>{ if(activeCard) shareCard(activeCard); });
+
+// "Новое гадание": the card goes back where it came from - into its arc slot, or onto the deck on phones
+document.getElementById('againBtn').addEventListener('click', ()=>{
   if(!activeCard || busy) return;
   busy=true; const el=activeCard;
-  meaningPanel.classList.remove('show');
+  finale.classList.remove('show');
   if(el._fromDeck){ returnToDeck(el); return; }
   // the exact reverse: shrink and flip back to just outside the arc, then slide into the slot
   const s=el._state, render=()=>renderCard(el,s);
@@ -498,3 +521,51 @@ document.getElementById('returnBtn').addEventListener('click', ()=>{
     .to(s,{...arcState(el), duration:.35, ease:'power2.out', onUpdate:render,
       onComplete:()=>{ restoreInArc(el); activeCard=null; busy=false; }});
 });
+
+// A story-sized (9:16) picture of the card of the day with the deck's name and shop - shared through the
+// system share sheet where files can be shared (phones), otherwise downloaded.
+async function shareCard(el){
+  const card=el._card, reversed=el.dataset.reversed==='true';
+  const W=1080, H=1920, c=document.createElement('canvas'); c.width=W; c.height=H;
+  const x=c.getContext('2d');
+  const bg=x.createRadialGradient(W/2, H*.42, 0, W/2, H*.42, H*.7);
+  bg.addColorStop(0,'#2a0a09'); bg.addColorStop(.5,'#160505'); bg.addColorStop(1,'#060202');
+  x.fillStyle=bg; x.fillRect(0,0,W,H);
+  const text=(str, y, font, color, spacing=0)=>{
+    x.font=font; x.fillStyle=color; x.textAlign='center'; x.letterSpacing=spacing+'px'; x.fillText(str, W/2, y);
+  };
+  text('КАРТА ДНЯ', 190, '500 44px Oswald', '#e9e6e1', 10);
+
+  const cw=700, ch=cw*118/76, cx=(W-cw)/2, cy=270, radius=cw*.092;
+  x.save(); x.shadowColor='rgba(0,0,0,.7)'; x.shadowBlur=60; x.shadowOffsetY=20;
+  x.fillStyle='#f4f1ec'; x.beginPath(); x.roundRect(cx,cy,cw,ch,radius); x.fill(); x.restore();
+  x.save(); x.beginPath(); x.roundRect(cx,cy,cw,ch,radius); x.clip();
+  if(reversed){ x.translate(W/2, cy+ch/2); x.rotate(Math.PI); x.translate(-W/2, -(cy+ch/2)); }
+  if(card.art!==null){
+    const img=new Image(); img.src=ART[card.art];
+    await img.decode().catch(()=>{});
+    x.drawImage(img, cx, cy, cw, ch);
+  } else {
+    x.strokeStyle='#111'; x.lineWidth=3; x.beginPath(); x.roundRect(cx+cw*.06, cy+cw*.06, cw*.88, ch-cw*.12, cw*.05); x.stroke();
+    x.textAlign='center'; x.letterSpacing='0px';
+    if(card.num){ x.font='500 96px Oswald'; x.fillStyle='#e32222'; x.fillText(card.num, W/2, cy+ch/2-60); }
+    x.font='500 72px Oswald'; x.fillStyle='#111'; x.fillText(card.name, W/2, cy+ch/2+50);
+  }
+  x.restore();
+
+  const below=cy+ch+120;
+  text(card.name, below, '500 72px Oswald', '#f2efea', 4);
+  text(reversed?'ПЕРЕВЁРНУТОЕ ПОЛОЖЕНИЕ':'ПРЯМОЕ ПОЛОЖЕНИЕ', below+64, '500 32px Oswald', '#e32222', 6);
+  text('BLOODY FEAST TAROT', H-170, '500 42px Oswald', '#e9e6e1', 10);
+  text('illusbyme.etsy.com', H-110, 'italic 500 36px "Cormorant Garamond"', '#8a8784');
+
+  const blob=await new Promise(r=>c.toBlob(r,'image/png'));
+  const file=new File([blob], 'card-of-the-day.png', {type:'image/png'});
+  if(navigator.canShare && navigator.canShare({files:[file]})){
+    await navigator.share({files:[file], title:'Карта дня', text:`Моя карта дня — ${card.name}. Bloody Feast Tarot: ${ETSY_URL}`}).catch(()=>{});
+  } else {
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=file.name; a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+    showToast('Картинка сохранена — её можно выложить в сторис');
+  }
+}

@@ -249,18 +249,19 @@ function restoreInArc(el){
 
 // Hit-testing uses the cards' fixed slots in the arcs, not their animated positions: otherwise a
 // card sliding out from under the cursor would hand the hover to its neighbour and the two would
-// flicker back and forth. The slid-out card keeps the hover while the cursor is anywhere over it.
+// flicker back and forth. Only the part of the slid-out card that sticks out of the arc (where no
+// slot is) keeps the hover, so it can be reached and clicked.
 function inCard(s, x, y){
   const t=s.rot*Math.PI/180, dx=x-s.x, dy=y-s.y;
   const lx=dx*Math.cos(t)+dy*Math.sin(t), ly=-dx*Math.sin(t)+dy*Math.cos(t);
   return Math.abs(lx)<=s.w/2 && Math.abs(ly)<=s.h/2;
 }
 function cardAt(x, y){
-  if(hoverCard && inCard(hoverCard._state||arcState(hoverCard), x, y)) return hoverCard;
   let best=null;
   fan.querySelectorAll('.fcard:not(.mover)').forEach(el=>{
     if((!best || +el.dataset.z>+best.dataset.z) && inCard(arcState(el), x, y)) best=el;
   });
+  if(!best && hoverCard && inCard(hoverCard._state||arcState(hoverCard), x, y)) return hoverCard;
   return best;
 }
 function setHover(el){

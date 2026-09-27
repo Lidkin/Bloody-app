@@ -111,21 +111,21 @@ document.getElementById('askBtn').addEventListener('click', ()=>{
 // on top), then settles back to its original size and pose.
 const DECK_REST=[{rotation:-4, x:-3, y:1}, {rotation:2, x:2, y:-1}, {rotation:0, x:0, y:0}]; // by DOM order, as in style.css
 function shuffleDeck(onDone){
-  const imgs=[...deckStack.querySelectorAll('img')], PASSES=5, STEP=.2, HALF=.13, out=deckStack.offsetWidth*.7;
+  const imgs=[...deckStack.querySelectorAll('img')], PASSES=5, STEP=.15, HALF=.1, GROW=.28, out=deckStack.offsetWidth*.7;
   const tl=gsap.timeline({onComplete:onDone});
-  tl.to(deckStack,{scale:1.2, duration:.35, ease:'power2.out'});
-  tl.to(imgs,{rotation:0, x:0, y:0, duration:.35, ease:'power2.out'}, 0);
+  tl.to(deckStack,{scale:1.2, duration:GROW, ease:'power2.out'});
+  tl.to(imgs,{rotation:0, x:0, y:0, duration:GROW, ease:'power2.out'}, 0);
   const order=[...imgs]; // DOM order as it will be after each pass
   for(let i=0;i<PASSES;i++){
-    const card=order.shift(), dir=i%2 ? 1 : -1, at=.35+i*STEP;
+    const card=order.shift(), dir=i%2 ? 1 : -1, at=GROW+i*STEP;
     order.push(card);
     tl.to(card,{x:dir*out, y:-6, rotation:dir*9, duration:HALF, ease:'power1.out'}, at)
       .call(()=>deckStack.appendChild(card), null, at+HALF)
       .to(card,{x:0, y:0, rotation:0, duration:HALF, ease:'power1.in'}, at+HALF);
   }
   const settle=tl.duration();
-  tl.to(deckStack,{scale:1, duration:.35, ease:'power2.inOut'}, settle);
-  order.forEach((img,i)=>tl.to(img,{...DECK_REST[i], duration:.35, ease:'power2.inOut'}, settle));
+  tl.to(deckStack,{scale:1, duration:GROW, ease:'power2.inOut'}, settle);
+  order.forEach((img,i)=>tl.to(img,{...DECK_REST[i], duration:GROW, ease:'power2.inOut'}, settle));
 }
 
 // The deck flies from the velvet to the first slot of the upper arc; dealing starts from there.

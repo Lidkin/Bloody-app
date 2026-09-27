@@ -101,14 +101,39 @@ if(!SHOW_SPREAD_OPTS) spreadOpts.style.display='none';
 
 function showToast(msg){toast.textContent=msg; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'),1600);}
 
-// The deck flies from the velvet to the first slot of the upper arc; dealing starts from there.
 document.getElementById('askBtn').addEventListener('click', ()=>{
   if(busy) return; busy=true;
+  gsap.to('#askBtn',{opacity:0,duration:.3});
+  shuffleDeck(flyToFan);
+});
+
+// The deck grows a little, shuffles (the bottom card slides out to alternating sides and goes back
+// on top), then settles back to its original size and pose.
+const DECK_REST=[{rotation:-4, x:-3, y:1}, {rotation:2, x:2, y:-1}, {rotation:0, x:0, y:0}]; // by DOM order, as in style.css
+function shuffleDeck(onDone){
+  const imgs=[...deckStack.querySelectorAll('img')], PASSES=5, STEP=.2, HALF=.13, out=deckStack.offsetWidth*.7;
+  const tl=gsap.timeline({onComplete:onDone});
+  tl.to(deckStack,{scale:1.2, duration:.35, ease:'power2.out'});
+  tl.to(imgs,{rotation:0, x:0, y:0, duration:.35, ease:'power2.out'}, 0);
+  const order=[...imgs]; // DOM order as it will be after each pass
+  for(let i=0;i<PASSES;i++){
+    const card=order.shift(), dir=i%2 ? 1 : -1, at=.35+i*STEP;
+    order.push(card);
+    tl.to(card,{x:dir*out, y:-6, rotation:dir*9, duration:HALF, ease:'power1.out'}, at)
+      .call(()=>deckStack.appendChild(card), null, at+HALF)
+      .to(card,{x:0, y:0, rotation:0, duration:HALF, ease:'power1.in'}, at+HALF);
+  }
+  const settle=tl.duration();
+  tl.to(deckStack,{scale:1, duration:.35, ease:'power2.inOut'}, settle);
+  order.forEach((img,i)=>tl.to(img,{...DECK_REST[i], duration:.35, ease:'power2.inOut'}, settle));
+}
+
+// The deck flies from the velvet to the first slot of the upper arc; dealing starts from there.
+function flyToFan(){
   fanScreen.hidden=false; gsap.set(spreadOpts,{opacity:0}); // spreadOpts must be laid out to measure the fan
   const L=layoutFan(), a=L.angleStart*Math.PI/180;
   const tx=L.pivotX+L.rOuter*Math.sin(a), ty=L.pivotY-L.rOuter*Math.cos(a);
   const r=deckStack.getBoundingClientRect();
-  gsap.to('#askBtn',{opacity:0,duration:.3});
   // squeeze the loose stack into one card of exactly the fan's size so the hand-off is invisible
   const sx=cardW/deckStack.offsetWidth, sy=cardH/deckStack.offsetHeight;
   gsap.to(deckStack.querySelectorAll('img'),{rotation:0, x:0, y:0, borderRadius:`${7/sx}px / ${7/sy}px`,
@@ -117,7 +142,7 @@ document.getElementById('askBtn').addEventListener('click', ()=>{
     rotation:L.angleStart, scaleX:sx, scaleY:sy,
     duration:.8, ease:'power2.inOut',
     onComplete:()=>buildFan(()=>{ openingEl.hidden=true; busy=false; })});
-});
+}
 document.querySelectorAll('.opt').forEach(o=>o.addEventListener('click',()=>{
   if(o.dataset.mode!=='day'){ showToast('Этот расклад скоро добавим ✦'); return; }
   document.querySelectorAll('.opt').forEach(x=>x.classList.remove('active'));

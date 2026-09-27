@@ -107,13 +107,13 @@ document.getElementById('askBtn').addEventListener('click', ()=>{
   shuffleDeck(flyToFan);
 });
 
-// The deck grows a little, shuffles (the bottom card slides out to alternating sides and goes back
-// on top), then settles back to its original size and pose.
+// The deck grows, shuffles for about a second (the bottom card slides out to alternating sides and
+// goes back on top), is cut, then settles back to its original size and pose.
 const DECK_REST=[{rotation:-4, x:-3, y:1}, {rotation:2, x:2, y:-1}, {rotation:0, x:0, y:0}]; // by DOM order, as in style.css
 function shuffleDeck(onDone){
-  const imgs=[...deckStack.querySelectorAll('img')], PASSES=5, STEP=.15, HALF=.1, GROW=.28, out=deckStack.offsetWidth*.7;
+  const imgs=[...deckStack.querySelectorAll('img')], PASSES=7, STEP=.13, HALF=.1, GROW=.28, out=deckStack.offsetWidth*.7;
   const tl=gsap.timeline({onComplete:onDone});
-  tl.to(deckStack,{scale:1.2, duration:GROW, ease:'power2.out'});
+  tl.to(deckStack,{scale:1.4, duration:GROW, ease:'power2.out'});
   tl.to(imgs,{rotation:0, x:0, y:0, duration:GROW, ease:'power2.out'}, 0);
   const order=[...imgs]; // DOM order as it will be after each pass
   for(let i=0;i<PASSES;i++){
@@ -123,6 +123,15 @@ function shuffleDeck(onDone){
       .call(()=>deckStack.appendChild(card), null, at+HALF)
       .to(card,{x:0, y:0, rotation:0, duration:HALF, ease:'power1.in'}, at+HALF);
   }
+  // cut: the top of the deck slides off, flips over and goes under the bottom
+  const top=order.pop(), cut=tl.duration();
+  order.unshift(top);
+  tl.set(top,{transformPerspective:700}, cut)
+    .to(top,{x:deckStack.offsetWidth*1.08, y:-out*.25, duration:.2, ease:'power2.out'}, cut) // fully clear, so going under shows no jump
+    .to(top,{rotationX:180, duration:.3, ease:'power1.inOut'}, cut+.08)
+    .call(()=>deckStack.prepend(top), null, cut+.38)
+    .to(top,{x:0, y:0, duration:.2, ease:'power2.in'}, cut+.38)
+    .set(top,{rotationX:0}, cut+.58);
   const settle=tl.duration();
   tl.to(deckStack,{scale:1, duration:GROW, ease:'power2.inOut'}, settle);
   order.forEach((img,i)=>tl.to(img,{...DECK_REST[i], duration:GROW, ease:'power2.inOut'}, settle));

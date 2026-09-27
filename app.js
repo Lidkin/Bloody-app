@@ -103,17 +103,23 @@ function showToast(msg){toast.textContent=msg; toast.classList.add('show'); setT
 
 document.getElementById('askBtn').addEventListener('click', ()=>{
   if(busy) return; busy=true;
-  gsap.to('#askBtn',{opacity:0,duration:.3});
+  const btn=document.getElementById('askBtn');
+  // the pulse keyframes would override the inline opacity, so freeze the pulse where it is and fade from there
+  gsap.set(btn,{opacity:getComputedStyle(btn).opacity}); btn.style.animation='none';
+  gsap.to(btn,{opacity:0, duration:.3, onComplete:()=>btn.style.visibility='hidden'});
   shuffleDeck(flyToFan);
 });
 
-// The deck grows, shuffles for about a second (the bottom card slides out to alternating sides and
-// goes back on top), is cut, then settles back to its original size and pose.
+// The deck grows, shuffles for 1.5 s (the bottom card slides out to alternating sides and goes back
+// on top), is cut, then settles back to its original size and pose.
 const DECK_REST=[{rotation:-4, x:-3, y:1}, {rotation:2, x:2, y:-1}, {rotation:0, x:0, y:0}]; // by DOM order, as in style.css
 function shuffleDeck(onDone){
-  const imgs=[...deckStack.querySelectorAll('img')], PASSES=7, STEP=.13, HALF=.1, GROW=.28, out=deckStack.offsetWidth*.7;
+  const imgs=[...deckStack.querySelectorAll('img')], PASSES=7, STEP=.2, HALF=.15, GROW=.28;
+  const w=deckStack.offsetWidth, h=deckStack.offsetHeight, out=w*.7;
+  // the cut needs about 2.3 deck heights of room vertically; shrink the zoom on low screens
+  const CLEAR=1.06, HIGHER=1.3, span=HIGHER+1, zoom=Math.min(1.4, innerHeight*.85/(span*h));
   const tl=gsap.timeline({onComplete:onDone});
-  tl.to(deckStack,{scale:1.4, duration:GROW, ease:'power2.out'});
+  tl.to(deckStack,{scale:zoom, duration:GROW, ease:'power2.out'});
   tl.to(imgs,{rotation:0, x:0, y:0, duration:GROW, ease:'power2.out'}, 0);
   const order=[...imgs]; // DOM order as it will be after each pass
   for(let i=0;i<PASSES;i++){
@@ -123,17 +129,19 @@ function shuffleDeck(onDone){
       .call(()=>deckStack.appendChild(card), null, at+HALF)
       .to(card,{x:0, y:0, rotation:0, duration:HALF, ease:'power1.in'}, at+HALF);
   }
-  // cut: the top of the deck slides off, flips over and goes under the bottom
-  const top=order.pop(), cut=tl.duration();
+  // cut: the top of the deck slides straight up until it clears the rest, turns upside down, rises a bit
+  // more and slides down under the rest; meanwhile the whole deck dips so the cut stays on screen
+  const top=order.pop(), cut=tl.duration(), dip=(span-1)/2*h*zoom;
   order.unshift(top);
-  tl.set(top,{transformPerspective:700}, cut)
-    .to(top,{x:deckStack.offsetWidth*1.08, y:-out*.25, duration:.2, ease:'power2.out'}, cut) // fully clear, so going under shows no jump
-    .to(top,{rotationX:180, duration:.3, ease:'power1.inOut'}, cut+.08)
-    .call(()=>deckStack.prepend(top), null, cut+.38)
-    .to(top,{x:0, y:0, duration:.2, ease:'power2.in'}, cut+.38)
-    .set(top,{rotationX:0}, cut+.58);
+  tl.to(deckStack,{y:`+=${dip}`, duration:.35, ease:'power2.inOut'}, cut)
+    .to(top,{y:-h*CLEAR, duration:.35, ease:'power2.inOut'}, cut)
+    .to(top,{rotation:180, duration:.3, ease:'power1.inOut'}, cut+.35)
+    .to(top,{y:-h*HIGHER, duration:.15, ease:'power1.out'}, cut+.65)
+    .call(()=>deckStack.prepend(top), null, cut+.8)
+    .to(top,{y:0, duration:.3, ease:'power2.in'}, cut+.8)
+    .set(top,{rotation:0}, cut+1.1); // hidden under the deck by now; 0 and 180 look the same from outside
   const settle=tl.duration();
-  tl.to(deckStack,{scale:1, duration:GROW, ease:'power2.inOut'}, settle);
+  tl.to(deckStack,{scale:1, y:`-=${dip}`, duration:GROW, ease:'power2.inOut'}, settle);
   order.forEach((img,i)=>tl.to(img,{...DECK_REST[i], duration:GROW, ease:'power2.inOut'}, settle));
 }
 

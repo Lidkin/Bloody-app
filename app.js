@@ -56,6 +56,7 @@ themeToggle.addEventListener('click', ()=>{
   localStorage.setItem('theme', theme); applyTheme();
 });
 applyTheme();
+document.fonts.ready.then(()=>document.body.classList.add('fonts-ready'));
 
 /* ---------- particles ---------- */
 const canvas=document.getElementById('dust'), ctx=canvas.getContext('2d');
@@ -110,39 +111,41 @@ document.getElementById('askBtn').addEventListener('click', ()=>{
   shuffleDeck(flyToFan);
 });
 
-// The deck grows, shuffles for 1.5 s (the bottom card slides out to alternating sides and goes back
-// on top), is cut, then settles back to its original size and pose.
+// The deck grows, shuffles (the bottom card slides out to alternating sides and goes back on top)
+// and is cut - 2.5 s together - then settles back to its original size and pose.
 const DECK_REST=[{rotation:-4, x:-3, y:1}, {rotation:2, x:2, y:-1}, {rotation:0, x:0, y:0}]; // by DOM order, as in style.css
 function shuffleDeck(onDone){
-  const imgs=[...deckStack.querySelectorAll('img')], PASSES=7, STEP=.2, HALF=.15, GROW=.28;
+  const imgs=[...deckStack.querySelectorAll('img')], PASSES=10, HALF=.15, STEP=(1.5-2*HALF)/(PASSES-1), GROW=.35;
   const w=deckStack.offsetWidth, h=deckStack.offsetHeight, out=w*.7;
   // the cut needs about 2.3 deck heights of room vertically; shrink the zoom on low screens
-  const CLEAR=1.06, HIGHER=1.3, span=HIGHER+1, zoom=Math.min(1.4, innerHeight*.85/(span*h));
+  // CLEAR: lift (in deck heights) at which even the corners of the turning part stay above the rest
+  const CLEAR=.5+Math.hypot(w,h)/2/h+.03, HIGHER=CLEAR+.22, span=HIGHER+1, zoom=Math.min(1.4, innerHeight*.85/(span*h));
   const tl=gsap.timeline({onComplete:onDone});
-  tl.to(deckStack,{scale:zoom, duration:GROW, ease:'power2.out'});
-  tl.to(imgs,{rotation:0, x:0, y:0, duration:GROW, ease:'power2.out'}, 0);
+  tl.to(deckStack,{scale:zoom, duration:GROW, ease:'sine.inOut'});
+  tl.to(imgs,{rotation:0, x:0, y:0, duration:GROW, ease:'sine.inOut'}, 0);
   const order=[...imgs]; // DOM order as it will be after each pass
   for(let i=0;i<PASSES;i++){
     const card=order.shift(), dir=i%2 ? 1 : -1, at=GROW+i*STEP;
     order.push(card);
-    tl.to(card,{x:dir*out, y:-6, rotation:dir*9, duration:HALF, ease:'power1.out'}, at)
+    tl.to(card,{x:dir*out, y:-6, rotation:dir*9, duration:HALF, ease:'sine.out'}, at)
       .call(()=>deckStack.appendChild(card), null, at+HALF)
-      .to(card,{x:0, y:0, rotation:0, duration:HALF, ease:'power1.in'}, at+HALF);
+      .to(card,{x:0, y:0, rotation:0, duration:HALF, ease:'sine.in'}, at+HALF);
   }
   // cut: the top of the deck slides straight up until it clears the rest, turns upside down, rises a bit
   // more and slides down under the rest; meanwhile the whole deck dips so the cut stays on screen
   const top=order.pop(), cut=tl.duration(), dip=(span-1)/2*h*zoom;
   order.unshift(top);
-  tl.to(deckStack,{y:`+=${dip}`, duration:.35, ease:'power2.inOut'}, cut)
-    .to(top,{y:-h*CLEAR, duration:.35, ease:'power2.inOut'}, cut)
-    .to(top,{rotation:180, duration:.3, ease:'power1.inOut'}, cut+.35)
-    .to(top,{y:-h*HIGHER, duration:.15, ease:'power1.out'}, cut+.65)
-    .call(()=>deckStack.prepend(top), null, cut+.8)
-    .to(top,{y:0, duration:.3, ease:'power2.in'}, cut+.8)
-    .set(top,{rotation:0}, cut+1.1); // hidden under the deck by now; 0 and 180 look the same from outside
+  // 1 s in all; the stages overlap a little so the motion never stops dead
+  tl.to(deckStack,{y:`+=${dip}`, duration:.4, ease:'sine.inOut'}, cut)
+    .to(top,{y:-h*CLEAR, duration:.34, ease:'sine.inOut'}, cut)
+    .to(top,{rotation:180, duration:.34, ease:'sine.inOut'}, cut+.3) // starts as it clears the rest
+    .to(top,{y:-h*HIGHER, duration:.2, ease:'sine.inOut'}, cut+.5)
+    .call(()=>deckStack.prepend(top), null, cut+.7)
+    .to(top,{y:0, duration:.3, ease:'sine.in'}, cut+.7)
+    .set(top,{rotation:0}, cut+1); // hidden under the deck by now; 0 and 180 look the same from outside
   const settle=tl.duration();
-  tl.to(deckStack,{scale:1, y:`-=${dip}`, duration:GROW, ease:'power2.inOut'}, settle);
-  order.forEach((img,i)=>tl.to(img,{...DECK_REST[i], duration:GROW, ease:'power2.inOut'}, settle));
+  tl.to(deckStack,{scale:1, y:`-=${dip}`, duration:GROW, ease:'sine.inOut'}, settle);
+  order.forEach((img,i)=>tl.to(img,{...DECK_REST[i], duration:GROW, ease:'sine.inOut'}, settle));
 }
 
 // The deck flies from the velvet to the first slot of the upper arc; dealing starts from there.

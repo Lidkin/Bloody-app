@@ -44,7 +44,10 @@ canvas#dust{position:fixed; inset:0; z-index:1; pointer-events:none;}
 
 .ask-btn{margin-top:34px; background:none; border:none; color:var(--accent); font-family:var(--head-font);
   font-size:14px; letter-spacing:3px; cursor:pointer; text-transform:uppercase;
-  animation:pulse 2.4s infinite ease-in-out; text-shadow:0 0 12px rgba(var(--accent-rgb),.6);}
+  animation:pulse 2.4s infinite ease-in-out; text-shadow:0 0 12px rgba(var(--accent-rgb),.6);
+  will-change:opacity;} /* own layer: the pulse doesn't make the glyphs re-rasterize and shimmer */
+/* the texts appear only once the web fonts are in, so they never jump from a fallback font */
+body:not(.fonts-ready) .ask-btn, body:not(.fonts-ready) h1.title, body:not(.fonts-ready) .theme-toggle{visibility:hidden;}
 @keyframes pulse{0%,100%{opacity:.45}50%{opacity:1}}
 
 /* ---------- FAN ---------- */

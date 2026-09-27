@@ -180,7 +180,7 @@ function buildFan(onReady){
       while(next<n && slotAngle(next)<=pop.a+1e-6){
         const slot=next++, angle=slotAngle(slot);
         const el=makeCard(DECK[indices[slot]]); el.style.zIndex=slot;
-        el.dataset.angle=angle; el.dataset.radius=radius;
+        el.dataset.angle=angle; el.dataset.radius=radius; el.dataset.slot=slot;
         el.style.transform=`rotate(${angle}deg) translateY(-${radius}px)`;
         fan.insertBefore(el, mover);
       }
@@ -207,40 +207,71 @@ function buildFan(onReady){
   });
 }
 
+/* "Card of the day" interaction:
+   1st click - the card slides half its length out of the arc towards the arc's centre
+   (a previously slid-out card goes back);
+   2nd click on the same card - it leaves the arc, grows to fit the viewport minus FIT_MARGIN
+   on every side and at the same time flips face up around its own vertical axis. */
+const FIT_MARGIN=50;
+let extendedCard=null;
+
+// While a card is animated its geometry lives in el._state = {x,y (centre), rot, w, h, ry}.
+function arcState(el, lift=0){
+  const a=+el.dataset.angle, r=+el.dataset.radius-lift, rad=a*Math.PI/180;
+  return {x:+el.dataset.pivotX+r*Math.sin(rad), y:+el.dataset.pivotY-r*Math.cos(rad),
+    rot:a, w:cardW, h:cardH, ry:0};
+}
+function renderCard(el, s){
+  el.style.left=s.x+'px'; el.style.top=s.y+'px';
+  el.style.setProperty('--cw', s.w+'px'); el.style.setProperty('--ch', s.h+'px');
+  el.style.transform=`rotate(${s.rot}deg)`;
+  el.firstElementChild.style.transform=`perspective(${s.h*4}px) rotateY(${s.ry}deg)`;
+}
+function animateCard(el, to, vars){
+  const s=el._state || (el._state=arcState(el));
+  return gsap.to(s,{...to, ...vars, overwrite:true, onUpdate:()=>renderCard(el,s)});
+}
+function restoreInArc(el){
+  delete el._state;
+  el.style.left=el.dataset.pivotX+'px'; el.style.top=el.dataset.pivotY+'px';
+  el.style.removeProperty('--cw'); el.style.removeProperty('--ch');
+  el.style.transform=`rotate(${el.dataset.angle}deg) translateY(-${el.dataset.radius}px)`;
+  el.firstElementChild.style.transform=''; el.style.zIndex=el.dataset.slot;
+}
+
 function pickCard(el, card){
-  busy=true; activeCard=el; el.style.zIndex=50;
+  if(el!==extendedCard){
+    if(extendedCard){
+      const prev=extendedCard;
+      animateCard(prev, arcState(prev), {duration:.35, ease:'power2.inOut', onComplete:()=>restoreInArc(prev)});
+    }
+    extendedCard=el; el.style.zIndex=100;
+    animateCard(el, arcState(el, cardH/2), {duration:.4, ease:'power2.out'});
+    return;
+  }
+  openCard(el, card);
+}
+
+function openCard(el, card){
+  busy=true; extendedCard=null; activeCard=el;
   document.querySelectorAll('.fcard').forEach(c=>{ if(c!==el) c.classList.add('dim'); });
   dimOverlay.classList.add('on');
   gsap.to(spreadOpts,{opacity:0,duration:.3});
   const reversed = Math.random()<0.5; el.dataset.reversed=reversed;
-  const art=el.querySelector('.fart'); art.classList.toggle('reversed', reversed);
-  const angle=+el.dataset.angle, radius=+el.dataset.radius;
-  const pop={a:angle,r:radius,s:1};
+  el.querySelector('.fart').classList.toggle('reversed', reversed);
 
-  // stage 1: pop up out of the fan on the same pivot
-  gsap.to(pop,{r:radius+cardH*.4,s:1.14,duration:.4,ease:'power2.out',
-    onUpdate:()=>{ el.style.transform=`rotate(${pop.a}deg) translateY(-${pop.r}px) scale(${pop.s})`; },
+  const availW=innerWidth-2*FIT_MARGIN, availH=innerHeight-2*FIT_MARGIN;
+  const h=Math.min(availH, availW*cardH/cardW), w=h*cardW/cardH;
+  animateCard(el, {x:innerWidth/2, y:innerHeight/2, rot:0, w, h, ry:180}, {duration:1.1, ease:'power2.inOut',
     onComplete:()=>{
-      // freeze current on-screen box, then fly it to the centre and flip it face up
-      const rect=el.getBoundingClientRect();
-      el.style.transform='none'; el.style.left=rect.left+'px'; el.style.top=rect.top+'px';
-      el.style.width=rect.width+'px'; el.style.height=rect.height+'px'; el.style.margin='0';
-      const tw=Math.min(innerWidth*0.5,190), th=tw/0.605;
-      gsap.to(el,{left:innerWidth/2-tw/2, top:innerHeight*0.4-th/2, width:tw, height:th,
-        duration:.8, ease:'power3.out'});
-      const flip={ry:0};
-      gsap.to(flip,{ry:180,duration:.7,delay:.08,ease:'power2.inOut',
-        onUpdate:()=>{ el.querySelector('.fcard-inner').style.transform=`rotateY(${flip.ry}deg)`; }});
-      setTimeout(()=>{
-        document.getElementById('mName').textContent=card.name;
-        document.getElementById('mOrient').textContent=reversed?'Перевёрнутое положение':'Прямое положение';
-        document.getElementById('mText').textContent=reversed?card.rev:card.up;
-        meaningPanel.classList.add('show');
-        let drip=el.querySelector('.drip');
-        if(!drip){ drip=document.createElement('div'); drip.className='drip'; el.querySelector('.face.front').appendChild(drip); }
-        drip.classList.add('run');
-        busy=false;
-      },780);
+      document.getElementById('mName').textContent=card.name;
+      document.getElementById('mOrient').textContent=reversed?'Перевёрнутое положение':'Прямое положение';
+      document.getElementById('mText').textContent=reversed?card.rev:card.up;
+      meaningPanel.classList.add('show');
+      let drip=el.querySelector('.drip');
+      if(!drip){ drip=document.createElement('div'); drip.className='drip'; el.querySelector('.face.front').appendChild(drip); }
+      drip.classList.add('run');
+      busy=false;
     }});
 }
 
@@ -249,25 +280,12 @@ document.getElementById('returnBtn').addEventListener('click', ()=>{
   busy=true; const el=activeCard;
   meaningPanel.classList.remove('show');
   const drip=el.querySelector('.drip'); if(drip) drip.classList.remove('run');
-  const flip={ry:180};
-  gsap.to(flip,{ry:0,duration:.5,ease:'power2.inOut',
-    onUpdate:()=>{ el.querySelector('.fcard-inner').style.transform=`rotateY(${flip.ry}deg)`; }});
-  const angle=+el.dataset.angle, radius=+el.dataset.radius;
-  gsap.to(el,{width:cardW,height:cardH,duration:.55,ease:'power2.inOut',
+  animateCard(el, arcState(el), {duration:.9, ease:'power2.inOut',
     onComplete:()=>{
-      // convert back from fixed left/top box to the pivoted transform representation
-      el.style.left=el.dataset.pivotX+'px'; el.style.top=el.dataset.pivotY+'px';
-      el.style.width=''; el.style.height=''; el.style.margin='';
-      const pop={a:angle,r:radius+cardH*.4,s:1.14};
-      el.style.transform=`rotate(${pop.a}deg) translateY(-${pop.r}px) scale(${pop.s})`;
-      gsap.to(pop,{r:radius,s:1,duration:.4,ease:'power2.out',
-        onUpdate:()=>{ el.style.transform=`rotate(${pop.a}deg) translateY(-${pop.r}px) scale(${pop.s})`; },
-        onComplete:()=>{
-          el.style.zIndex='';
-          document.querySelectorAll('.fcard').forEach(c=>c.classList.remove('dim'));
-          dimOverlay.classList.remove('on');
-          gsap.to(spreadOpts,{opacity:1,duration:.3});
-          activeCard=null; busy=false;
-        }});
+      restoreInArc(el);
+      document.querySelectorAll('.fcard').forEach(c=>c.classList.remove('dim'));
+      dimOverlay.classList.remove('on');
+      gsap.to(spreadOpts,{opacity:1,duration:.3});
+      activeCard=null; busy=false;
     }});
 });

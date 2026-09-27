@@ -42,19 +42,37 @@ Object.entries(SUITS).forEach(([k,[label,theme]])=>{
   });
 });
 
+/* ---------- theme ---------- */
+// 'noir' - the deck's red / black / white; 'gold' - the original gold esoteric look
+const THEMES={noir:'Нуар', gold:'Золото'};
+let theme=localStorage.getItem('theme') in THEMES ? localStorage.getItem('theme') : 'noir';
+const themeToggle=document.getElementById('themeToggle');
+function applyTheme(){
+  document.body.classList.toggle('noir', theme==='noir');
+  themeToggle.textContent='Тема: '+THEMES[theme];
+}
+themeToggle.addEventListener('click', ()=>{
+  theme = theme==='noir' ? 'gold' : 'noir';
+  localStorage.setItem('theme', theme); applyTheme();
+});
+applyTheme();
+
 /* ---------- particles ---------- */
 const canvas=document.getElementById('dust'), ctx=canvas.getContext('2d');
 function resize(){canvas.width=innerWidth; canvas.height=innerHeight;}
 resize(); addEventListener('resize',resize);
 const P = Array.from({length:70},()=>({x:Math.random()*innerWidth,y:Math.random()*innerHeight,r:Math.random()*1.6+.3,
-  vy:-(Math.random()*.25+.05), vx:(Math.random()-.5)*.15, a:Math.random()*.5+.2}));
+  vy:-(Math.random()*.25+.05), vx:(Math.random()-.5)*.15, a:Math.random()*.5+.2, red:Math.random()<.12}));
 function tick(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
-  ctx.fillStyle='#e8cf8a';
+  const noir=theme==='noir';
   P.forEach(p=>{
     p.y+=p.vy; p.x+=p.vx+Math.sin(p.y*.01)*.1;
     if(p.y<-5){p.y=innerHeight+5; p.x=Math.random()*innerWidth;}
-    ctx.globalAlpha=p.a; ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,7); ctx.fill();
+    // noir: grey ash with a rare red speck
+    ctx.fillStyle = !noir ? '#e8cf8a' : p.red ? '#e32222' : '#bdb8b2';
+    ctx.globalAlpha = noir && !p.red ? p.a*.7 : p.a;
+    ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,7); ctx.fill();
   });
   requestAnimationFrame(tick);
 }

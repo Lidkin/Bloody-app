@@ -303,7 +303,7 @@ function buildFan(onReady){
   const outerIdx = deckOrder.slice(0, nOuter);
   const innerIdx = deckOrder.slice(nOuter).slice().reverse();
   const dropOuter=dropper(outerIdx, rOuter, 100), dropInner=dropper(innerIdx, rInner, 0);
-  const sweepDur=count=>Math.max(.9, count*0.065);
+  const sweepDur=count=>Math.max(.7, count*0.045);
 
   // wait until the mover's image is decoded, otherwise it blinks for a frame on appear
   const img=mover.querySelector('img');
@@ -316,7 +316,7 @@ function buildFan(onReady){
     tl.to(pop,{a:angleEnd,duration:sweepDur(outerIdx.length),ease:'sine.inOut',
       onStart:dropOuter, onUpdate:()=>{ setMover(); dropOuter(); }, onComplete:dropOuter});
     // the rest of the deck spirals back through the gap between the arcs to the lower arc's start
-    tl.to(pop,{a:angleStart,r:rInner,duration:1,ease:'power2.inOut',onUpdate:setMover});
+    tl.to(pop,{a:angleStart,r:rInner,duration:.8,ease:'power2.inOut',onUpdate:setMover});
     tl.to(pop,{a:angleEnd,duration:sweepDur(innerIdx.length),ease:'sine.inOut',
       onStart:dropInner, onUpdate:()=>{ setMover(); dropInner(); }, onComplete:dropInner});
   });

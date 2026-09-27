@@ -66,6 +66,8 @@ const openingEl=document.getElementById('opening'), fanScreen=document.getElemen
   deckStack=document.getElementById('deckStack'), dimOverlay=document.getElementById('dimOverlay'),
   meaningPanel=document.getElementById('meaningPanel'), spreadOpts=document.getElementById('spreadOpts');
 let mode='day', deckOrder=[], activeCard=null, busy=false, cardW=76, cardH=118;
+const SHOW_SPREAD_OPTS=false; // spread choice (day / three cards / Celtic cross) is hidden for now
+if(!SHOW_SPREAD_OPTS) spreadOpts.style.display='none';
 
 function showToast(msg){toast.textContent=msg; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'),1600);}
 
@@ -102,7 +104,7 @@ function layoutFan(){
   // each card's centre sits on its arc. The radial distance between the arcs is one card
   // height plus the required gap of 2/3 card height, so the arcs never touch.
   const ASPECT=76/118, GAP=2/3, MIN_STEP=0.28; // MIN_STEP: neighbour spacing on the inner arc, in card widths
-  const topMargin = spreadOpts.getBoundingClientRect().bottom + 40;
+  const topMargin = (SHOW_SPREAD_OPTS ? spreadOpts : document.querySelector('h1.title')).getBoundingClientRect().bottom + 40;
   const bottomMargin = 24 + (parseFloat(getComputedStyle(document.documentElement).paddingBottom)||0);
   const sideMargin = 16;
   const availW=innerWidth-sideMargin*2, availH=innerHeight-topMargin-bottomMargin;

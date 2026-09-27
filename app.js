@@ -105,7 +105,7 @@ function showToast(msg){toast.textContent=msg; toast.classList.add('show'); setT
 // The ask button starts the shuffle and then turns into "Довольно": the deck keeps shuffling until
 // the user stops it, like in a real reading.
 const askBtn=document.getElementById('askBtn');
-const STOP_HTML='<span class="orn">✦</span> Довольно <span class="orn">✦</span>';
+const ASK_HTML=askBtn.innerHTML, STOP_HTML='<span class="orn">✦</span> Довольно <span class="orn">✦</span>';
 let shufflePhase='idle'; // idle -> shuffling -> stopping
 function hideAskBtn(then){
   // the pulse keyframes would override the inline opacity, so freeze the pulse where it is and fade from there
@@ -136,7 +136,9 @@ function shuffleDeck(onDone){
   const w=deckStack.offsetWidth, h=deckStack.offsetHeight, out=w*.7;
   // the cut needs about 2.3 deck heights of room vertically; shrink the zoom on low screens
   // CLEAR: lift (in deck heights) at which even the corners of the turning part stay above the rest
-  const CLEAR=.5+Math.hypot(w,h)/2/h+.03, HIGHER=CLEAR+.22, span=HIGHER+1, zoom=Math.min(1.4, innerHeight*.85/(span*h));
+  // (and on narrow screens the cards sliding out sideways, 0.7 deck widths each way, must stay in view)
+  const CLEAR=.5+Math.hypot(w,h)/2/h+.03, HIGHER=CLEAR+.22, span=HIGHER+1;
+  const zoom=Math.min(1.4, innerHeight*.85/(span*h), innerWidth*.92/(w*2.4));
   const dip=(span-1)/2*h*zoom;
   let dir=1;
 
@@ -160,7 +162,8 @@ function shuffleDeck(onDone){
   // 1.4 s in all; the stages overlap a little so the motion never stops dead
   function cut(){
     const top=deckStack.lastElementChild;
-    const tl=gsap.timeline({onComplete:settle});
+    // portrait phones get no fan: the card of the day is drawn straight from the deck
+    const tl=gsap.timeline({onComplete:()=> isPortraitMobile() ? drawFromDeck(dip) : settleDeck(dip, onDone)});
     tl.to(deckStack,{y:`+=${dip}`, duration:.56, ease:'sine.inOut'}, 0)
       .to(top,{y:-h*CLEAR, duration:.48, ease:'sine.inOut'}, 0)
       .to(top,{rotation:180, duration:.48, ease:'sine.inOut'}, .42) // starts as it clears the rest
@@ -170,11 +173,51 @@ function shuffleDeck(onDone){
       .set(top,{rotation:0}, 1.4); // hidden under the deck by now; 0 and 180 look the same from outside
   }
 
-  function settle(){
-    const tl=gsap.timeline({onComplete:()=>{ shufflePhase='idle'; onDone(); }});
-    tl.to(deckStack,{scale:1, y:`-=${dip}`, duration:GROW, ease:'sine.inOut'}, 0);
-    [...deckStack.children].forEach((img,i)=>tl.to(img,{...DECK_REST[i], duration:GROW, ease:'sine.inOut'}, 0));
-  }
+}
+
+// the deck shrinks back from the shuffle zoom, rises by the dip and its cards fall back into their loose pose
+function settleDeck(dip, onDone){
+  const tl=gsap.timeline({onComplete:()=>{ shufflePhase='idle'; onDone(); }});
+  tl.to(deckStack,{scale:1, y:`-=${dip}`, duration:.4, ease:'sine.inOut'}, 0);
+  [...deckStack.children].forEach((img,i)=>tl.to(img,{...DECK_REST[i], duration:.4, ease:'sine.inOut'}, 0));
+}
+
+const isPortraitMobile=()=>matchMedia('(orientation: portrait)').matches &&
+  (matchMedia('(pointer: coarse)').matches || innerWidth<600);
+
+// Portrait phones: the deck stays where it is, still enlarged; its top card slowly slides up, then
+// grows and flips face up around its vertical axis into the same pose as a card drawn from the fan.
+// A real card element takes the place of the top image of the deck for this.
+function drawFromDeck(dip){
+  fanScreen.hidden=false; gsap.set(spreadOpts,{opacity:0});
+  fan.innerHTML=''; fan.appendChild(dimOverlay); dimOverlay.classList.remove('on');
+  const topImg=deckStack.lastElementChild, r=topImg.getBoundingClientRect();
+  const card=DECK[Math.floor(Math.random()*DECK.length)];
+  const el=makeCard(card, 0, 0); el.style.zIndex=1000;
+  el._fromDeck={topImg, dip, rest:{x:r.left+r.width/2, y:r.top+r.height/2, rot:0, w:r.width, h:r.height, ry:0}};
+  const s=el._state={...el._fromDeck.rest};
+  const render=()=>renderCard(el,s);
+  render(); fan.appendChild(el); topImg.style.visibility='hidden';
+  busy=true; activeCard=el;
+  const pose=openedPose(el, card);
+  gsap.timeline()
+    .to(s,{y:s.y-s.h*.45, duration:.9, ease:'sine.in', onUpdate:render})
+    // the deck ends up under the description, so it fades back to keep the text readable
+    .call(()=>{ dimOverlay.classList.add('on'); gsap.to(deckStack,{opacity:.3, duration:.8}); })
+    .to(s,{...pose, duration:1.3, ease:'power2.out', onUpdate:render,
+      onComplete:()=>{ meaningPanel.classList.add('show'); busy=false; }});
+}
+// the reverse; the deck then settles and the ask button comes back for the next reading
+function returnToDeck(el){
+  const {topImg, dip, rest}=el._fromDeck, s=el._state, render=()=>renderCard(el,s);
+  dimOverlay.classList.remove('on'); gsap.to(deckStack,{opacity:1, duration:.8});
+  gsap.timeline()
+    .to(s,{...rest, y:rest.y-rest.h*.45, duration:1.1, ease:'power2.inOut', onUpdate:render})
+    .to(s,{y:rest.y, duration:.5, ease:'sine.out', onUpdate:render})
+    .call(()=>{
+      topImg.style.visibility=''; el.remove(); fanScreen.hidden=true; activeCard=null;
+      settleDeck(dip, ()=>{ showAskBtn(ASK_HTML); busy=false; });
+    });
 }
 
 // The deck flies from the velvet to the first slot of the upper arc; dealing starts from there.
@@ -246,32 +289,33 @@ function layoutFan(){
   return fanLayout={nOuter, angleStart, angleEnd, rOuter, rInner, pivotX, pivotY};
 }
 
+// A card element (back + face) placed at (pivotX, pivotY); in the fan that is the arcs' centre.
+function makeCard(card, pivotX, pivotY){
+  const el=document.createElement('div'); el.className='fcard';
+  el.style.left=pivotX+'px'; el.style.top=pivotY+'px';
+  el.dataset.pivotX=pivotX; el.dataset.pivotY=pivotY;
+  const inner=document.createElement('div'); inner.className='fcard-inner';
+  inner.innerHTML=`<div class="face back"><img src="${IMG_BACK}"></div><div class="face front"></div>`;
+  const front=inner.querySelector('.face.front');
+  if(card.art!==null){
+    front.innerHTML='<img class="fart">';
+    front.querySelector('.fart').src=ART[card.art];
+  } else {
+    front.innerHTML='<div class="tface fart"><div class="tframe"></div><div class="fnum"></div><div class="ftext"></div></div>';
+    front.querySelector('.fnum').textContent=card.num||'';
+    front.querySelector('.ftext').textContent=card.name;
+  }
+  el.appendChild(inner);
+  el._card=card;
+  return el;
+}
+
 function buildFan(onReady){
   hoverCard=null; fan.innerHTML=''; fan.appendChild(dimOverlay); dimOverlay.classList.remove('on');
   meaningPanel.classList.remove('show'); gsap.to(spreadOpts,{opacity:1,duration:.4});
   deckOrder=[...DECK.keys()];
   for(let i=deckOrder.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[deckOrder[i],deckOrder[j]]=[deckOrder[j],deckOrder[i]];}
   const {nOuter, angleStart, angleEnd, rOuter, rInner, pivotX, pivotY} = fanLayout || layoutFan();
-
-  const makeCard=(card)=>{
-    const el=document.createElement('div'); el.className='fcard';
-    el.style.left=pivotX+'px'; el.style.top=pivotY+'px';
-    el.dataset.pivotX=pivotX; el.dataset.pivotY=pivotY;
-    const inner=document.createElement('div'); inner.className='fcard-inner';
-    inner.innerHTML=`<div class="face back"><img src="${IMG_BACK}"></div><div class="face front"></div>`;
-    const front=inner.querySelector('.face.front');
-    if(card.art!==null){
-      front.innerHTML='<img class="fart">';
-      front.querySelector('.fart').src=ART[card.art];
-    } else {
-      front.innerHTML='<div class="tface fart"><div class="tframe"></div><div class="fnum"></div><div class="ftext"></div></div>';
-      front.querySelector('.fnum').textContent=card.num||'';
-      front.querySelector('.ftext').textContent=card.name;
-    }
-    el.appendChild(inner);
-    el._card=card;
-    return el;
-  };
 
   // A single "mover" (the deck itself) glides along the upper arc, then on to the lower one;
   // every card it passes is left behind exactly where the mover was at that instant.
@@ -292,7 +336,7 @@ function buildFan(onReady){
     return ()=>{
       while(next<n && slotAngle(next)<=pop.a+1e-6){
         const slot=next++, angle=slotAngle(slot);
-        const el=makeCard(DECK[indices[slot]]);
+        const el=makeCard(DECK[indices[slot]], pivotX, pivotY);
         el.dataset.z=zBase+slot; el.style.zIndex=el.dataset.z;
         el.dataset.angle=angle; el.dataset.radius=radius;
         el.style.transform=`rotate(${angle}deg) translateY(-${radius}px)`;
@@ -393,21 +437,27 @@ fan.addEventListener('click', e=>{
   if(el) openCard(el, el._card);
 });
 
-function openCard(el, card){
-  busy=true; activeCard=el; hoverCard=null; fan.style.cursor='';
+// Draws a random orientation for the card, fills the description and places it; returns the pose
+// of the opened card (face up): card + description fit the viewport minus FIT_MARGIN, the
+// description right under the card.
+function openedPose(el, card){
   const reversed = Math.random()<0.5; el.dataset.reversed=reversed;
   el.querySelector('.fart').classList.toggle('reversed', reversed);
-
-  // fill the description first so its real height is known, then fit card + description
-  // into the viewport minus FIT_MARGIN; the description sits right under the card
+  // fill the description first so its real height is known
   document.getElementById('mName').textContent=card.name;
   document.getElementById('mOrient').textContent=reversed?'Перевёрнутое положение':'Прямое положение';
   document.getElementById('mText').textContent=reversed?card.rev:card.up;
-  const GAP=16, panelH=meaningPanel.offsetHeight;
+  const GAP=16, panelH=meaningPanel.offsetHeight, ASPECT=76/118;
   const availW=innerWidth-2*FIT_MARGIN, availH=innerHeight-2*FIT_MARGIN-GAP-panelH;
-  const h=Math.min(availH, availW*cardH/cardW), w=h*cardW/cardH;
+  const h=Math.min(availH, availW/ASPECT), w=h*ASPECT;
   const top=Math.max(FIT_MARGIN, (innerHeight-(h+GAP+panelH))/2);
   meaningPanel.style.top=(top+h+GAP)+'px'; meaningPanel.style.bottom='auto';
+  return {x:innerWidth/2, y:top+h/2, rot:0, w, h, ry:180};
+}
+
+function openCard(el, card){
+  busy=true; activeCard=el; hoverCard=null; fan.style.cursor='';
+  const pose=openedPose(el, card);
 
   // slide fully out of the arc, then - without stopping - grow, straighten and flip
   const s=el._state || (el._state=arcState(el));
@@ -422,7 +472,7 @@ function openCard(el, card){
       dimOverlay.classList.add('on');
       gsap.to(spreadOpts,{opacity:0,duration:.3});
     })
-    .to(s,{x:innerWidth/2, y:top+h/2, rot:0, w, h, ry:180, duration:1, ease:'power2.out', onUpdate:render,
+    .to(s,{...pose, duration:1, ease:'power2.out', onUpdate:render,
       onComplete:()=>{
         meaningPanel.classList.add('show');
         busy=false;
@@ -433,6 +483,7 @@ document.getElementById('returnBtn').addEventListener('click', ()=>{
   if(!activeCard || busy) return;
   busy=true; const el=activeCard;
   meaningPanel.classList.remove('show');
+  if(el._fromDeck){ returnToDeck(el); return; }
   // the exact reverse: shrink and flip back to just outside the arc, then slide into the slot
   const s=el._state, render=()=>renderCard(el,s);
   gsap.killTweensOf(s);

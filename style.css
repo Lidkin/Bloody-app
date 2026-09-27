@@ -91,6 +91,10 @@ h1.title{position:fixed; top:calc(14px + env(safe-area-inset-top,0px)); left:50%
   margin:0; white-space:nowrap; font-family:var(--head-font); color:var(--accent);
   font-size:13px; letter-spacing:3px; opacity:.6; z-index:5; text-transform:uppercase;}
 body.noir h1.title, body.noir .meaning-panel h2{letter-spacing:4px; font-weight:500;}
+/* noir: the title's stars become blood drops */
+body.noir h1.title .orn{display:inline-block; width:.62em; height:.9em; vertical-align:-.05em; color:transparent; overflow:hidden;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 29'%3E%3Cpath d='M10 0C10 0 1 12.5 1 19a9 9 0 0 0 18 0C19 12.5 10 0 10 0z' fill='%23e32222'/%3E%3Cellipse cx='6.3' cy='19' rx='1.6' ry='3' fill='%23fff' opacity='.35'/%3E%3C/svg%3E") center/contain no-repeat;}
+body.noir h1.title{opacity:.75;}
 .theme-toggle{position:fixed; right:14px; bottom:calc(14px + env(safe-area-inset-bottom,0px)); z-index:20;
   background:rgba(0,0,0,.4); border:1px solid rgba(var(--accent-rgb),.35); color:var(--accent);
   font-family:var(--head-font); font-size:11px; letter-spacing:1.5px; text-transform:uppercase;

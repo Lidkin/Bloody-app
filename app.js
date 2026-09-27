@@ -62,17 +62,29 @@ const canvas=document.getElementById('dust'), ctx=canvas.getContext('2d');
 function resize(){canvas.width=innerWidth; canvas.height=innerHeight;}
 resize(); addEventListener('resize',resize);
 const P = Array.from({length:70},()=>({x:Math.random()*innerWidth,y:Math.random()*innerHeight,r:Math.random()*1.6+.3,
-  vy:-(Math.random()*.25+.05), vx:(Math.random()-.5)*.15, a:Math.random()*.5+.2, red:Math.random()<.12}));
+  vy:-(Math.random()*.25+.05), vx:(Math.random()-.5)*.15, a:Math.random()*.5+.2,
+  mix:Math.random(), flash:0}));
+// noir dust: each speck sits somewhere between grey and burgundy and now and then flares bright red
+const ASH=[150,138,142], BURGUNDY=[150,38,54], FLARE=[255,34,34], FLASH_FRAMES=70;
+const lerp=(a,b,t)=>a.map((v,i)=>Math.round(v+(b[i]-v)*t));
 function tick(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
   const noir=theme==='noir';
   P.forEach(p=>{
     p.y+=p.vy; p.x+=p.vx+Math.sin(p.y*.01)*.1;
     if(p.y<-5){p.y=innerHeight+5; p.x=Math.random()*innerWidth;}
-    // noir: grey ash with a rare red speck
-    ctx.fillStyle = !noir ? '#e8cf8a' : p.red ? '#e32222' : '#bdb8b2';
-    ctx.globalAlpha = noir && !p.red ? p.a*.7 : p.a;
-    ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,7); ctx.fill();
+    let r=p.r;
+    if(!noir){ ctx.fillStyle='#e8cf8a'; ctx.globalAlpha=p.a; ctx.shadowBlur=0; }
+    else{
+      if(!p.flash && Math.random()<.0003) p.flash=FLASH_FRAMES;
+      const f = p.flash ? Math.sin(Math.PI*p.flash/FLASH_FRAMES) : 0; // 0 -> 1 -> 0
+      if(p.flash) p.flash--;
+      ctx.fillStyle=`rgb(${lerp(lerp(ASH,BURGUNDY,p.mix),FLARE,f)})`;
+      ctx.globalAlpha=p.a*.8+(1-p.a*.8)*f;
+      ctx.shadowColor='#ff2222'; ctx.shadowBlur=6*f;
+      r=p.r*(1+.5*f);
+    }
+    ctx.beginPath(); ctx.arc(p.x,p.y,r,0,7); ctx.fill();
   });
   requestAnimationFrame(tick);
 }

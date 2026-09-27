@@ -1,0 +1,78 @@
+:root{
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  --red:#a11322; --gold:#c9a24b; --ink:#eee3d8; --muted:#9d8f8a;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{height:100%;margin:0; background:#050303; overflow:hidden; font-family:'Cormorant Garamond',Georgia,serif;}
+body{color:var(--ink); position:relative;}
+canvas#dust{position:fixed; inset:0; z-index:1; pointer-events:none;}
+.vignette{position:fixed; inset:0; z-index:2; pointer-events:none;
+  background:radial-gradient(ellipse at 50% 45%, transparent 30%, rgba(0,0,0,.75) 100%);}
+.glow{position:fixed; inset:0; z-index:0; pointer-events:none;
+  background:radial-gradient(ellipse 55% 40% at 50% 42%, rgba(180,120,40,.16), transparent 70%);
+  animation:flicker 5s infinite ease-in-out;}
+@keyframes flicker{0%,100%{opacity:.85}30%{opacity:1}45%{opacity:.7}60%{opacity:.95}80%{opacity:.75}}
+
+.scene{position:fixed; inset:0; z-index:3; display:flex; flex-direction:column; align-items:center; justify-content:center;}
+.scene[hidden]{display:none;}
+
+/* ---------- OPENING ---------- */
+.velvet{position:relative; width:min(92vw,520px); height:min(60vh,420px);}
+.deck-stack{position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:120px; height:190px;}
+.deck-stack img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; border-radius:8px;
+  box-shadow:0 10px 24px rgba(0,0,0,.7); border:1px solid rgba(0,0,0,.6);}
+.deck-stack img:nth-child(1){transform:rotate(-4deg) translate(-3px,1px);}
+.deck-stack img:nth-child(2){transform:rotate(2deg) translate(2px,-1px);}
+.deck-stack img:nth-child(3){transform:rotate(0deg);}
+
+.ask-btn{margin-top:34px; background:none; border:none; color:var(--gold); font-family:'Cinzel',serif;
+  font-size:14px; letter-spacing:3px; cursor:pointer; text-transform:uppercase;
+  animation:pulse 2.4s infinite ease-in-out; text-shadow:0 0 12px rgba(201,162,75,.6);}
+@keyframes pulse{0%,100%{opacity:.45}50%{opacity:1}}
+
+/* ---------- FAN ---------- */
+#fanScreen{justify-content:flex-start; padding-top:calc(48px + env(safe-area-inset-top,0px));}
+.spread-options{display:flex; gap:26px; margin-bottom:8px; z-index:5; flex-wrap:wrap; justify-content:center; padding:0 12px;}
+.opt{font-family:'Cinzel',serif; font-size:12px; letter-spacing:1.5px; color:var(--muted); cursor:pointer;
+  text-transform:uppercase; animation:pulse 3s infinite ease-in-out; transition:.2s;}
+.opt.active{color:var(--gold); text-shadow:0 0 10px rgba(201,162,75,.7);}
+/* perspective makes .fan the containing block of its position:fixed cards, so it must cover the
+   viewport exactly - otherwise every card is shifted by the offset of .fan */
+.fan{position:fixed; inset:0; perspective:1000px;}
+.fcard{position:fixed; width:var(--cw,76px); height:var(--ch,118px);
+  margin:calc(var(--ch,118px) / -2) 0 0 calc(var(--cw,76px) / -2);
+  cursor:pointer; transform-origin:50% 50%; transition:filter .3s;}
+.fcard.dim{filter:brightness(.25) saturate(.4); pointer-events:none;}
+.fcard.mover{pointer-events:none; box-shadow:0 0 0 1px rgba(0,0,0,.3);}
+.fcard-inner{position:relative; width:100%; height:100%; transform-style:preserve-3d;}
+.face{position:absolute; inset:0; border-radius:7px; overflow:hidden; backface-visibility:hidden;
+  border:1px solid rgba(0,0,0,.5); box-shadow:0 6px 14px rgba(0,0,0,.55);}
+.face img{width:100%; height:100%; object-fit:cover; display:block;}
+.face.front{transform:rotateY(180deg); background:#1a0f14;}
+.face.front img.reversed{transform:rotate(180deg);}
+.face.front .ftext{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; text-align:center;
+  font-family:'Cinzel',serif; font-size:calc(var(--cw,76px) * .12); letter-spacing:.5px; color:var(--gold); padding:6px; line-height:1.25;
+  background:linear-gradient(rgba(10,3,3,.35),rgba(10,3,3,.55));}
+.toast{position:absolute; bottom:2%; left:50%; transform:translateX(-50%); color:var(--muted); font-size:13px; font-style:italic; opacity:0; transition:opacity .3s; white-space:nowrap;}
+.toast.show{opacity:1;}
+
+/* ---------- REVEAL (in place over fan) ---------- */
+.dim-overlay{position:fixed; inset:0; background:rgba(0,0,0,0); pointer-events:none; transition:background .5s; z-index:4;}
+.dim-overlay.on{background:rgba(0,0,0,.55); pointer-events:auto;}
+.drip{position:absolute; top:0; left:38%; width:3px; height:0; background:linear-gradient(#a11322,#5a0a10);
+  border-radius:2px; opacity:0; z-index:7;}
+.drip.run{animation:dripFall 2.4s .3s infinite;}
+@keyframes dripFall{0%{height:0; top:0; opacity:1}70%{height:60px; opacity:1}100%{height:60px; opacity:0}}
+.meaning-panel{position:absolute; left:50%; bottom:6%; transform:translateX(-50%); max-width:420px; width:88%;
+  text-align:center; z-index:6; opacity:0; transition:opacity .5s .3s; pointer-events:none;}
+.meaning-panel.show{opacity:1; pointer-events:auto;}
+.meaning-panel h2{font-family:'Cinzel',serif; color:var(--gold); letter-spacing:1.5px; font-size:19px; margin:0 0 2px;}
+.meaning-panel .orient{display:block; color:#d1444f; font-size:12px; letter-spacing:2px; text-transform:uppercase; margin-bottom:6px;}
+.meaning-panel p{color:var(--ink); font-size:15px; line-height:1.4; margin:0 0 12px;}
+.return-btn{background:none; border:1px solid rgba(201,162,75,.4); color:var(--gold);
+  font-family:'Cinzel',serif; font-size:12px; letter-spacing:1.5px; padding:9px 20px; border-radius:24px;
+  cursor:pointer; text-transform:uppercase; transition:.2s;}
+.return-btn:hover{background:rgba(201,162,75,.12);}
+h1.title{position:fixed; top:calc(14px + env(safe-area-inset-top,0px)); left:50%; transform:translateX(-50%);
+  margin:0; white-space:nowrap; font-family:'Cinzel',serif; color:var(--gold);
+  font-size:13px; letter-spacing:3px; opacity:.6; z-index:5; text-transform:uppercase;}

@@ -102,7 +102,7 @@ function layoutFan(){
   // each card's centre sits on its arc. The radial distance between the arcs is one card
   // height plus the required gap of 2/3 card height, so the arcs never touch.
   const ASPECT=76/118, GAP=2/3, MIN_STEP=0.28; // MIN_STEP: neighbour spacing on the inner arc, in card widths
-  const topMargin = spreadOpts.getBoundingClientRect().bottom + 12;
+  const topMargin = spreadOpts.getBoundingClientRect().bottom + 40;
   const bottomMargin = 24 + (parseFloat(getComputedStyle(document.documentElement).paddingBottom)||0);
   const sideMargin = 16;
   const availW=innerWidth-sideMargin*2, availH=innerHeight-topMargin-bottomMargin;

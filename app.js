@@ -33,7 +33,8 @@ const RMEAN = ["новое начало и потенциал","выбор и б
 
 let DECK = [];
 let id=0;
-MAJOR.forEach((m,i)=>DECK.push({id:id++, name:m[0], up:m[1], rev:m[2], art:ART[i]?i:null, major:true}));
+const ROMAN=["0","I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII","XIII","XIV","XV","XVI","XVII","XVIII","XIX","XX","XXI"];
+MAJOR.forEach((m,i)=>DECK.push({id:id++, name:m[0], up:m[1], rev:m[2], art:ART[i]?i:null, major:true, num:ROMAN[i]}));
 Object.entries(SUITS).forEach(([k,[label,theme]])=>{
   RANKS.forEach((r,i)=>{
     DECK.push({id:id++, name:r+" "+label, up:RMEAN[i]+" — через призму "+theme+".",
@@ -151,11 +152,16 @@ function buildFan(onReady){
     el.style.left=pivotX+'px'; el.style.top=pivotY+'px';
     el.dataset.pivotX=pivotX; el.dataset.pivotY=pivotY;
     const inner=document.createElement('div'); inner.className='fcard-inner';
-    const frontImg = card.art!==null ? ART[card.art] : IMG_BACK;
-    inner.innerHTML=`<div class="face back"><img src="${IMG_BACK}"></div>
-      <div class="face front"><img class="fart"><div class="ftext"></div></div>`;
-    inner.querySelector('.fart').src=frontImg;
-    inner.querySelector('.ftext').textContent = card.art===null ? card.name : '';
+    inner.innerHTML=`<div class="face back"><img src="${IMG_BACK}"></div><div class="face front"></div>`;
+    const front=inner.querySelector('.face.front');
+    if(card.art!==null){
+      front.innerHTML='<img class="fart">';
+      front.querySelector('.fart').src=ART[card.art];
+    } else {
+      front.innerHTML='<div class="tface fart"><div class="tframe"></div><div class="fnum"></div><div class="ftext"></div></div>';
+      front.querySelector('.fnum').textContent=card.num||'';
+      front.querySelector('.ftext').textContent=card.name;
+    }
     el.appendChild(inner);
     el.addEventListener('click', ()=>{ if(!busy) pickCard(el, card); });
     return el;
@@ -245,7 +251,8 @@ function pickCard(el, card){
       const prev=extendedCard;
       animateCard(prev, arcState(prev), {duration:.35, ease:'power2.inOut', onComplete:()=>restoreInArc(prev)});
     }
-    extendedCard=el; el.style.zIndex=100;
+    // keeps its own z-index, so it slides out between its neighbours instead of over them
+    extendedCard=el;
     animateCard(el, arcState(el, cardH/2), {duration:.4, ease:'power2.out'});
     return;
   }
@@ -253,20 +260,25 @@ function pickCard(el, card){
 }
 
 function openCard(el, card){
-  busy=true; extendedCard=null; activeCard=el;
+  busy=true; extendedCard=null; activeCard=el; el.style.zIndex=100;
   document.querySelectorAll('.fcard').forEach(c=>{ if(c!==el) c.classList.add('dim'); });
   dimOverlay.classList.add('on');
   gsap.to(spreadOpts,{opacity:0,duration:.3});
   const reversed = Math.random()<0.5; el.dataset.reversed=reversed;
   el.querySelector('.fart').classList.toggle('reversed', reversed);
 
-  const availW=innerWidth-2*FIT_MARGIN, availH=innerHeight-2*FIT_MARGIN;
+  // fill the description first so its real height is known, then fit card + description
+  // into the viewport minus FIT_MARGIN; the description sits right under the card
+  document.getElementById('mName').textContent=card.name;
+  document.getElementById('mOrient').textContent=reversed?'Перевёрнутое положение':'Прямое положение';
+  document.getElementById('mText').textContent=reversed?card.rev:card.up;
+  const GAP=16, panelH=meaningPanel.offsetHeight;
+  const availW=innerWidth-2*FIT_MARGIN, availH=innerHeight-2*FIT_MARGIN-GAP-panelH;
   const h=Math.min(availH, availW*cardH/cardW), w=h*cardW/cardH;
-  animateCard(el, {x:innerWidth/2, y:innerHeight/2, rot:0, w, h, ry:180}, {duration:1.1, ease:'power2.inOut',
+  const top=Math.max(FIT_MARGIN, (innerHeight-(h+GAP+panelH))/2);
+  meaningPanel.style.top=(top+h+GAP)+'px'; meaningPanel.style.bottom='auto';
+  animateCard(el, {x:innerWidth/2, y:top+h/2, rot:0, w, h, ry:180}, {duration:1.1, ease:'power2.inOut',
     onComplete:()=>{
-      document.getElementById('mName').textContent=card.name;
-      document.getElementById('mOrient').textContent=reversed?'Перевёрнутое положение':'Прямое положение';
-      document.getElementById('mText').textContent=reversed?card.rev:card.up;
       meaningPanel.classList.add('show');
       let drip=el.querySelector('.drip');
       if(!drip){ drip=document.createElement('div'); drip.className='drip'; el.querySelector('.face.front').appendChild(drip); }

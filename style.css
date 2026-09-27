@@ -45,14 +45,20 @@ canvas#dust{position:fixed; inset:0; z-index:1; pointer-events:none;}
 .fcard.dim{filter:brightness(.25) saturate(.4); pointer-events:none;}
 .fcard.mover{pointer-events:none; box-shadow:0 0 0 1px rgba(0,0,0,.3);}
 .fcard-inner{position:relative; width:100%; height:100%; transform-style:preserve-3d;}
-.face{position:absolute; inset:0; border-radius:7px; overflow:hidden; backface-visibility:hidden;
+.face{position:absolute; inset:0; border-radius:calc(var(--cw,76px) * .092); overflow:hidden; backface-visibility:hidden;
   border:1px solid rgba(0,0,0,.5); box-shadow:0 6px 14px rgba(0,0,0,.55);}
 .face img{width:100%; height:100%; object-fit:cover; display:block;}
 .face.front{transform:rotateY(180deg); background:#1a0f14;}
-.face.front img.reversed{transform:rotate(180deg);}
-.face.front .ftext{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; text-align:center;
-  font-family:'Cinzel',serif; font-size:calc(var(--cw,76px) * .12); letter-spacing:.5px; color:var(--gold); padding:6px; line-height:1.25;
-  background:linear-gradient(rgba(10,3,3,.35),rgba(10,3,3,.55));}
+.face.front .reversed{transform:rotate(180deg);}
+/* face for cards that have no artwork yet; every size is relative to the card width */
+.face.front .tface{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  background:radial-gradient(ellipse at 50% 38%, #3a161c 0%, #1a0a0e 60%, #0c0507 100%);}
+.face.front .tframe{position:absolute; inset:calc(var(--cw,76px) * .06); border:1px solid rgba(201,162,75,.55);
+  border-radius:calc(var(--cw,76px) * .05); box-shadow:inset 0 0 calc(var(--cw,76px) * .08) rgba(201,162,75,.15);}
+.face.front .fnum{font-family:'Cinzel',serif; color:var(--gold); font-size:calc(var(--cw,76px) * .16);
+  letter-spacing:1px; margin-bottom:calc(var(--cw,76px) * .08); opacity:.85;}
+.face.front .ftext{font-family:'Cinzel',serif; font-size:calc(var(--cw,76px) * .12); letter-spacing:.5px; color:var(--gold);
+  text-align:center; padding:0 calc(var(--cw,76px) * .12); line-height:1.25;}
 .toast{position:absolute; bottom:2%; left:50%; transform:translateX(-50%); color:var(--muted); font-size:13px; font-style:italic; opacity:0; transition:opacity .3s; white-space:nowrap;}
 .toast.show{opacity:1;}
 

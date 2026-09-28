@@ -50,10 +50,10 @@ canvas#dust{position:fixed; inset:0; z-index:1; pointer-events:none;}
 body:not(.fonts-ready) .ask-btn, body:not(.fonts-ready) h1.title, body:not(.fonts-ready) .theme-toggle{visibility:hidden;}
 /* a letter of the ask label flaring up bright red, like a speck of the dust */
 .ask-btn .ch{display:inline-block;}
-.ask-btn .ch.flare{animation:letterFlare 1.2s ease-in-out;}
+.ask-btn .ch.flare{animation:letterFlare 2.5s ease-in-out;}
 @keyframes letterFlare{
   0%,100%{color:inherit;}
-  35%,50%{color:#ff2a2a; text-shadow:0 0 6px #ff2222, 0 0 16px rgba(255,34,34,.7);}
+  50%{color:#ff2a2a; text-shadow:0 0 6px #ff2222, 0 0 16px rgba(255,34,34,.7);}
 }
 .ask-sub{margin-top:6px; color:var(--muted); font-size:13px; font-style:italic; letter-spacing:1px; transition:opacity .3s;}
 .ask-sub.gone{opacity:0;}

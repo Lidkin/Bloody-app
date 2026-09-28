@@ -105,6 +105,26 @@ function showToast(msg){toast.textContent=msg; toast.classList.add('show'); setT
 // The ask button starts the shuffle and then turns into "Довольно": the deck keeps shuffling until
 // the user stops it, like in a real reading.
 const askBtn=document.getElementById('askBtn');
+// every letter of the label in its own span, so single letters can flare up like the dust
+askBtn.childNodes.forEach(n=>{
+  if(n.nodeType!==Node.TEXT_NODE) return;
+  const frag=document.createDocumentFragment();
+  [...n.textContent].forEach(ch=>{
+    if(ch.trim()){ const s=document.createElement('span'); s.className='ch'; s.textContent=ch; frag.appendChild(s); }
+    else frag.appendChild(document.createTextNode(ch));
+  });
+  n.replaceWith(frag);
+});
+(function flareLetters(){
+  const idle=[...askBtn.querySelectorAll('.ch:not(.flare)')];
+  if(idle.length && askBtn.style.visibility!=='hidden'){
+    const ch=idle[Math.floor(Math.random()*idle.length)];
+    ch.style.animationDuration=(.8+Math.random()*.9)+'s';
+    ch.classList.add('flare');
+    ch.addEventListener('animationend', ()=>ch.classList.remove('flare'), {once:true});
+  }
+  setTimeout(flareLetters, 180+Math.random()*520);
+})();
 const ASK_HTML=askBtn.innerHTML, STOP_HTML='<span class="orn">✦</span> Довольно <span class="orn">✦</span>';
 let shufflePhase='idle'; // idle -> shuffling -> stopping
 function hideAskBtn(then){

@@ -1,7 +1,7 @@
 :root{
   box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
   --red:#a11322; --ink:#eee3d8; --muted:#9d8f8a;
-  --card-edge:.5px solid #7a2012; /* thin warm dark-red outline of every card */
+  --card-edge:.5px solid #2a0907; /* thin warm near-black red outline of every card */
   /* theme: gold esoteric by default, body.noir switches to the deck's red / black / white */
   --accent:#c9a24b; --accent-rgb:201,162,75; --orient:#d1444f;
   --glow:rgba(180,120,40,.16); --head-font:'Cinzel',serif;
@@ -51,10 +51,10 @@ canvas#dust{position:fixed; inset:0; z-index:1; pointer-events:none;}
 body:not(.fonts-ready) .ask-btn, body:not(.fonts-ready) h1.title, body:not(.fonts-ready) .theme-toggle{visibility:hidden;}
 /* a letter of the ask label flaring up bright red, like a speck of the dust */
 .ask-btn .ch{display:inline-block;}
-.ask-btn .ch.flare{animation:letterFlare 2.5s ease-in-out;}
+.ask-btn .ch.flare{animation:letterFlare .45s ease-out;}
 @keyframes letterFlare{
   0%,100%{color:inherit;}
-  50%{color:#ff2a2a; text-shadow:0 0 6px #ff2222, 0 0 16px rgba(255,34,34,.7);}
+  20%{color:#ff2a2a; text-shadow:0 0 6px #ff2222, 0 0 16px rgba(255,34,34,.7);}
 }
 .ask-sub{margin-top:6px; color:var(--muted); font-size:13px; font-style:italic; letter-spacing:1px; transition:opacity .3s;}
 .ask-sub.gone{opacity:0;}

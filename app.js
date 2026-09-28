@@ -119,11 +119,11 @@ askBtn.childNodes.forEach(n=>{
   const idle=[...askBtn.querySelectorAll('.ch:not(.flare)')];
   if(idle.length && askBtn.style.visibility!=='hidden'){
     const ch=idle[Math.floor(Math.random()*idle.length)];
-    ch.style.animationDuration=(2.2+Math.random()*1.3)+'s';
+    ch.style.animationDuration=(.35+Math.random()*.25)+'s';
     ch.classList.add('flare');
     ch.addEventListener('animationend', ()=>ch.classList.remove('flare'), {once:true});
   }
-  setTimeout(flareLetters, 1800+Math.random()*2700);
+  setTimeout(flareLetters, 4000+Math.random()*5000);
 })();
 const ASK_HTML=askBtn.innerHTML, STOP_HTML='<span class="orn">✦</span> Довольно <span class="orn">✦</span>';
 let shufflePhase='idle'; // idle -> shuffling -> stopping

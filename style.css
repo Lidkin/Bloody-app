@@ -1,6 +1,7 @@
 :root{
   box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
   --red:#a11322; --ink:#eee3d8; --muted:#9d8f8a;
+  --card-edge:.5px solid #7a2012; /* thin warm dark-red outline of every card */
   /* theme: gold esoteric by default, body.noir switches to the deck's red / black / white */
   --accent:#c9a24b; --accent-rgb:201,162,75; --orient:#d1444f;
   --glow:rgba(180,120,40,.16); --head-font:'Cinzel',serif;
@@ -37,7 +38,7 @@ canvas#dust{position:fixed; inset:0; z-index:1; pointer-events:none;}
 .velvet{position:relative; width:min(92vw,520px); height:min(60vh,420px);}
 .deck-stack{position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:140px; height:222px;}
 .deck-stack img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; border-radius:13px; /* = card width x .092, like .face */
-  box-shadow:0 10px 24px rgba(0,0,0,.7); border:1px solid rgba(0,0,0,.6);}
+  box-shadow:0 10px 24px rgba(0,0,0,.7); border:var(--card-edge);}
 .deck-stack img:nth-child(1){transform:rotate(-4deg) translate(-3px,1px);}
 .deck-stack img:nth-child(2){transform:rotate(2deg) translate(2px,-1px);}
 .deck-stack img:nth-child(3){transform:rotate(0deg);}
@@ -76,7 +77,7 @@ body:not(.fonts-ready) .ask-sub{visibility:hidden;}
 .fcard.mover{pointer-events:none; box-shadow:0 0 0 1px rgba(0,0,0,.3);}
 .fcard-inner{position:relative; width:100%; height:100%; transform-style:preserve-3d;}
 .face{position:absolute; inset:0; border-radius:calc(var(--cw,76px) * .092); overflow:hidden; backface-visibility:hidden;
-  border:1px solid rgba(0,0,0,.5); box-shadow:0 6px 14px rgba(0,0,0,.55);}
+  border:var(--card-edge); box-shadow:0 6px 14px rgba(0,0,0,.55);}
 .face img{width:100%; height:100%; object-fit:cover; display:block;}
 .face.front{transform:rotateY(180deg); background:#1a0f14;}
 .face.front .reversed{transform:rotate(180deg);}

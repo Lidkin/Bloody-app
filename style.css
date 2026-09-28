@@ -50,12 +50,18 @@ canvas#dust{position:fixed; inset:0; z-index:1; pointer-events:none;}
 /* the texts appear only once the web fonts are in, so they never jump from a fallback font */
 body:not(.fonts-ready) .ask-btn, body:not(.fonts-ready) h1.title, body:not(.fonts-ready) .theme-toggle{visibility:hidden;}
 /* a letter of the ask label flaring up bright red, like a speck of the dust */
-.ask-btn .ch{display:inline-block;}
-.ask-btn .ch.flare{animation:letterFlare .45s ease-out;}
+.ask-btn .ch{display:inline-block; position:relative;}
+.ask-btn .ch.flare{animation:letterFlare var(--flare,.45s) ease-out;}
+/* a soft red halo of light behind the flaring letter */
+.ask-btn .ch::after{content:''; position:absolute; left:50%; top:55%; width:2.6em; height:2.6em;
+  transform:translate(-50%,-50%); border-radius:50%; z-index:-1; pointer-events:none; opacity:0;
+  background:radial-gradient(circle, rgba(255,40,40,.55) 0%, rgba(200,20,20,.25) 35%, transparent 70%);}
+.ask-btn .ch.flare::after{animation:letterHalo var(--flare,.45s) ease-out;}
 @keyframes letterFlare{
   0%,100%{color:inherit;}
-  20%{color:#ff2a2a; text-shadow:0 0 6px #ff2222, 0 0 16px rgba(255,34,34,.7);}
+  20%{color:#ff2a2a; text-shadow:0 0 4px #ff3a3a, 0 0 12px #ff2222, 0 0 26px rgba(255,34,34,.8);}
 }
+@keyframes letterHalo{0%,100%{opacity:0;} 20%{opacity:1;}}
 .ask-sub{margin-top:6px; color:var(--muted); font-size:13px; font-style:italic; letter-spacing:1px; transition:opacity .3s;}
 .ask-sub.gone{opacity:0;}
 body:not(.fonts-ready) .ask-sub{visibility:hidden;}

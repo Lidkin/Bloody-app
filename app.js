@@ -119,7 +119,7 @@ askBtn.childNodes.forEach(n=>{
   const idle=[...askBtn.querySelectorAll('.ch:not(.flare)')];
   if(idle.length && askBtn.style.visibility!=='hidden'){
     const ch=idle[Math.floor(Math.random()*idle.length)];
-    ch.style.animationDuration=(.35+Math.random()*.25)+'s';
+    ch.style.setProperty('--flare', (.35+Math.random()*.25)+'s');
     ch.classList.add('flare');
     ch.addEventListener('animationend', ()=>ch.classList.remove('flare'), {once:true});
   }

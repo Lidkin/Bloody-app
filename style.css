@@ -103,7 +103,8 @@ body:not(.fonts-ready) .ask-sub{visibility:hidden;}
 .toast.show{opacity:1;}
 
 /* ---------- REVEAL (in place over fan) ---------- */
-.dim-overlay{position:fixed; inset:0; background:rgba(0,0,0,0); pointer-events:none; transition:background .7s ease-in-out; z-index:4;}
+/* under every card of the fan (their z-index starts at 0): the arc cards are dimmed by .dim, evenly */
+.dim-overlay{position:fixed; inset:0; background:rgba(0,0,0,0); pointer-events:none; transition:background .7s ease-in-out; z-index:-1;}
 .dim-overlay.on{background:rgba(0,0,0,.55); pointer-events:auto;}
 .meaning-panel{position:absolute; left:50%; bottom:6%; transform:translateX(-50%); max-width:420px; width:88%;
   text-align:center; z-index:6; opacity:0; transition:opacity .7s .35s ease-in-out; pointer-events:none;}
@@ -111,6 +112,8 @@ body:not(.fonts-ready) .ask-sub{visibility:hidden;}
 .meaning-panel h2{font-family:var(--head-font); color:var(--accent); letter-spacing:1.5px; font-size:19px; margin:0 0 2px;}
 .meaning-panel .orient{display:block; color:var(--orient); font-size:12px; letter-spacing:2px; text-transform:uppercase; margin-bottom:6px;}
 .meaning-panel p{color:var(--ink); font-size:15px; line-height:1.4; margin:0 0 12px;}
+.meaning-end{display:flex; align-items:center; justify-content:center; gap:32px; flex-wrap:wrap;}
+.meaning-end h2{margin:0;}
 .return-btn{background:none; border:1px solid rgba(var(--accent-rgb),.4); color:var(--accent);
   font-family:var(--head-font); font-size:12px; letter-spacing:1.5px; padding:9px 20px; border-radius:24px;
   cursor:pointer; text-transform:uppercase; transition:.2s;}

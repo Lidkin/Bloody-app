@@ -500,9 +500,11 @@ function openedPose(el, card){
 // pose of a face-up card that, together with `panel` right under it, fits the viewport minus FIT_MARGIN
 function fitAbove(panel){
   const GAP=16, panelH=panel.offsetHeight, ASPECT=CARD_ASPECT;
-  const availW=innerWidth-2*FIT_MARGIN, availH=innerHeight-2*FIT_MARGIN-GAP-panelH;
+  // the title stays above the scene, so the card must keep clear of it
+  const minTop=Math.max(FIT_MARGIN, document.querySelector('h1.title').getBoundingClientRect().bottom+24);
+  const availW=innerWidth-2*FIT_MARGIN, availH=innerHeight-minTop-FIT_MARGIN-GAP-panelH;
   const h=Math.min(availH, availW/ASPECT), w=h*ASPECT;
-  const top=Math.max(FIT_MARGIN, (innerHeight-(h+GAP+panelH))/2);
+  const top=Math.max(minTop, (innerHeight-(h+GAP+panelH))/2);
   panel.style.top=(top+h+GAP)+'px'; panel.style.bottom='auto';
   return {x:innerWidth/2, y:top+h/2, rot:0, w, h, ry:180};
 }

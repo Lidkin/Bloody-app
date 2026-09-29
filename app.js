@@ -176,7 +176,7 @@ const CUT_HTML='<span class="orn">✦</span> Выбери стопку <span cla
 // a loose card back on the table, centred on the deck; moved by GSAP x / y
 function tableCard(){
   const c=document.createElement('div'); c.className='wcard';
-  c.innerHTML=`<img src="${IMG_BACK}" alt="">`;
+  c.innerHTML=`<img src="${IMG_BACK}" alt=""><div class="paper"></div>`;
   velvet.appendChild(c); return c;
 }
 let deckHovered=false, passing=false, passSide=1, afterPass=null;
@@ -202,8 +202,8 @@ function shufflePass(){
 }
 // runs `then` once the deck is whole again: at once, or when the card now out of the deck is back in
 function afterShufflePass(then){ passing ? afterPass=then : then(); }
-deckStack.addEventListener('pointerenter', ()=>{ deckHovered=true; if(!passing && deckAtRest()) shufflePass(); });
-deckStack.addEventListener('pointerleave', ()=>{ deckHovered=false; });
+deckStack.addEventListener('pointerenter', ()=>{ deckHovered=true; deckStack.classList.add('lit'); if(!passing && deckAtRest()) shufflePass(); });
+deckStack.addEventListener('pointerleave', ()=>{ deckHovered=false; deckStack.classList.remove('lit'); });
 
 // The deck is split into three piles: the top third goes left, the next third right, the bottom one
 // stays. The user taps a pile; the other two are stacked and the chosen one is laid on top.
@@ -379,7 +379,7 @@ function makeCard(card, pivotX, pivotY){
   el.style.left=pivotX+'px'; el.style.top=pivotY+'px';
   el.dataset.pivotX=pivotX; el.dataset.pivotY=pivotY;
   const inner=document.createElement('div'); inner.className='fcard-inner';
-  inner.innerHTML=`<div class="face back"><img src="${IMG_BACK}"></div><div class="face front"></div>`;
+  inner.innerHTML=`<div class="face back"><img src="${IMG_BACK}"><div class="paper"></div></div><div class="face front"></div>`;
   const front=inner.querySelector('.face.front');
   if(card.art!==null){
     front.innerHTML='<img class="fart"><div class="paper"></div>';
@@ -406,7 +406,7 @@ function buildFan(onReady){
   // every card it passes is left behind exactly where the mover was at that instant.
   const mover=document.createElement('div'); mover.className='fcard mover';
   mover.style.left=pivotX+'px'; mover.style.top=pivotY+'px'; mover.style.zIndex=999;
-  mover.innerHTML=`<div class="fcard-inner"><div class="face back"><img src="${IMG_BACK}"></div></div>`;
+  mover.innerHTML=`<div class="fcard-inner"><div class="face back"><img src="${IMG_BACK}"><div class="paper"></div></div></div>`;
   fan.appendChild(mover);
   // the deck landed on the first slot of the upper arc
   const pop={a:angleStart,r:rOuter};
@@ -523,12 +523,12 @@ function cardAt(x, y){
 function setHover(el){
   if(el===hoverCard) return;
   if(hoverCard){
-    const prev=hoverCard;
+    const prev=hoverCard; prev.classList.remove('lit');
     animateCard(prev, arcState(prev), {duration:.3, ease:'power2.inOut', onComplete:()=>restoreInArc(prev)});
   }
   hoverCard=el;
   fan.style.cursor = el ? 'pointer' : '';
-  if(el) animateCard(el, arcState(el, cardH/2), {duration:.3, ease:'power2.out'});
+  if(el){ el.classList.add('lit'); animateCard(el, arcState(el, cardH/2), {duration:.3, ease:'power2.out'}); }
 }
 const fanIdle=()=>!busy && !activeCard;
 fan.addEventListener('pointermove', e=>{ if(fanIdle() && e.pointerType==='mouse') setHover(cardAt(e.clientX, e.clientY)); });
@@ -614,13 +614,17 @@ function inkReveal(el, {byWord=false, delay=0, stagger=.05, dur=.9}={}){
     {opacity:1, filter:'blur(0px)', color, duration:dur, stagger, delay, ease:'sine.out', clearProps:'filter,color'});
 }
 
-// desktop: the name of the opened card, set huge right across the screen behind the card
+// desktop: the name of the opened card, set huge right across the screen. It surfaces in front of the
+// card, then sinks through it and stays behind it
 const bigName=document.createElement('div'); bigName.className='big-name';
+const BIG_FRONT=1001, BIG_BEHIND=950; // the opened card is at z 1000
 function showBigName(el){
   if(!isDesktop()) return;
   const s=el._state;
   bigName.textContent=el._card.name; bigName.style.letterSpacing=''; bigName.style.paddingLeft='';
-  gsap.killTweensOf(bigName); gsap.set(bigName,{opacity:1});
+  gsap.killTweensOf(bigName);
+  bigName.style.zIndex=BIG_FRONT;
+  gsap.set(bigName,{opacity:1, xPercent:-50, yPercent:-50, scale:1.12});
   fan.appendChild(bigName);
   bigName.style.fontSize='100px';
   const fs=Math.min(s.h*.4, 100*innerWidth*.94/bigName.scrollWidth);
@@ -631,7 +635,11 @@ function showBigName(el){
     const sp=(minW-bigName.scrollWidth)/n;
     bigName.style.letterSpacing=sp+'px'; bigName.style.paddingLeft=sp+'px'; // balances the space after the last letter
   }
-  inkReveal(bigName, {delay:.1, stagger:.07, dur:1.1});
+  const STAGGER=.07, DUR=1.1;
+  inkReveal(bigName, {delay:.1, stagger:STAGGER, dur:DUR});
+  // once it has surfaced it recedes, and as it passes the card's plane (scale 1) it goes behind it
+  gsap.to(bigName,{scale:.94, duration:1.3, ease:'power2.inOut', delay:.1+STAGGER*n+DUR*.8,
+    onUpdate(){ if(gsap.getProperty(bigName,'scale')<1) bigName.style.zIndex=BIG_BEHIND; }});
 }
 function hideBigName(){
   if(!bigName.isConnected) return;
@@ -694,10 +702,13 @@ shareBtnEl.addEventListener('pointerleave', ()=>{
   if(activeCard) activeCard.classList.remove('lit');
   showcase.forEach((c,k)=>fanOutCard(c, .08*k));
 });
-function hideShowcase(){
+// the showcase slips under the card of the day and is gone; `then` runs once all of it is under
+function hideShowcase(then){
   sharePreview=false;
-  showcase.forEach(c=>tuckCard(c, ()=>c.remove()));
-  showcase=[];
+  const cards=showcase; showcase=[];
+  if(!cards.length){ then&&then(); return; }
+  let left=cards.length;
+  cards.forEach(c=>tuckCard(c, ()=>{ c.remove(); if(--left===0 && then) then(); }));
 }
 
 // An opened card tilts after the cursor (desktop), under a finger dragging over the screen, or with the
@@ -765,13 +776,16 @@ document.getElementById('shareBtn').addEventListener('click', ()=>{ if(activeCar
 document.getElementById('againBtn').addEventListener('click', ()=>{
   if(!activeCard || busy) return;
   busy=true; const el=activeCard;
-  finale.classList.remove('show');
-  hideShowcase(); hideBigName();
-  if(el._fromDeck){ returnToDeck(el); return; }
-  // the exact reverse: shrink and flip back to just outside the arc, then slide into the slot
+  finale.classList.remove('show'); hideBigName();
+  el.classList.remove('lit');
+  // first the showcase slips under the card, then the card goes home
+  hideShowcase(()=>el._fromDeck ? returnToDeck(el) : returnToArc(el));
+});
+// the exact reverse of opening: shrink and flip back to just outside the arc, then slide into the slot;
+// the fan slowly comes back out of the dark as the card sets off
+function returnToArc(el){
   const s=el._state, render=()=>renderCard(el,s);
   gsap.killTweensOf(s);
-  // the fan comes back out of the dark right away, while the card is still on its way
   document.querySelectorAll('.fcard').forEach(c=>c.classList.remove('dim'));
   dimOverlay.classList.remove('on');
   gsap.timeline()
@@ -782,7 +796,7 @@ document.getElementById('againBtn').addEventListener('click', ()=>{
     })
     .to(s,{...arcState(el), duration:.35, ease:'power2.out', onUpdate:render,
       onComplete:()=>{ restoreInArc(el); activeCard=null; busy=false; }});
-});
+}
 
 // A story-sized (9:16) picture of the card of the day with the deck's name and shop - shared through the
 // system share sheet where files can be shared (phones), otherwise downloaded.

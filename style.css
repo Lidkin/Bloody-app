@@ -106,10 +106,10 @@ body:not(.fonts-ready) .ask-sub{visibility:hidden;}
 .fan{position:fixed; inset:0; perspective:1000px; touch-action:none;} /* a finger dragging over it tilts the opened card */
 .fcard{position:fixed; width:var(--cw,69px); height:var(--ch,118px);
   margin:calc(var(--ch,118px) / -2) 0 0 calc(var(--cw,69px) / -2);
-  pointer-events:none; transform-origin:50% 50%; transition:filter .3s ease-out, opacity .4s ease-out;} /* hit-testing is done in app.js */
-/* while a card lies open the fan disappears into the dark (slowly; it comes back quickly) */
+  pointer-events:none; transform-origin:50% 50%; transition:filter .9s ease-in-out, opacity 1s ease-in-out;} /* hit-testing is done in app.js */
+/* while a card lies open the fan disappears into the dark */
 .fcard.dim{filter:brightness(.12) saturate(.3); opacity:0; pointer-events:none; transition:filter .5s ease-in-out, opacity .8s ease-in-out;}
-.fcard.mover{pointer-events:none; box-shadow:0 0 0 1px rgba(0,0,0,.3);}
+.fcard.mover{pointer-events:none; box-shadow:0 0 0 1px rgba(0,0,0,.3); transition:none;} /* its fade is GSAP's */
 .fcard-inner{position:relative; width:100%; height:100%; transform-style:preserve-3d;}
 .face{position:absolute; inset:0; border-radius:calc(var(--cw,69px) * var(--card-r,.07)); overflow:hidden; backface-visibility:hidden;
   border:var(--card-edge); box-shadow:0 7px 16px rgba(20,2,2,.85);}
@@ -124,13 +124,13 @@ body:not(.fonts-ready) .ask-sub{visibility:hidden;}
 .fcard.showcase{pointer-events:auto; cursor:pointer;}
 /* the white of an illustration is shown as warm paper, like the faces without artwork;
    it turns pure white under the cursor */
-.face.front .paper{position:absolute; inset:0; pointer-events:none; background:#f4f1ec; mix-blend-mode:multiply;
+.paper{position:absolute; inset:0; pointer-events:none; background:#f4f1ec; mix-blend-mode:multiply;
   transition:opacity .6s ease-in-out;}
-.fcard.lit .paper, .fcard.showcase:hover .paper{opacity:0;}
+.fcard.lit .paper, .fcard.showcase:hover .paper, .deck-stack.lit .paper, .wcard.pile:hover .paper{opacity:0;}
 body.noir .face.front .tface{transition:background-color .6s ease-in-out;}
 body.noir .fcard.lit .tface{background:#fff;}
 /* desktop: the opened card's name, huge, across the screen behind the card */
-.big-name{position:fixed; left:50%; transform:translate(-50%,-50%); z-index:950; pointer-events:none; white-space:nowrap;
+.big-name{position:fixed; left:50%; transform:translate(-50%,-50%); z-index:950; will-change:transform; pointer-events:none; white-space:nowrap;
   font-family:'Oswald',sans-serif; font-weight:500; text-transform:uppercase; line-height:1; color:rgba(227,34,34,.8);}
 body:not(.noir) .big-name{font-family:'Cinzel',serif; color:rgba(201,162,75,.45);}
 /* units of text that surface like ink; kept whole so a line never breaks inside a word */
@@ -150,7 +150,7 @@ body:not(.noir) .big-name{font-family:'Cinzel',serif; color:rgba(201,162,75,.45)
 
 /* ---------- REVEAL (in place over fan) ---------- */
 /* under every card of the fan (their z-index starts at 0): the arc cards are dimmed by .dim, evenly */
-.dim-overlay{position:fixed; inset:0; background:rgba(0,0,0,0); pointer-events:none; transition:background .35s ease-out; z-index:-1;}
+.dim-overlay{position:fixed; inset:0; background:rgba(0,0,0,0); pointer-events:none; transition:background 1s ease-in-out; z-index:-1;}
 .dim-overlay.on{background:rgba(0,0,0,.85); pointer-events:auto; transition:background .7s ease-in-out;}
 .meaning-panel{position:absolute; left:50%; bottom:6%; transform:translateX(-50%); max-width:420px; width:88%;
   text-align:center; z-index:6; opacity:0; transition:opacity .7s .35s ease-in-out; pointer-events:none;}

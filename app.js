@@ -167,51 +167,85 @@ askBtn.addEventListener('click', ()=>{
   }
 });
 
-// The deck grows and shuffles (the bottom card slides out to alternating sides and goes back on top)
-// until shufflePhase leaves 'shuffling'; then it is cut and settles back to its original size and pose.
+// Shuffle: the deck is washed over the table - it spreads out face down and its cards swirl like a
+// whirlpool until the user stops it, then gather back into the deck. Cut: the deck is split into
+// three piles and the user picks the one that goes on top.
 const DECK_REST=[{rotation:-1, x:-1, y:1}, {rotation:2, x:2, y:-1}, {rotation:0, x:0, y:0}]; // by DOM order, as in style.css
+const velvet=document.getElementById('velvet');
+const CUT_HTML='<span class="orn">✦</span> Выбери стопку <span class="orn">✦</span>';
+// a loose card back on the table, centred on the deck; moved by GSAP x / y
+function tableCard(){
+  const c=document.createElement('div'); c.className='wcard';
+  c.innerHTML=`<img src="${IMG_BACK}" alt="">`;
+  velvet.appendChild(c); return c;
+}
 function shuffleDeck(onDone){
-  const imgs=[...deckStack.children], HALF=.2, STEP=.24, GROW=.4;
-  const w=deckStack.offsetWidth, h=deckStack.offsetHeight, out=w*.7;
-  // the cut needs about 2.3 deck heights of room vertically; shrink the zoom on low screens
-  // CLEAR: lift (in deck heights) at which even the corners of the turning part stay above the rest
-  // (and on narrow screens the cards sliding out sideways, 0.7 deck widths each way, must stay in view)
-  const CLEAR=.5+Math.hypot(w,h)/2/h+.03, HIGHER=CLEAR+.22, span=HIGHER+1;
-  const zoom=Math.min(1.4, innerHeight*.85/(span*h), innerWidth*.92/(w*2.4));
-  const dip=(span-1)/2*h*zoom;
-  let dir=1;
-
-  gsap.to(deckStack,{scale:zoom, duration:GROW, ease:'sine.inOut'});
-  gsap.to(imgs,{rotation:0, x:0, y:0, duration:GROW, ease:'sine.inOut', overwrite:'auto'});
-  gsap.delayedCall(GROW, pass);
-
-  // STEP > HALF, so the previous card is already on top when the next pass takes the bottom one
-  function pass(){
-    if(shufflePhase!=='shuffling'){ gsap.delayedCall(2*HALF-STEP, cut); return; } // let the last card land
-    const card=deckStack.firstElementChild; dir=-dir;
-    gsap.timeline()
-      .to(card,{x:dir*out, y:-6, rotation:dir*9, duration:HALF, ease:'sine.inOut'})
-      .call(()=>deckStack.appendChild(card))
-      .to(card,{x:0, y:0, rotation:0, duration:HALF, ease:'sine.inOut'});
-    gsap.delayedCall(STEP, pass);
+  const w=deckStack.offsetWidth, h=deckStack.offsetHeight, N=isDesktop() ? 16 : 12;
+  // the whirlpool: an ellipse around the deck that keeps the cards on screen and clear of the title
+  const Rx=Math.max(w*.4, Math.min(innerWidth/2-w*.6, w*2.2));
+  const Ry=Math.max(h*.25, Math.min(innerHeight/2-h*.55-40, h*.8));
+  const cards=[...Array(N)].map(()=>({el:tableCard(), a:Math.random()*Math.PI*2, r:.3+Math.random()*.7,
+    sp:.7+Math.random()*.6, rot:(Math.random()-.5)*50, ph:Math.random()*6.28, f:.5+Math.random()*.7}));
+  const wash={k:0}; // 0: all in the deck, 1: fully spread
+  let t=0, gathering=false;
+  gsap.to(deckStack,{opacity:0, duration:.25});
+  gsap.to(wash,{k:1, duration:1.2, ease:'power2.out'});
+  // the cards circle clockwise, each on its own breathing radius, rocking as they go; the ones nearer
+  // the viewer (lower on the screen) lie on top. The swirl slows down as the cards spread in or gather
+  function tick(time, dt){
+    const s=Math.min(dt, 50)/1000; t+=s;
+    cards.forEach(c=>{
+      c.a+=s*c.sp*(.25+.75*wash.k);
+      const r=c.r*(1+.16*Math.sin(t*c.f+c.ph))*wash.k;
+      const y=Math.sin(c.a)*r*Ry;
+      gsap.set(c.el,{x:Math.cos(c.a)*r*Rx, y, rotation:wash.k*(c.rot+28*Math.sin(t*c.f*.8+c.ph)), zIndex:Math.round(y+1000)});
+    });
+    if(!gathering && shufflePhase!=='shuffling'){
+      gathering=true;
+      gsap.to(wash,{k:0, duration:1.3, ease:'power2.inOut', overwrite:true, onComplete:()=>{
+        gsap.ticker.remove(tick);
+        gsap.set(deckStack,{opacity:1}); cards.forEach(c=>c.el.remove());
+        cutThree(()=> isPortraitMobile() ? drawFromDeck(0) : (shufflePhase='idle', onDone()));
+      }});
+    }
   }
+  gsap.ticker.add(tick);
+}
 
-  // cut: the top of the deck slides straight up until it clears the rest, turns upside down, rises a bit
-  // more and slides down under the rest; meanwhile the whole deck dips so the cut stays on screen.
-  // 1.4 s in all; the stages overlap a little so the motion never stops dead
-  function cut(){
-    const top=deckStack.lastElementChild;
-    // portrait phones get no fan: the card of the day is drawn straight from the deck
-    const tl=gsap.timeline({onComplete:()=> isPortraitMobile() ? drawFromDeck(dip) : settleDeck(dip, onDone)});
-    tl.to(deckStack,{y:`+=${dip}`, duration:.56, ease:'sine.inOut'}, 0)
-      .to(top,{y:-h*CLEAR, duration:.48, ease:'sine.inOut'}, 0)
-      .to(top,{rotation:180, duration:.48, ease:'sine.inOut'}, .42) // starts as it clears the rest
-      .to(top,{y:-h*HIGHER, duration:.28, ease:'sine.inOut'}, .7)
-      .call(()=>deckStack.prepend(top), null, .98)
-      .to(top,{y:0, duration:.42, ease:'sine.inOut'}, .98)
-      .set(top,{rotation:0}, 1.4); // hidden under the deck by now; 0 and 180 look the same from outside
-  }
-
+// The deck is split into three piles: the top third goes left, the next third right, the bottom one
+// stays. The user taps a pile; the other two are stacked and the chosen one is laid on top.
+function cutThree(onDone){
+  shufflePhase='cutting';
+  const w=deckStack.offsetWidth, h=deckStack.offsetHeight, gap=w*.2;
+  const fit=Math.min(1, innerWidth*.94/(3*w+2*gap)), D=(w+gap)*fit;
+  const piles=[0,1,2].map(i=>{
+    const p=tableCard(); p.classList.add('pile'); p.style.zIndex=3-i; // piles[0] is the top of the deck
+    // a third of the deck: its edge of stacked paper along the bottom
+    const T=w*.1/3, n=Math.round(T/1.5), layers=[];
+    for(let k=1;k<=n;k++) layers.push(`0 ${(T*k/n).toFixed(1)}px 0 ${k===n ? '#5e564e' : k%2 ? '#ddd6cc' : '#c4bcb1'}`);
+    p.style.boxShadow=layers.join(',')+`, 0 ${(T+10).toFixed(1)}px 22px rgba(0,0,0,.7)`;
+    return p;
+  });
+  let picking=false;
+  gsap.set(deckStack,{opacity:0});
+  gsap.timeline({onComplete:()=>{ picking=true; showAskBtn(CUT_HTML); }})
+    .to(piles, {scale:fit, duration:.5, ease:'sine.inOut'}, 0)
+    .to(piles[0],{x:-D, duration:.8, ease:'power2.inOut'}, .1)
+    .to(piles[1],{x:D, duration:.8, ease:'power2.inOut'}, .5);
+  piles.forEach(p=>{
+    p.addEventListener('pointerenter', e=>{ if(picking && e.pointerType==='mouse') gsap.to(p,{y:-12, duration:.35, ease:'power2.out'}); });
+    p.addEventListener('pointerleave', ()=>{ if(picking) gsap.to(p,{y:0, duration:.35, ease:'power2.out'}); });
+    p.addEventListener('click', ()=>{
+      if(!picking) return;
+      picking=false; hideAskBtn();
+      const others=piles.filter(o=>o!==p);
+      p.style.zIndex=10;
+      gsap.timeline({onComplete:()=>{ gsap.set(deckStack,{opacity:1}); piles.forEach(o=>o.remove()); gsap.delayedCall(.25, onDone); }})
+        .to(others,{x:0, y:0, scale:1, duration:.7, ease:'power2.inOut', stagger:.12}, 0)
+        .to(p,{y:-h*.18, scale:fit*1.04, duration:.45, ease:'power2.out'}, 0)
+        .to(p,{x:0, y:0, scale:1, duration:.7, ease:'power2.inOut'}, .5);
+    });
+  });
 }
 
 // the deck shrinks back from the shuffle zoom, rises by the dip and its cards fall back into their loose pose
@@ -247,7 +281,7 @@ deckStack.addEventListener('pointerleave', ()=>{ if(deckAtRest()) poseDeck(DECK_
 const isPortraitMobile=()=>matchMedia('(orientation: portrait)').matches &&
   (matchMedia('(pointer: coarse)').matches || innerWidth<600);
 
-// Portrait phones: the deck stays where it is, still enlarged; its top card slowly slides up, then
+// Portrait phones: the deck stays where it is; its top card slowly slides up, then
 // grows and flips face up around its vertical axis into the same pose as a card drawn from the fan.
 // A real card element takes the place of the top image of the deck for this.
 function drawFromDeck(dip){

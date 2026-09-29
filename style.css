@@ -108,7 +108,8 @@ body:not(.fonts-ready) .ask-sub{visibility:hidden;}
   margin:calc(var(--ch,118px) / -2) 0 0 calc(var(--cw,69px) / -2);
   pointer-events:none; transform-origin:50% 50%; transition:filter .9s ease-in-out, opacity 1s ease-in-out;} /* hit-testing is done in app.js */
 /* while a card lies open the fan disappears into the dark */
-.fcard.dim{filter:brightness(.12) saturate(.3); opacity:0; pointer-events:none; transition:filter .5s ease-in-out, opacity .8s ease-in-out;}
+/* only a filter, never opacity: see-through cards would show the backs under them */
+.fcard.dim{filter:brightness(0); pointer-events:none; transition:filter .6s ease-in-out;}
 .fcard.mover{pointer-events:none; box-shadow:0 0 0 1px rgba(0,0,0,.3); transition:none;} /* its fade is GSAP's */
 .fcard-inner{position:relative; width:100%; height:100%; transform-style:preserve-3d;}
 .face{position:absolute; inset:0; border-radius:calc(var(--cw,69px) * var(--card-r,.07)); overflow:hidden; backface-visibility:hidden;

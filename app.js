@@ -142,8 +142,8 @@ function flareLetter(){
   for(let i=0;i<count;i++){ setTimeout(flareLetter, at); at+=80+Math.random()*140; }
   setTimeout(flareBurst, at+4000+Math.random()*5000);
 })();
-const ASK_HTML=askBtn.innerHTML, STOP_HTML='<span class="orn">✦</span> Довольно <span class="orn">✦</span>';
-let shufflePhase='idle'; // idle -> shuffling -> stopping
+const ASK_HTML=askBtn.innerHTML;
+let shufflePhase='idle'; // idle -> cutting (-> idle once the fan is dealt / the card is back on the deck)
 function hideAskBtn(then){
   // the pulse keyframes would override the inline opacity, so freeze the pulse where it is and fade from there
   gsap.set(askBtn,{opacity:getComputedStyle(askBtn).opacity}); askBtn.style.animation='none';
@@ -155,21 +155,21 @@ function showAskBtn(html){
   gsap.fromTo(askBtn,{opacity:0},{opacity:.45, duration:.4,
     onComplete:()=>{ gsap.set(askBtn,{clearProps:'opacity'}); askBtn.style.animation=''; }});
 }
+// the ask button goes straight to the cut (once a shuffling card, if any, is back in the deck);
+// portrait phones get no fan: the card of the day is drawn straight from the deck
 askBtn.addEventListener('click', ()=>{
-  if(shufflePhase==='idle'){
-    if(busy) return; busy=true; shufflePhase='shuffling';
-    askTiltPermission(); tiltDeck(0, 0, .4);
-    document.getElementById('askSub').classList.add('gone');
-    hideAskBtn(()=>gsap.delayedCall(.5, ()=>{ if(shufflePhase==='shuffling') showAskBtn(STOP_HTML); }));
-    shuffleDeck(flyToFan);
-  } else if(shufflePhase==='shuffling' && askBtn.style.visibility!=='hidden'){
-    shufflePhase='stopping'; hideAskBtn();
-  }
+  if(shufflePhase!=='idle' || busy) return;
+  busy=true; shufflePhase='cutting';
+  askTiltPermission(); tiltDeck(0, 0, .4);
+  document.getElementById('askSub').classList.add('gone');
+  hideAskBtn();
+  afterShufflePass(()=>cutThree(()=> isPortraitMobile() ? drawFromDeck(0) : (shufflePhase='idle', flyToFan())));
 });
 
-// Shuffle: the deck is washed over the table - it spreads out face down and its cards swirl like a
-// whirlpool until the user stops it, then gather back into the deck. Cut: the deck is split into
-// three piles and the user picks the one that goes on top.
+// Shuffle: pointing at the resting deck (or holding a finger on it) shuffles it - again and again the
+// top card slides out sideways until it is fully clear of the deck, and only then slides back in under
+// it, so no card ever passes through another. Cut: the deck is split into three piles and the user
+// picks the one that goes on top.
 const DECK_REST=[{rotation:-1, x:-1, y:1}, {rotation:2, x:2, y:-1}, {rotation:0, x:0, y:0}]; // by DOM order, as in style.css
 const velvet=document.getElementById('velvet');
 const CUT_HTML='<span class="orn">✦</span> Выбери стопку <span class="orn">✦</span>';
@@ -179,38 +179,29 @@ function tableCard(){
   c.innerHTML=`<img src="${IMG_BACK}" alt="">`;
   velvet.appendChild(c); return c;
 }
-function shuffleDeck(onDone){
-  const w=deckStack.offsetWidth, h=deckStack.offsetHeight, N=isDesktop() ? 16 : 12;
-  // the whirlpool: an ellipse around the deck that keeps the cards on screen and clear of the title
-  const Rx=Math.max(w*.4, Math.min(innerWidth/2-w*.6, w*2.2));
-  const Ry=Math.max(h*.25, Math.min(innerHeight/2-h*.55-40, h*.8));
-  const cards=[...Array(N)].map(()=>({el:tableCard(), a:Math.random()*Math.PI*2, r:.3+Math.random()*.7,
-    sp:.7+Math.random()*.6, rot:(Math.random()-.5)*50, ph:Math.random()*6.28, f:.5+Math.random()*.7}));
-  const wash={k:0}; // 0: all in the deck, 1: fully spread
-  let t=0, gathering=false;
-  gsap.to(deckStack,{opacity:0, duration:.25});
-  gsap.to(wash,{k:1, duration:1.2, ease:'power2.out'});
-  // the cards circle clockwise, each on its own breathing radius, rocking as they go; the ones nearer
-  // the viewer (lower on the screen) lie on top. The swirl slows down as the cards spread in or gather
-  function tick(time, dt){
-    const s=Math.min(dt, 50)/1000; t+=s;
-    cards.forEach(c=>{
-      c.a+=s*c.sp*(.25+.75*wash.k);
-      const r=c.r*(1+.16*Math.sin(t*c.f+c.ph))*wash.k;
-      const y=Math.sin(c.a)*r*Ry;
-      gsap.set(c.el,{x:Math.cos(c.a)*r*Rx, y, rotation:wash.k*(c.rot+28*Math.sin(t*c.f*.8+c.ph)), zIndex:Math.round(y+1000)});
-    });
-    if(!gathering && shufflePhase!=='shuffling'){
-      gathering=true;
-      gsap.to(wash,{k:0, duration:1.3, ease:'power2.inOut', overwrite:true, onComplete:()=>{
-        gsap.ticker.remove(tick);
-        gsap.set(deckStack,{opacity:1}); cards.forEach(c=>c.el.remove());
-        cutThree(()=> isPortraitMobile() ? drawFromDeck(0) : (shufflePhase='idle', onDone()));
-      }});
-    }
+let deckHovered=false, passing=false, passSide=1, afterPass=null;
+function shufflePass(){
+  if(!deckHovered || !deckAtRest()){
+    passing=false;
+    if(afterPass){ const f=afterPass; afterPass=null; f(); }
+    return;
   }
-  gsap.ticker.add(tick);
+  passing=true; passSide=-passSide;
+  const card=deckStack.lastElementChild, w=deckStack.offsetWidth, h=deckStack.offsetHeight;
+  // far enough out that even the tilted card's corners clear the deck and the cards peeking from under it
+  const rot=passSide*6, out=passSide*((w*Math.cos(.105)+h*Math.sin(.105))/2+w/2+10);
+  gsap.timeline({onComplete:()=>gsap.delayedCall(.15, shufflePass)})
+    .to(card,{x:out, y:-4, rotation:rot, duration:.55, ease:'power2.inOut'})
+    .call(()=>{
+      deckStack.prepend(card); // it is clear of the deck now, so going under it shows no jump
+      [...deckStack.children].slice(1).forEach((c,i)=>gsap.to(c,{...DECK_REST[i+1], duration:.55, ease:'power2.inOut'}));
+    })
+    .to(card,{...DECK_REST[0], duration:.55, ease:'power2.inOut'});
 }
+// runs `then` once the deck is whole again: at once, or when the card now out of the deck is back in
+function afterShufflePass(then){ passing ? afterPass=then : then(); }
+deckStack.addEventListener('pointerenter', ()=>{ deckHovered=true; if(!passing && deckAtRest()) shufflePass(); });
+deckStack.addEventListener('pointerleave', ()=>{ deckHovered=false; });
 
 // The deck is split into three piles: the top third goes left, the next third right, the bottom one
 // stays. The user taps a pile; the other two are stacked and the chosen one is laid on top.
@@ -255,12 +246,7 @@ function settleDeck(dip, onDone){
   [...deckStack.children].forEach((img,i)=>tl.to(img,{...DECK_REST[i], duration:.5, ease:'sine.inOut'}, 0));
 }
 
-// desktop: pointing at the resting deck fans the cards peeking from under it further out
-const DECK_PEEK=[{rotation:-7, x:-16, y:4}, {rotation:8, x:16, y:-5}, {rotation:0, x:0, y:0}]; // by DOM order
 const deckAtRest=()=>shufflePhase==='idle' && !busy && !openingEl.hidden;
-function poseDeck(pose){
-  [...deckStack.children].forEach((c,i)=>gsap.to(c,{...pose[i], duration:.6, ease:'sine.inOut', overwrite:'auto'}));
-}
 // The opening deck tilts after the cursor / a finger / the phone, like an opened card; the edge of
 // its stacked cards shows on the sides tilted towards the viewer (--ex/--ey feed style.css)
 const DECK_TILT_X=8, DECK_TILT_Y=10, deckTilt={tx:0, ty:0};
@@ -275,8 +261,6 @@ function tiltDeck(nx, ny, dur=.6){
 }
 gsap.set(deckStack,{x:0, y:0, xPercent:-50, yPercent:-50}); // centred in % so it stays centred at any size
 renderDeckTilt();
-deckStack.addEventListener('pointerenter', e=>{ if(e.pointerType==='mouse' && deckAtRest()) poseDeck(DECK_PEEK); });
-deckStack.addEventListener('pointerleave', ()=>{ if(deckAtRest()) poseDeck(DECK_REST); });
 
 const isPortraitMobile=()=>matchMedia('(orientation: portrait)').matches &&
   (matchMedia('(pointer: coarse)').matches || innerWidth<600);

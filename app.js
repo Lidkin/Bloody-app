@@ -9,6 +9,8 @@ const CARD_ASPECT=CUT.w/CUT.h, CARD_RADIUS=40/CUT.w; // corner radius as a share
   s.setProperty('--img-x', -CUT.left/CUT.w*100+'%'); s.setProperty('--img-y', -CUT.top/CUT.h*100+'%');
   s.setProperty('--card-r', CARD_RADIUS);
 })(document.documentElement.style);
+// every GSAP animation runs a quarter slower than its written duration, for a calmer, smoother feel
+gsap.globalTimeline.timeScale(.8);
 const ART = [null, "assets/the-magician.png"];
 /* ---------- deck data ---------- */
 const MAJOR = [
@@ -179,7 +181,7 @@ function shuffleDeck(onDone){
   let dir=1;
 
   gsap.to(deckStack,{scale:zoom, duration:GROW, ease:'sine.inOut'});
-  gsap.to(imgs,{rotation:0, x:0, y:0, duration:GROW, ease:'sine.inOut'});
+  gsap.to(imgs,{rotation:0, x:0, y:0, duration:GROW, ease:'sine.inOut', overwrite:'auto'});
   gsap.delayedCall(GROW, pass);
 
   // STEP > HALF, so the previous card is already on top when the next pass takes the bottom one
@@ -187,9 +189,9 @@ function shuffleDeck(onDone){
     if(shufflePhase!=='shuffling'){ gsap.delayedCall(2*HALF-STEP, cut); return; } // let the last card land
     const card=deckStack.firstElementChild; dir=-dir;
     gsap.timeline()
-      .to(card,{x:dir*out, y:-6, rotation:dir*9, duration:HALF, ease:'sine.out'})
+      .to(card,{x:dir*out, y:-6, rotation:dir*9, duration:HALF, ease:'sine.inOut'})
       .call(()=>deckStack.appendChild(card))
-      .to(card,{x:0, y:0, rotation:0, duration:HALF, ease:'sine.in'});
+      .to(card,{x:0, y:0, rotation:0, duration:HALF, ease:'sine.inOut'});
     gsap.delayedCall(STEP, pass);
   }
 
@@ -205,7 +207,7 @@ function shuffleDeck(onDone){
       .to(top,{rotation:180, duration:.48, ease:'sine.inOut'}, .42) // starts as it clears the rest
       .to(top,{y:-h*HIGHER, duration:.28, ease:'sine.inOut'}, .7)
       .call(()=>deckStack.prepend(top), null, .98)
-      .to(top,{y:0, duration:.42, ease:'sine.in'}, .98)
+      .to(top,{y:0, duration:.42, ease:'sine.inOut'}, .98)
       .set(top,{rotation:0}, 1.4); // hidden under the deck by now; 0 and 180 look the same from outside
   }
 
@@ -214,9 +216,18 @@ function shuffleDeck(onDone){
 // the deck shrinks back from the shuffle zoom, rises by the dip and its cards fall back into their loose pose
 function settleDeck(dip, onDone){
   const tl=gsap.timeline({onComplete:()=>{ shufflePhase='idle'; onDone(); }});
-  tl.to(deckStack,{scale:1, y:`-=${dip}`, duration:.4, ease:'sine.inOut'}, 0);
-  [...deckStack.children].forEach((img,i)=>tl.to(img,{...DECK_REST[i], duration:.4, ease:'sine.inOut'}, 0));
+  tl.to(deckStack,{scale:1, y:`-=${dip}`, duration:.5, ease:'sine.inOut'}, 0);
+  [...deckStack.children].forEach((img,i)=>tl.to(img,{...DECK_REST[i], duration:.5, ease:'sine.inOut'}, 0));
 }
+
+// desktop: pointing at the resting deck fans the cards peeking from under it further out
+const DECK_PEEK=[{rotation:-7, x:-16, y:4}, {rotation:8, x:16, y:-5}, {rotation:0, x:0, y:0}]; // by DOM order
+const deckAtRest=()=>shufflePhase==='idle' && !busy && !openingEl.hidden;
+function poseDeck(pose){
+  [...deckStack.children].forEach((c,i)=>gsap.to(c,{...pose[i], duration:.6, ease:'sine.inOut', overwrite:'auto'}));
+}
+deckStack.addEventListener('pointerenter', e=>{ if(e.pointerType==='mouse' && deckAtRest()) poseDeck(DECK_PEEK); });
+deckStack.addEventListener('pointerleave', ()=>{ if(deckAtRest()) poseDeck(DECK_REST); });
 
 const isPortraitMobile=()=>matchMedia('(orientation: portrait)').matches &&
   (matchMedia('(pointer: coarse)').matches || innerWidth<600);

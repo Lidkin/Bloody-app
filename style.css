@@ -1,11 +1,11 @@
 :root{
   box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
   --red:#a11322; --ink:#eee3d8; --muted:#9d8f8a;
-  --card-edge:.5px solid #2a0907; /* thin warm near-black red outline of every card */
+  /*--card-edge:.01px solid #2b0503; */ /* thin warm near-black red outline of every card */
   /* theme: gold esoteric by default, body.noir switches to the deck's red / black / white */
   --accent:#c9a24b; --accent-rgb:201,162,75; --orient:#d1444f;
   --glow:rgba(180,120,40,.16); --head-font:'Cinzel',serif;
-  --tface-bg:radial-gradient(ellipse at 50% 38%, #3a161c 0%, #1a0a0e 60%, #0c0507 100%);
+  --tface-bg:radial-gradient(ellipse at 50% 38%, #310d06 0%, #1a0a0e 60%, #0c0507 100%);
   --tface-frame:rgba(201,162,75,.55); --tface-num:var(--accent); --tface-text:var(--accent);
 }
 /* noir background: dark burgundy velvet - sheen in the middle, deep folds at the edges, fine pile grain */
@@ -36,8 +36,9 @@ canvas#dust{position:fixed; inset:0; z-index:1; pointer-events:none;}
 
 /* ---------- OPENING ---------- */
 .velvet{position:relative; width:min(92vw,520px); height:min(60vh,420px);}
-.deck-stack{position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:140px; height:240px;} /* 7:12, the cut size */
-.deck-stack .dcard{position:absolute; inset:0; overflow:hidden; border-radius:calc(140px * var(--card-r,.07));
+.deck-stack{--deck-w:140px; position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+  width:var(--deck-w); height:calc(var(--deck-w) * 1.7149);} /* 570:977.5, the cut size */
+.deck-stack .dcard{position:absolute; inset:0; overflow:hidden; border-radius:calc(var(--deck-w) * var(--card-r,.07));
   box-shadow:0 10px 24px rgba(0,0,0,.7); border:var(--card-edge);}
 .deck-stack .dcard:nth-child(1){transform:rotate(-1deg) translate(-1px,1px);}
 .deck-stack .dcard:nth-child(2){transform:rotate(2deg) translate(2px,-1px);}
@@ -65,7 +66,7 @@ body:not(.fonts-ready) .ask-btn, body:not(.fonts-ready) h1.title, body:not(.font
   20%{color:#ff2a2a; text-shadow:0 0 4px #ff3a3a, 0 0 12px #ff2222, 0 0 26px rgba(255,34,34,.8);}
 }
 @keyframes letterHalo{0%,100%{opacity:0;} 20%{opacity:1;}}
-.ask-sub{margin-top:6px; color:var(--muted); font-size:13px; font-style:italic; letter-spacing:1px; transition:opacity .3s;}
+.ask-sub{margin-top:6px; color:var(--muted); font-size:13px; font-style:italic; letter-spacing:1px; transition:opacity .5s ease-in-out;}
 .ask-sub.gone{opacity:0;}
 body:not(.fonts-ready) .ask-sub{visibility:hidden;}
 @keyframes pulse{0%,100%{opacity:.45}50%{opacity:1}}
@@ -81,7 +82,7 @@ body:not(.fonts-ready) .ask-sub{visibility:hidden;}
 .fan{position:fixed; inset:0; perspective:1000px;}
 .fcard{position:fixed; width:var(--cw,69px); height:var(--ch,118px);
   margin:calc(var(--ch,118px) / -2) 0 0 calc(var(--cw,69px) / -2);
-  pointer-events:none; transform-origin:50% 50%; transition:filter .3s;} /* hit-testing is done in app.js */
+  pointer-events:none; transform-origin:50% 50%; transition:filter .5s ease-in-out;} /* hit-testing is done in app.js */
 .fcard.dim{filter:brightness(.25) saturate(.4); pointer-events:none;}
 .fcard.mover{pointer-events:none; box-shadow:0 0 0 1px rgba(0,0,0,.3);}
 .fcard-inner{position:relative; width:100%; height:100%; transform-style:preserve-3d;}
@@ -98,14 +99,14 @@ body:not(.fonts-ready) .ask-sub{visibility:hidden;}
   letter-spacing:1px; margin-bottom:calc(var(--cw,76px) * .08); opacity:.85;}
 .face.front .ftext{font-family:var(--head-font); font-size:calc(var(--cw,76px) * .12); letter-spacing:.5px; color:var(--tface-text);
   text-align:center; padding:0 calc(var(--cw,76px) * .12); line-height:1.25;}
-.toast{position:absolute; bottom:2%; left:50%; transform:translateX(-50%); color:var(--muted); font-size:13px; font-style:italic; opacity:0; transition:opacity .3s; white-space:nowrap;}
+.toast{position:absolute; bottom:2%; left:50%; transform:translateX(-50%); color:var(--muted); font-size:13px; font-style:italic; opacity:0; transition:opacity .5s ease-in-out; white-space:nowrap;}
 .toast.show{opacity:1;}
 
 /* ---------- REVEAL (in place over fan) ---------- */
-.dim-overlay{position:fixed; inset:0; background:rgba(0,0,0,0); pointer-events:none; transition:background .5s; z-index:4;}
+.dim-overlay{position:fixed; inset:0; background:rgba(0,0,0,0); pointer-events:none; transition:background .7s ease-in-out; z-index:4;}
 .dim-overlay.on{background:rgba(0,0,0,.55); pointer-events:auto;}
 .meaning-panel{position:absolute; left:50%; bottom:6%; transform:translateX(-50%); max-width:420px; width:88%;
-  text-align:center; z-index:6; opacity:0; transition:opacity .5s .3s; pointer-events:none;}
+  text-align:center; z-index:6; opacity:0; transition:opacity .7s .35s ease-in-out; pointer-events:none;}
 .meaning-panel.show{opacity:1; pointer-events:auto;}
 .meaning-panel h2{font-family:var(--head-font); color:var(--accent); letter-spacing:1.5px; font-size:19px; margin:0 0 2px;}
 .meaning-panel .orient{display:block; color:var(--orient); font-size:12px; letter-spacing:2px; text-transform:uppercase; margin-bottom:6px;}
@@ -132,6 +133,11 @@ body.noir .cta:hover{box-shadow:0 0 28px rgba(227,34,34,.65);}
 h1.title{position:fixed; top:calc(14px + env(safe-area-inset-top,0px)); left:50%; transform:translateX(-50%);
   margin:0; white-space:nowrap; font-family:var(--head-font); color:var(--accent);
   font-size:13px; letter-spacing:3px; opacity:.6; z-index:5; text-transform:uppercase;}
+/* desktop: a bigger deck and the title lower */
+@media (hover:hover) and (pointer:fine){
+  .deck-stack{--deck-w:185px;}
+  h1.title{top:calc(64px + env(safe-area-inset-top,0px));}
+}
 body.noir h1.title, body.noir .meaning-panel h2{letter-spacing:4px; font-weight:500;}
 /* noir: the stars in the title and the ask button become blood drops lying on the surface (seen from above) */
 body.noir .orn{display:inline-block; width:1.05em; height:1.05em; vertical-align:-.2em; color:transparent; overflow:hidden; text-shadow:none;

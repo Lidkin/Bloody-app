@@ -288,8 +288,8 @@ function drawFromDeck(dip){
     .call(()=>{ dimOverlay.classList.add('on'); gsap.to(deckStack,{opacity:.3, duration:.8}); })
     .to(s,{...pose, duration:1.3, ease:'power2.out', onUpdate:render, onComplete:()=>onCardOpened(el)});
 }
-// the reverse; the deck then settles and the ask button comes back for the next reading
-function returnToDeck(el){
+// the reverse; the deck then settles and the ask button comes back for the next reading (or `onBack` runs)
+function returnToDeck(el, onBack){
   const {topImg, dip, rest}=el._fromDeck, s=el._state, render=()=>renderCard(el,s);
   gsap.killTweensOf(s);
   dimOverlay.classList.remove('on'); gsap.to(deckStack,{opacity:1, duration:.8});
@@ -298,7 +298,10 @@ function returnToDeck(el){
     .to(s,{y:rest.y, duration:.5, ease:'sine.out', onUpdate:render})
     .call(()=>{
       topImg.style.visibility=''; el.remove(); fanScreen.hidden=true; activeCard=null;
-      settleDeck(dip, ()=>{ showAskBtn(ASK_HTML); document.getElementById('askSub').classList.remove('gone'); busy=false; });
+      settleDeck(dip, ()=>{
+        if(onBack) onBack(); else { showAskBtn(ASK_HTML); document.getElementById('askSub').classList.remove('gone'); }
+        busy=false;
+      });
     });
 }
 
@@ -818,6 +821,67 @@ function returnToArc(el){
     .to(s,{...arcState(el), duration:.35, ease:'power2.out', onUpdate:render,
       onComplete:()=>{ restoreInArc(el); activeCard=null; busy=false; }});
 }
+
+// "Собрать колоду": the reading is over for today - the card of the day turns face down and goes to where
+// the deck lay, the whole fan gathers onto it, last dealt first, and the deck is back on the velvet
+// with the time left until the next card of the day
+document.getElementById('gatherBtn').addEventListener('click', ()=>{
+  if(!activeCard || busy) return;
+  busy=true; const el=activeCard;
+  finale.classList.remove('show'); hideBigName();
+  el.classList.remove('lit');
+  hideShowcase(()=>el._fromDeck ? returnToDeck(el, showComeBack) : gatherDeck(el));
+});
+// the deck as it lies on the velvet, undoing its flight into the fan
+function resetDeckStack(){
+  deckStack.style.removeProperty('--edge-o');
+  gsap.set(deckStack,{x:0, y:0, rotation:0, scaleX:1, scaleY:1, opacity:1});
+  [...deckStack.children].forEach((c,i)=>gsap.set(c,{...DECK_REST[i], clearProps:'borderRadius'}));
+  deckTilt.tx=deckTilt.ty=0; renderDeckTilt();
+}
+function gatherDeck(el){
+  const s=el._state, render=()=>renderCard(el,s);
+  gsap.killTweensOf(s);
+  // the opening screen, laid out but unseen under the fan, tells where the deck lies
+  openingEl.hidden=false; gsap.set(openingEl,{opacity:0});
+  askBtn.style.visibility='hidden';
+  resetDeckStack();
+  const r=deckStack.getBoundingClientRect(), w=deckStack.offsetWidth, h=deckStack.offsetHeight;
+  const x=r.left+r.width/2, y=r.top+r.height/2;
+  document.querySelectorAll('.fcard').forEach(c=>c.classList.remove('dim'));
+  dimOverlay.classList.remove('on');
+  gsap.to(s,{x, y, w, h, rot:0, ry:0, tx:0, ty:0, duration:1.1, ease:'power2.inOut', onUpdate:render});
+  // the reverse of dealing: the lower arc from its left end, then the upper arc from its right end
+  const dealOrder=c=>c.classList.contains('mirrored') ? 1000+(+c.dataset.z) : +c.dataset.z;
+  const arc=[...fan.querySelectorAll('.fcard:not(.mover)')].filter(c=>c!==el).sort((a,b)=>dealOrder(b)-dealOrder(a));
+  const START=.7, STAGGER=.022, DUR=.7, jitter=v=>(Math.random()-.5)*v;
+  arc.forEach((c,k)=>animateCard(c, {x:x+jitter(3), y:y+jitter(3), w, h, rot:jitter(5), ry:0, tx:0, ty:0},
+    {duration:DUR, ease:'power2.inOut', delay:START+k*STAGGER, onStart:()=>{ c.classList.remove('lit'); c.style.zIndex=1001+k; }}));
+  gsap.delayedCall(START+(arc.length-1)*STAGGER+DUR+.1, ()=>{
+    // the gathered pile lies exactly on the real deck: show the deck under it and let the fan go
+    gsap.set(openingEl,{opacity:1});
+    gsap.to(fanScreen,{opacity:0, duration:.5, onComplete:()=>{
+      fanScreen.hidden=true; gsap.set(fanScreen,{opacity:1});
+      fan.innerHTML=''; fan.appendChild(dimOverlay);
+      activeCard=null; hoverCard=null; shufflePhase='idle'; busy=false;
+      showComeBack();
+    }});
+  });
+}
+// time left until the next card of the day, at local midnight; for now the ask button stays, for testing
+function showComeBack(){
+  const sub=document.getElementById('askSub');
+  sub.innerHTML='возвращайся через <span class="countdown"></span>';
+  tickCountdown(); sub.classList.remove('gone');
+  showAskBtn(ASK_HTML);
+}
+function tickCountdown(){
+  const cd=document.querySelector('#askSub .countdown'); if(!cd) return;
+  const now=new Date(), next=new Date(now); next.setHours(24,0,0,0);
+  const t=Math.floor((next-now)/1000), pad=v=>String(v).padStart(2,'0');
+  cd.textContent=`${pad(Math.floor(t/3600))}:${pad(Math.floor(t/60)%60)}:${pad(t%60)}`;
+}
+setInterval(tickCountdown, 1000);
 
 // A story-sized (9:16) picture of the card of the day with the deck's name and shop - shared through the
 // system share sheet where files can be shared (phones), otherwise downloaded.

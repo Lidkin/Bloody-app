@@ -622,19 +622,46 @@ function showShowcase(el){
     const c=makeCard(card, 0, 0); c.classList.add('showcase'); c.title='Колода на Etsy';
     c.style.zIndex=990-far;
     c.addEventListener('click', ()=>window.open(document.getElementById('etsyBtn').href, '_blank', 'noopener'));
-    const cs=c._state={x:s.x, y:s.y, rot:0, w, h, ry:180, tx:0, ty:0}, render=()=>renderCard(c,cs);
-    render(); fan.appendChild(c); showcase.push(c);
-    gsap.to(cs,{x:s.x+dir*(s.w/2+24+w*(.35+.75*far)), y:s.y+h*(.05+.1*far), rot:dir*(5+8*far),
-      duration:1, delay:.15*i, ease:'power2.out', onUpdate:render,
-      onComplete:()=>gsap.to(cs,{y:cs.y-7, rot:cs.rot+dir*1.2, duration:3+i*.45, ease:'sine.inOut', yoyo:true, repeat:-1, onUpdate:render})});
+    c._state={x:s.x, y:s.y, rot:0, w, h, ry:180, tx:0, ty:0};
+    c._home={x:s.x+dir*(s.w/2+24+w*(.35+.75*far)), y:s.y+h*(.05+.1*far), rot:dir*(5+8*far), dir, i};
+    renderCard(c, c._state); fan.appendChild(c); showcase.push(c);
+    fanOutCard(c, .15*i);
   });
 }
+// a showcase card glides from behind the card of the day to its place, then sways there
+function fanOutCard(c, delay=0){
+  const cs=c._state, {x, y, rot, dir, i}=c._home, render=()=>renderCard(c,cs);
+  gsap.killTweensOf(cs);
+  gsap.to(cs,{x, y, rot, duration:1, delay, ease:'power2.out', onUpdate:render,
+    onComplete:()=>gsap.to(cs,{y:y-7, rot:rot+dir*1.2, duration:3+i*.45, ease:'sine.inOut', yoyo:true, repeat:-1, onUpdate:render})});
+}
+function tuckCard(c, then){
+  const s=activeCard._state, cs=c._state;
+  gsap.killTweensOf(cs);
+  gsap.to(cs,{x:s.x, y:s.y, rot:0, duration:.6, ease:'power2.inOut', onUpdate:()=>renderCard(c,cs), onComplete:then});
+}
+
+// desktop: pointing at "Поделиться картой" previews what gets shared - the showcase slips under the card
+// of the day, which straightens up, holds still and shows its pure white
+let sharePreview=false;
+const shareBtnEl=document.getElementById('shareBtn');
+shareBtnEl.addEventListener('pointerenter', e=>{
+  if(e.pointerType!=='mouse' || !activeCard || busy) return;
+  sharePreview=true;
+  const el=activeCard, s=el._state;
+  gsap.to(s,{tx:0, ty:0, duration:.5, ease:'power2.out', overwrite:'auto', onUpdate:()=>renderCard(el,s)});
+  el.classList.add('lit');
+  showcase.forEach(c=>tuckCard(c));
+});
+shareBtnEl.addEventListener('pointerleave', ()=>{
+  if(!sharePreview) return;
+  sharePreview=false;
+  if(activeCard) activeCard.classList.remove('lit');
+  showcase.forEach((c,k)=>fanOutCard(c, .08*k));
+});
 function hideShowcase(){
-  const s=activeCard && activeCard._state;
-  showcase.forEach(c=>{
-    const cs=c._state; gsap.killTweensOf(cs);
-    gsap.to(cs,{x:s?s.x:cs.x, y:s?s.y:cs.y, rot:0, duration:.6, ease:'power2.in', onUpdate:()=>renderCard(c,cs), onComplete:()=>c.remove()});
-  });
+  sharePreview=false;
+  showcase.forEach(c=>tuckCard(c, ()=>c.remove()));
   showcase=[];
 }
 
@@ -647,7 +674,7 @@ function tiltTo(nx, ny, dur=.5){
   gsap.to(s,{ty:nx*TILT_Y, tx:-ny*TILT_X, duration:dur, ease:'power2.out', overwrite:'auto', onUpdate:()=>renderCard(el,s)});
 }
 window.addEventListener('pointermove', e=>{
-  const s=activeCard && activeCard._state; if(!s) return;
+  const s=activeCard && activeCard._state; if(!s || sharePreview) return;
   // under the cursor the warm paper of the illustration turns pure white
   activeCard.classList.toggle('lit', e.pointerType==='mouse' && inCard(s, e.clientX, e.clientY));
   if(e.pointerType==='touch' && !e.buttons) return;

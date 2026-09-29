@@ -158,7 +158,7 @@ function showAskBtn(html){
 askBtn.addEventListener('click', ()=>{
   if(shufflePhase==='idle'){
     if(busy) return; busy=true; shufflePhase='shuffling';
-    askTiltPermission();
+    askTiltPermission(); tiltDeck(0, 0, .4);
     document.getElementById('askSub').classList.add('gone');
     hideAskBtn(()=>gsap.delayedCall(.5, ()=>{ if(shufflePhase==='shuffling') showAskBtn(STOP_HTML); }));
     shuffleDeck(flyToFan);
@@ -227,6 +227,20 @@ const deckAtRest=()=>shufflePhase==='idle' && !busy && !openingEl.hidden;
 function poseDeck(pose){
   [...deckStack.children].forEach((c,i)=>gsap.to(c,{...pose[i], duration:.6, ease:'sine.inOut', overwrite:'auto'}));
 }
+// The opening deck tilts after the cursor / a finger / the phone, like an opened card; the edge of
+// its stacked cards shows on the sides tilted towards the viewer (--ex/--ey feed style.css)
+const DECK_TILT_X=8, DECK_TILT_Y=10, deckTilt={tx:0, ty:0};
+function renderDeckTilt(){
+  const T=deckStack.offsetWidth*.1, {tx, ty}=deckTilt;
+  deckStack.style.setProperty('--ex', (-ty/DECK_TILT_Y*T).toFixed(2)+'px');
+  deckStack.style.setProperty('--ey', (T*.5+tx/DECK_TILT_X*T*.8).toFixed(2)+'px');
+  gsap.set(deckStack,{rotationX:tx, rotationY:ty, transformPerspective:900});
+}
+function tiltDeck(nx, ny, dur=.6){
+  gsap.to(deckTilt,{ty:nx*DECK_TILT_Y, tx:-ny*DECK_TILT_X, duration:dur, ease:'power2.out', overwrite:'auto', onUpdate:renderDeckTilt});
+}
+gsap.set(deckStack,{x:0, y:0, xPercent:-50, yPercent:-50}); // centred in % so it stays centred at any size
+renderDeckTilt();
 deckStack.addEventListener('pointerenter', e=>{ if(e.pointerType==='mouse' && deckAtRest()) poseDeck(DECK_PEEK); });
 deckStack.addEventListener('pointerleave', ()=>{ if(deckAtRest()) poseDeck(DECK_REST); });
 
@@ -277,6 +291,7 @@ function flyToFan(){
   // squeeze the loose stack into one card of exactly the fan's size so the hand-off is invisible
   const sx=cardW/deckStack.offsetWidth, sy=cardH/deckStack.offsetHeight;
   const rad=cardW*CARD_RADIUS; // the fan card's corner, in the squeezed stack's own units
+  deckStack.style.setProperty('--edge-o', 0); // the stack squeezes into one fan card, which has no deck under it
   gsap.to(deckStack.children,{rotation:0, x:0, y:0, borderRadius:`${rad/sx}px / ${rad/sy}px`,
     duration:.8, ease:'power2.inOut'});
   gsap.to(deckStack,{x:`+=${tx-(r.left+r.width/2)}`, y:`+=${ty-(r.top+r.height/2)}`,
@@ -674,22 +689,31 @@ function tiltTo(nx, ny, dur=.5){
   gsap.to(s,{ty:nx*TILT_Y, tx:-ny*TILT_X, duration:dur, ease:'power2.out', overwrite:'auto', onUpdate:()=>renderCard(el,s)});
 }
 window.addEventListener('pointermove', e=>{
-  const s=activeCard && activeCard._state; if(!s || sharePreview) return;
+  if(!activeCard){
+    if(!deckAtRest() || (e.pointerType==='touch' && !e.buttons)) return;
+    const r=deckStack.getBoundingClientRect();
+    tiltDeck(clamp1((e.clientX-r.left-r.width/2)/(r.width*1.6)), clamp1((e.clientY-r.top-r.height/2)/(r.height*1.1)));
+    return;
+  }
+  const s=activeCard._state; if(!s || sharePreview) return;
   // under the cursor the warm paper of the illustration turns pure white
   activeCard.classList.toggle('lit', e.pointerType==='mouse' && inCard(s, e.clientX, e.clientY));
   if(e.pointerType==='touch' && !e.buttons) return;
   tiltTo(clamp1((e.clientX-s.x)/(s.w*.9)), clamp1((e.clientY-s.y)/(s.h*.7)));
 });
-document.documentElement.addEventListener('pointerleave', ()=>{ tiltTo(0,0,.9); activeCard&&activeCard.classList.remove('lit'); });
-window.addEventListener('pointerup', e=>{ if(e.pointerType==='touch') tiltTo(0,0,.9); });
+const untilt=()=>{ if(activeCard) tiltTo(0,0,.9); else if(deckAtRest()) tiltDeck(0,0,.9); };
+document.documentElement.addEventListener('pointerleave', ()=>{ untilt(); activeCard&&activeCard.classList.remove('lit'); });
+window.addEventListener('pointerup', e=>{ if(e.pointerType==='touch') untilt(); });
 // the phone's pose when the card opens is neutral; the neutral slowly follows the phone, so the card
 // always drifts back to lying flat
 let tiltBase=null;
 window.addEventListener('deviceorientation', e=>{
-  if(e.beta==null || !activeCard || busy){ tiltBase=null; return; }
+  const onDeck=!activeCard && deckAtRest();
+  if(e.beta==null || (!onDeck && (!activeCard || busy))){ tiltBase=null; return; }
   if(!tiltBase) tiltBase={b:e.beta, g:e.gamma};
   tiltBase.b+=(e.beta-tiltBase.b)*.01; tiltBase.g+=(e.gamma-tiltBase.g)*.01;
-  tiltTo(clamp1((e.gamma-tiltBase.g)/18), clamp1((e.beta-tiltBase.b)/18), .4);
+  const nx=clamp1((e.gamma-tiltBase.g)/18), ny=clamp1((e.beta-tiltBase.b)/18);
+  onDeck ? tiltDeck(nx, ny, .4) : tiltTo(nx, ny, .4);
 });
 // iOS lets a page read the phone's tilt only after asking, from a tap
 function askTiltPermission(){

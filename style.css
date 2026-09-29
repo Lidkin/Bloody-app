@@ -39,7 +39,22 @@ canvas#dust{position:fixed; inset:0; z-index:1; pointer-events:none;}
 .deck-stack{--deck-w:140px; position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
   width:var(--deck-w); height:calc(var(--deck-w) * 1.7149);} /* 570:977.5, the cut size */
 .deck-stack .dcard{position:absolute; inset:0; overflow:hidden; border-radius:calc(var(--deck-w) * var(--card-r,.07));
-  box-shadow:0 10px 24px rgba(0,0,0,.7); border:var(--card-edge);}
+  border:var(--card-edge);
+  box-shadow:calc(var(--ex,0px) * .1) calc(var(--ey,9px) * .1) 0 #d6cfc6, calc(var(--ex,0px) * .17) calc(var(--ey,9px) * .17) 0 #6f675f,
+    0 10px 24px rgba(0,0,0,.7);}
+/* the rest of the deck under the three top cards: its edge of stacked paper shows on the sides tilted
+   towards the viewer; app.js sets --ex / --ey (how far the edge sticks out) from the deck's tilt */
+.deck-stack::before{content:''; position:absolute; inset:0; border-radius:calc(var(--deck-w) * var(--card-r,.07));
+  background:#e4ddd3; opacity:var(--edge-o,1); transition:opacity .4s;
+  box-shadow:
+    calc(var(--ex,0px) * .083) calc(var(--ey,9px) * .083) 0 #ddd6cc, calc(var(--ex,0px) * .167) calc(var(--ey,9px) * .167) 0 #c4bcb1,
+    calc(var(--ex,0px) * .25)  calc(var(--ey,9px) * .25)  0 #ddd6cc, calc(var(--ex,0px) * .333) calc(var(--ey,9px) * .333) 0 #c4bcb1,
+    calc(var(--ex,0px) * .417) calc(var(--ey,9px) * .417) 0 #ddd6cc, calc(var(--ex,0px) * .5)   calc(var(--ey,9px) * .5)   0 #c4bcb1,
+    calc(var(--ex,0px) * .583) calc(var(--ey,9px) * .583) 0 #ddd6cc, calc(var(--ex,0px) * .667) calc(var(--ey,9px) * .667) 0 #c4bcb1,
+    calc(var(--ex,0px) * .75)  calc(var(--ey,9px) * .75)  0 #ddd6cc, calc(var(--ex,0px) * .833) calc(var(--ey,9px) * .833) 0 #c4bcb1,
+    calc(var(--ex,0px) * .917) calc(var(--ey,9px) * .917) 0 #ddd6cc, var(--ex,0px) var(--ey,9px) 0 #5e564e,
+    var(--ex,0px) calc(var(--ey,9px) + 14px) 30px rgba(0,0,0,.75);}
+.velvet{touch-action:none;} /* a finger dragging over the deck tilts it */
 .deck-stack .dcard:nth-child(1){transform:rotate(-1deg) translate(-1px,1px);}
 .deck-stack .dcard:nth-child(2){transform:rotate(2deg) translate(2px,-1px);}
 .deck-stack .dcard:nth-child(3){transform:rotate(0deg);}

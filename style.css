@@ -83,7 +83,7 @@ body:not(.fonts-ready) .ask-sub{visibility:hidden;}
 .fcard{position:fixed; width:var(--cw,69px); height:var(--ch,118px);
   margin:calc(var(--ch,118px) / -2) 0 0 calc(var(--cw,69px) / -2);
   pointer-events:none; transform-origin:50% 50%; transition:filter .5s ease-in-out;} /* hit-testing is done in app.js */
-.fcard.dim{filter:brightness(.25) saturate(.4); pointer-events:none;}
+.fcard.dim{filter:brightness(.12) saturate(.3); pointer-events:none;}
 .fcard.mover{pointer-events:none; box-shadow:0 0 0 1px rgba(0,0,0,.3);}
 .fcard-inner{position:relative; width:100%; height:100%; transform-style:preserve-3d;}
 .face{position:absolute; inset:0; border-radius:calc(var(--cw,69px) * var(--card-r,.07)); overflow:hidden; backface-visibility:hidden;

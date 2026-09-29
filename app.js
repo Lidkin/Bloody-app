@@ -431,12 +431,23 @@ function arcState(el, lift=0){
   return {x:+el.dataset.pivotX+r*Math.sin(rad), y:+el.dataset.pivotY-r*Math.cos(rad),
     rot:a, w:cardW, h:cardH, ry:0, tx:0, ty:0};
 }
+const EDGE=.011, EDGE_PAPER='#d6cfc6', EDGE_DARK='#6f675f'; // card thickness, as a share of its width
 function renderCard(el, s){
-  el.style.left=s.x+'px'; el.style.top=s.y+'px';
+  // positioned by a transform, not left/top: those snap to whole pixels, and slow motion turns jerky
+  el.style.left='0px'; el.style.top='0px';
   el.style.setProperty('--cw', s.w+'px'); el.style.setProperty('--ch', s.h+'px');
   const tilted=s.tx||s.ty;
-  el.style.transform=`rotate(${s.rot}deg)`+(tilted ? ` perspective(${s.h*3}px) rotateX(${s.tx}deg) rotateY(${s.ty}deg)` : '');
+  el.style.transform=`translate3d(${s.x}px,${s.y}px,0) rotate(${s.rot}deg)`+(tilted ? ` perspective(${s.h*3}px) rotateX(${s.tx}deg) rotateY(${s.ty}deg)` : '');
   el.firstElementChild.style.transform=`perspective(${s.h*4}px) rotateY(${s.ry}deg)`;
+  // the thickness of a face-up card: its paper edge shows on the sides tilted towards the viewer,
+  // and a little along the bottom even when it lies flat, as if seen from slightly above
+  const front=el.querySelector('.face.front');
+  if(s.ry>90){
+    const T=s.w*EDGE, dx=-(s.ty||0)/TILT_Y*T, dy=T*.45+(s.tx||0)/TILT_X*T*.8, n=Math.max(2, Math.ceil(Math.hypot(dx,dy)));
+    const layers=[];
+    for(let i=1;i<=n;i++) layers.push(`${(dx*i/n).toFixed(2)}px ${(dy*i/n).toFixed(2)}px 0 ${i===n?EDGE_DARK:EDGE_PAPER}`);
+    front.style.boxShadow=layers.join(',')+`, ${dx.toFixed(1)}px ${(8+dy).toFixed(1)}px 18px rgba(0,0,0,.6)`;
+  } else if(front.style.boxShadow) front.style.boxShadow='';
   // the sheen slides across the face against the tilt and brightens with it, like light on glossy paper
   const gloss=el.querySelector('.gloss');
   if(gloss){
@@ -454,6 +465,7 @@ function restoreInArc(el){
   el.style.removeProperty('--cw'); el.style.removeProperty('--ch');
   el.style.transform=`rotate(${el.dataset.angle}deg) translateY(-${el.dataset.radius}px)`;
   el.firstElementChild.style.transform=''; el.style.zIndex=el.dataset.z;
+  el.querySelector('.face.front').style.boxShadow='';
 }
 
 // Hit-testing uses the cards' fixed slots in the arcs, not their animated positions: otherwise a
@@ -614,7 +626,7 @@ function showShowcase(el){
     render(); fan.appendChild(c); showcase.push(c);
     gsap.to(cs,{x:s.x+dir*(s.w/2+24+w*(.35+.75*far)), y:s.y+h*(.05+.1*far), rot:dir*(5+8*far),
       duration:1, delay:.15*i, ease:'power2.out', onUpdate:render,
-      onComplete:()=>gsap.to(cs,{y:cs.y-6, duration:2.4+i*.35, ease:'sine.inOut', yoyo:true, repeat:-1, onUpdate:render})});
+      onComplete:()=>gsap.to(cs,{y:cs.y-7, rot:cs.rot+dir*1.2, duration:3+i*.45, ease:'sine.inOut', yoyo:true, repeat:-1, onUpdate:render})});
   });
 }
 function hideShowcase(){

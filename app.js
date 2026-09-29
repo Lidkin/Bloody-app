@@ -312,12 +312,15 @@ function flyToFan(){
   const sx=cardW/deckStack.offsetWidth, sy=cardH/deckStack.offsetHeight;
   const rad=cardW*CARD_RADIUS; // the fan card's corner, in the squeezed stack's own units
   deckStack.style.setProperty('--edge-o', 0); // the stack squeezes into one fan card, which has no deck under it
+  deckStack.style.willChange='transform';
+  // the short delay lets the frame that laid out the fan screen pass, so the flight starts without a hitch
+  const DUR=1.1, EASE='power3.inOut', DELAY=.08;
   gsap.to(deckStack.children,{rotation:0, x:0, y:0, borderRadius:`${rad/sx}px / ${rad/sy}px`,
-    duration:.8, ease:'power2.inOut'});
+    duration:DUR, ease:EASE, delay:DELAY});
   gsap.to(deckStack,{x:`+=${tx-(r.left+r.width/2)}`, y:`+=${ty-(r.top+r.height/2)}`,
-    rotation:L.angleStart, scaleX:sx, scaleY:sy,
-    duration:.8, ease:'power2.inOut',
-    onComplete:()=>buildFan(()=>{ openingEl.hidden=true; busy=false; })});
+    rotation:L.angleStart, rotationX:0, rotationY:0, scaleX:sx, scaleY:sy,
+    duration:DUR, ease:EASE, delay:DELAY,
+    onComplete:()=>{ deckStack.style.willChange=''; buildFan(()=>{ openingEl.hidden=true; busy=false; }); }});
 }
 document.querySelectorAll('.opt').forEach(o=>o.addEventListener('click',()=>{
   if(o.dataset.mode!=='day'){ showToast('Этот расклад скоро добавим ✦'); return; }
@@ -415,13 +418,16 @@ function buildFan(onReady){
 
   // cards are dropped when the mover actually passes their slot, so an eased sweep stays in sync
   // the whole upper arc stacks above the lower one, so a card leaving the upper arc passes over it
-  const dropper=(indices, radius, zBase)=>{
+  // mirrored: dealt right to left, so each card lies on its right-hand neighbour
+  const dropper=(indices, radius, zBase, mirrored=false)=>{
     const n=indices.length; let next=0;
-    const slotAngle=i=> n>1 ? angleStart+(angleEnd-angleStart)*i/(n-1) : angleStart;
+    const slotAngle=i=>{ const f=n>1 ? i/(n-1) : 0; return mirrored ? angleEnd-(angleEnd-angleStart)*f : angleStart+(angleEnd-angleStart)*f; };
+    const passed=i=> mirrored ? slotAngle(i)>=pop.a-1e-6 : slotAngle(i)<=pop.a+1e-6;
     return ()=>{
-      while(next<n && slotAngle(next)<=pop.a+1e-6){
+      while(next<n && passed(next)){
         const slot=next++, angle=slotAngle(slot);
         const el=makeCard(DECK[indices[slot]], pivotX, pivotY);
+        if(mirrored) el.classList.add('mirrored');
         el.dataset.z=zBase+slot; el.style.zIndex=el.dataset.z;
         el.dataset.angle=angle; el.dataset.radius=radius;
         el.style.transform=`rotate(${angle}deg) translateY(-${radius}px)`;
@@ -430,8 +436,8 @@ function buildFan(onReady){
     };
   };
   const outerIdx = deckOrder.slice(0, nOuter);
-  const innerIdx = deckOrder.slice(nOuter).slice().reverse();
-  const dropOuter=dropper(outerIdx, rOuter, 100), dropInner=dropper(innerIdx, rInner, 0);
+  const innerIdx = deckOrder.slice(nOuter);
+  const dropOuter=dropper(outerIdx, rOuter, 100), dropInner=dropper(innerIdx, rInner, 0, true);
   const sweepDur=count=>Math.max(.7, count*0.045);
 
   // wait until the mover's image is decoded, otherwise it blinks for a frame on appear
@@ -444,9 +450,9 @@ function buildFan(onReady){
     }});
     tl.to(pop,{a:angleEnd,duration:sweepDur(outerIdx.length),ease:'sine.inOut',
       onStart:dropOuter, onUpdate:()=>{ setMover(); dropOuter(); }, onComplete:dropOuter});
-    // the rest of the deck spirals back through the gap between the arcs to the lower arc's start
-    tl.to(pop,{a:angleStart,r:rInner,duration:.8,ease:'power2.inOut',onUpdate:setMover});
-    tl.to(pop,{a:angleEnd,duration:sweepDur(innerIdx.length),ease:'sine.inOut',
+    // the rest of the deck steps down to the lower arc's right end and deals it back, mirroring the upper one
+    tl.to(pop,{r:rInner,duration:.5,ease:'power2.inOut',onUpdate:setMover});
+    tl.to(pop,{a:angleStart,duration:sweepDur(innerIdx.length),ease:'sine.inOut',
       onStart:dropInner, onUpdate:()=>{ setMover(); dropInner(); }, onComplete:dropInner});
   });
 }
@@ -624,22 +630,24 @@ function showBigName(el){
   bigName.textContent=el._card.name; bigName.style.letterSpacing=''; bigName.style.paddingLeft='';
   gsap.killTweensOf(bigName);
   bigName.style.zIndex=BIG_FRONT;
-  gsap.set(bigName,{opacity:1, xPercent:-50, yPercent:-50, scale:1.12});
+  const FRONT=1.1, PLANE=1.05; // its scale in front of the card; passing PLANE it goes behind; it ends at 1
   fan.appendChild(bigName);
+  gsap.set(bigName,{opacity:1, x:0, y:0, xPercent:-50, yPercent:-50, scale:FRONT});
+  // it spans the whole visible width: sized to it, up to 60% of the card's height; a shorter name has
+  // its letters spread out to the full width
+  const FILL=innerWidth*.96, n=bigName.textContent.length;
   bigName.style.fontSize='100px';
-  const fs=Math.min(s.h*.4, 100*innerWidth*.94/bigName.scrollWidth);
-  bigName.style.fontSize=fs+'px'; bigName.style.top=s.y+'px';
-  // a short name would hide behind the card; spread its letters until they show on both sides
-  const minW=Math.min(innerWidth*.94, s.w*2.6), n=bigName.textContent.length;
-  if(bigName.scrollWidth<minW && n>1){
-    const sp=(minW-bigName.scrollWidth)/n;
+  bigName.style.fontSize=Math.min(s.h*.6, 100*FILL/bigName.scrollWidth)+'px'; bigName.style.top=s.y+'px';
+  if(bigName.scrollWidth<FILL && n>1){
+    const sp=(FILL-bigName.scrollWidth)/(n+1);
     bigName.style.letterSpacing=sp+'px'; bigName.style.paddingLeft=sp+'px'; // balances the space after the last letter
   }
-  const STAGGER=.07, DUR=1.1;
+  const STAGGER=.07, DUR=1.1, letters=bigName.textContent.replace(/\s/g,'').length;
   inkReveal(bigName, {delay:.1, stagger:STAGGER, dur:DUR});
-  // once it has surfaced it recedes, and as it passes the card's plane (scale 1) it goes behind it
-  gsap.to(bigName,{scale:.94, duration:1.3, ease:'power2.inOut', delay:.1+STAGGER*n+DUR*.8,
-    onUpdate(){ if(gsap.getProperty(bigName,'scale')<1) bigName.style.zIndex=BIG_BEHIND; }});
+  // as soon as the last letter starts to surface the name recedes through the card, so the letters
+  // finish sharpening behind it
+  gsap.to(bigName,{scale:1, duration:1.4, ease:'power1.inOut', delay:.1+STAGGER*letters,
+    onUpdate(){ if(gsap.getProperty(bigName,'scale')<PLANE) bigName.style.zIndex=BIG_BEHIND; }});
 }
 function hideBigName(){
   if(!bigName.isConnected) return;

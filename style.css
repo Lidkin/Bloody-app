@@ -38,13 +38,16 @@ canvas#dust{position:fixed; inset:0; z-index:1; pointer-events:none;}
 .velvet{--deck-w:140px; position:relative; width:min(92vw,520px); height:min(60vh,420px);}
 .deck-stack{position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
   width:var(--deck-w); height:calc(var(--deck-w) * 1.7149);} /* 570:977.5, the cut size */
-.deck-stack .dcard{position:absolute; inset:0; overflow:hidden; border-radius:calc(var(--deck-w) * var(--card-r,.07));
+/* the bottom card lies under the rest of the deck (::before, z 1), the other two on top of it (z 2);
+   app.js keeps this up as the shuffle moves the cards around */
+.deck-stack .dcard{position:absolute; inset:0; z-index:2; overflow:hidden; border-radius:calc(var(--deck-w) * var(--card-r,.07));
   border:var(--card-edge);
   box-shadow:calc(var(--ex,0px) * .1) calc(var(--ey,9px) * .1) 0 #d6cfc6, calc(var(--ex,0px) * .17) calc(var(--ey,9px) * .17) 0 #6f675f,
-    0 10px 24px rgba(0,0,0,.7);}
+    0 12px 26px rgba(20,2,2,.9);}
+.deck-stack .dcard:first-child{z-index:0;}
 /* the rest of the deck under the three top cards: its edge of stacked paper shows on the sides tilted
    towards the viewer; app.js sets --ex / --ey (how far the edge sticks out) from the deck's tilt */
-.deck-stack::before{content:''; position:absolute; inset:0; border-radius:calc(var(--deck-w) * var(--card-r,.07));
+.deck-stack::before{content:''; position:absolute; inset:0; z-index:1; border-radius:calc(var(--deck-w) * var(--card-r,.07));
   background:#e4ddd3; opacity:var(--edge-o,1); transition:opacity .4s;
   box-shadow:
     calc(var(--ex,0px) * .083) calc(var(--ey,9px) * .083) 0 #ddd6cc, calc(var(--ex,0px) * .167) calc(var(--ey,9px) * .167) 0 #c4bcb1,
@@ -53,7 +56,7 @@ canvas#dust{position:fixed; inset:0; z-index:1; pointer-events:none;}
     calc(var(--ex,0px) * .583) calc(var(--ey,9px) * .583) 0 #ddd6cc, calc(var(--ex,0px) * .667) calc(var(--ey,9px) * .667) 0 #c4bcb1,
     calc(var(--ex,0px) * .75)  calc(var(--ey,9px) * .75)  0 #ddd6cc, calc(var(--ex,0px) * .833) calc(var(--ey,9px) * .833) 0 #c4bcb1,
     calc(var(--ex,0px) * .917) calc(var(--ey,9px) * .917) 0 #ddd6cc, var(--ex,0px) var(--ey,9px) 0 #5e564e,
-    var(--ex,0px) calc(var(--ey,9px) + 14px) 30px rgba(0,0,0,.75);}
+    var(--ex,0px) calc(var(--ey,9px) + 16px) 32px rgba(20,2,2,.92);}
 .velvet{touch-action:none;} /* a finger dragging over the deck tilts it */
 .deck-stack .dcard:nth-child(1){transform:rotate(-1deg) translate(-1px,1px);}
 .deck-stack .dcard:nth-child(2){transform:rotate(2deg) translate(2px,-1px);}
@@ -63,7 +66,7 @@ canvas#dust{position:fixed; inset:0; z-index:1; pointer-events:none;}
 .wcard{position:absolute; left:50%; top:50%; width:var(--deck-w); height:calc(var(--deck-w) * 1.7149);
   margin:calc(var(--deck-w) * -.85745) 0 0 calc(var(--deck-w) * -.5); overflow:hidden; pointer-events:none;
   border-radius:calc(var(--deck-w) * var(--card-r,.07)); border:var(--card-edge);
-  box-shadow:0 1px 0 #d6cfc6, 0 2px 0 #6f675f, 0 8px 20px rgba(0,0,0,.6);}
+  box-shadow:0 1px 0 #d6cfc6, 0 2px 0 #6f675f, 0 10px 22px rgba(20,2,2,.88);}
 .wcard.pile{pointer-events:auto; cursor:pointer;}
 .deck-stack .dcard img, .wcard img, .face img{position:absolute; display:block; max-width:none;
   width:var(--img-w,108.25%); height:var(--img-h,104.76%); left:var(--img-x,-4.04%); top:var(--img-y,-2.3%);}
@@ -103,13 +106,15 @@ body:not(.fonts-ready) .ask-sub{visibility:hidden;}
 .fan{position:fixed; inset:0; perspective:1000px; touch-action:none;} /* a finger dragging over it tilts the opened card */
 .fcard{position:fixed; width:var(--cw,69px); height:var(--ch,118px);
   margin:calc(var(--ch,118px) / -2) 0 0 calc(var(--cw,69px) / -2);
-  pointer-events:none; transform-origin:50% 50%; transition:filter .5s ease-in-out, opacity .8s ease-in-out;} /* hit-testing is done in app.js */
-/* while a card lies open the fan disappears into the dark */
-.fcard.dim{filter:brightness(.12) saturate(.3); opacity:0; pointer-events:none;}
+  pointer-events:none; transform-origin:50% 50%; transition:filter .3s ease-out, opacity .4s ease-out;} /* hit-testing is done in app.js */
+/* while a card lies open the fan disappears into the dark (slowly; it comes back quickly) */
+.fcard.dim{filter:brightness(.12) saturate(.3); opacity:0; pointer-events:none; transition:filter .5s ease-in-out, opacity .8s ease-in-out;}
 .fcard.mover{pointer-events:none; box-shadow:0 0 0 1px rgba(0,0,0,.3);}
 .fcard-inner{position:relative; width:100%; height:100%; transform-style:preserve-3d;}
 .face{position:absolute; inset:0; border-radius:calc(var(--cw,69px) * var(--card-r,.07)); overflow:hidden; backface-visibility:hidden;
-  border:var(--card-edge); box-shadow:0 6px 14px rgba(0,0,0,.55);}
+  border:var(--card-edge); box-shadow:0 7px 16px rgba(20,2,2,.85);}
+/* a card lying face down in an arc: a thin paper edge along its left side, where it overlaps its neighbour */
+.face.back{box-shadow:-1px .5px 0 #d6cfc6, -1.8px .9px 0 #6f675f, 0 7px 16px rgba(20,2,2,.85);}
 .face.front{transform:rotateY(180deg); background:#1a0f14;}
 .face.front .reversed{transform:rotate(180deg);}
 /* sheen of glossy paper; renderCard moves and fades it with the card's tilt */
@@ -145,8 +150,8 @@ body:not(.noir) .big-name{font-family:'Cinzel',serif; color:rgba(201,162,75,.45)
 
 /* ---------- REVEAL (in place over fan) ---------- */
 /* under every card of the fan (their z-index starts at 0): the arc cards are dimmed by .dim, evenly */
-.dim-overlay{position:fixed; inset:0; background:rgba(0,0,0,0); pointer-events:none; transition:background .7s ease-in-out; z-index:-1;}
-.dim-overlay.on{background:rgba(0,0,0,.85); pointer-events:auto;}
+.dim-overlay{position:fixed; inset:0; background:rgba(0,0,0,0); pointer-events:none; transition:background .35s ease-out; z-index:-1;}
+.dim-overlay.on{background:rgba(0,0,0,.85); pointer-events:auto; transition:background .7s ease-in-out;}
 .meaning-panel{position:absolute; left:50%; bottom:6%; transform:translateX(-50%); max-width:420px; width:88%;
   text-align:center; z-index:6; opacity:0; transition:opacity .7s .35s ease-in-out; pointer-events:none;}
 .meaning-panel.show{opacity:1; pointer-events:auto;}

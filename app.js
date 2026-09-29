@@ -193,7 +193,9 @@ function shufflePass(){
   gsap.timeline({onComplete:()=>gsap.delayedCall(.15, shufflePass)})
     .to(card,{x:out, y:-4, rotation:rot, duration:.55, ease:'power2.inOut'})
     .call(()=>{
-      deckStack.prepend(card); // it is clear of the deck now, so going under it shows no jump
+      // it is clear of the deck now, so it can go under the whole of it (below ::before) with no jump
+      deckStack.prepend(card);
+      [...deckStack.children].forEach((c,i)=>c.style.zIndex=i ? 2 : 0);
       [...deckStack.children].slice(1).forEach((c,i)=>gsap.to(c,{...DECK_REST[i+1], duration:.55, ease:'power2.inOut'}));
     })
     .to(card,{...DECK_REST[0], duration:.55, ease:'power2.inOut'});
@@ -214,7 +216,7 @@ function cutThree(onDone){
     // a third of the deck: its edge of stacked paper along the bottom
     const T=w*.1/3, n=Math.round(T/1.5), layers=[];
     for(let k=1;k<=n;k++) layers.push(`0 ${(T*k/n).toFixed(1)}px 0 ${k===n ? '#5e564e' : k%2 ? '#ddd6cc' : '#c4bcb1'}`);
-    p.style.boxShadow=layers.join(',')+`, 0 ${(T+10).toFixed(1)}px 22px rgba(0,0,0,.7)`;
+    p.style.boxShadow=layers.join(',')+`, 0 ${(T+12).toFixed(1)}px 26px rgba(20,2,2,.9)`;
     return p;
   });
   let picking=false;
@@ -479,7 +481,7 @@ function renderCard(el, s){
     const T=s.w*EDGE, dx=-(s.ty||0)/TILT_Y*T, dy=T*.45+(s.tx||0)/TILT_X*T*.8, n=Math.max(2, Math.ceil(Math.hypot(dx,dy)));
     const layers=[];
     for(let i=1;i<=n;i++) layers.push(`${(dx*i/n).toFixed(2)}px ${(dy*i/n).toFixed(2)}px 0 ${i===n?EDGE_DARK:EDGE_PAPER}`);
-    front.style.boxShadow=layers.join(',')+`, ${dx.toFixed(1)}px ${(8+dy).toFixed(1)}px 18px rgba(0,0,0,.6)`;
+    front.style.boxShadow=layers.join(',')+`, ${dx.toFixed(1)}px ${(9+dy).toFixed(1)}px 22px rgba(20,2,2,.88)`;
   } else if(front.style.boxShadow) front.style.boxShadow='';
   // the sheen slides across the face against the tilt and brightens with it, like light on glossy paper
   const gloss=el.querySelector('.gloss');
@@ -769,12 +771,13 @@ document.getElementById('againBtn').addEventListener('click', ()=>{
   // the exact reverse: shrink and flip back to just outside the arc, then slide into the slot
   const s=el._state, render=()=>renderCard(el,s);
   gsap.killTweensOf(s);
+  // the fan comes back out of the dark right away, while the card is still on its way
+  document.querySelectorAll('.fcard').forEach(c=>c.classList.remove('dim'));
+  dimOverlay.classList.remove('on');
   gsap.timeline()
     .to(s,{...arcState(el, cardH), duration:.9, ease:'power2.inOut', onUpdate:render})
     .call(()=>{
       el.style.zIndex=el.dataset.z;
-      document.querySelectorAll('.fcard').forEach(c=>c.classList.remove('dim'));
-      dimOverlay.classList.remove('on');
       gsap.to(spreadOpts,{opacity:1,duration:.3});
     })
     .to(s,{...arcState(el), duration:.35, ease:'power2.out', onUpdate:render,

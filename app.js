@@ -233,7 +233,11 @@ function cutThree(onDone){
       picking=false; hideAskBtn();
       const others=piles.filter(o=>o!==p);
       p.style.zIndex=10;
-      gsap.timeline({onComplete:()=>{ gsap.set(deckStack,{opacity:1}); piles.forEach(o=>o.remove()); gsap.delayedCall(.25, onDone); }})
+      // the cut deck stays the neat stack the piles made, no card sticking out
+      gsap.timeline({onComplete:()=>{
+        gsap.set(deckStack.children,{rotation:0, x:0, y:0}); gsap.set(deckStack,{opacity:1});
+        piles.forEach(o=>o.remove()); gsap.delayedCall(.25, onDone);
+      }})
         .to(others,{x:0, y:0, scale:1, duration:.7, ease:'power2.inOut', stagger:.12}, 0)
         .to(p,{y:-h*.18, scale:fit*1.04, duration:.45, ease:'power2.out'}, 0)
         .to(p,{x:0, y:0, scale:1, duration:.7, ease:'power2.inOut'}, .5);
@@ -639,15 +643,18 @@ function inkReveal(el, {byWord=false, delay=0, stagger=.05, dur=.9}={}){
 // card, then sinks through it and stays behind it
 const bigName=document.createElement('div'); bigName.className='big-name';
 const BIG_FRONT=1001, BIG_BEHIND=950; // the opened card is at z 1000
+// It is drawn twice, behind and in front of the card; the front copy fades as the name sinks, so the
+// letters over the card dissolve into it gradually instead of jumping behind it
+let bigFront=null;
 function showBigName(el){
   if(!isDesktop()) return;
   const s=el._state;
+  if(bigFront){ gsap.killTweensOf(bigFront); bigFront.remove(); }
   bigName.textContent=el._card.name; bigName.style.letterSpacing=''; bigName.style.paddingLeft='';
   gsap.killTweensOf(bigName);
-  bigName.style.zIndex=BIG_FRONT;
-  const FRONT=1.1, PLANE=1.05; // its scale in front of the card; passing PLANE it goes behind; it ends at 1
+  bigName.style.zIndex=BIG_BEHIND;
+  const FRONT=1.1; // its scale while in front of the card; it ends at 1
   fan.appendChild(bigName);
-  gsap.set(bigName,{opacity:1, x:0, y:0, xPercent:-50, yPercent:-50, scale:FRONT});
   // it spans the whole visible width: sized to it, up to 60% of the card's height; a shorter name has
   // its letters spread out to the full width
   const FILL=innerWidth*.96, n=bigName.textContent.length;
@@ -657,17 +664,22 @@ function showBigName(el){
     const sp=(FILL-bigName.scrollWidth)/(n+1);
     bigName.style.letterSpacing=sp+'px'; bigName.style.paddingLeft=sp+'px'; // balances the space after the last letter
   }
-  const STAGGER=.07, DUR=1.1, letters=bigName.textContent.replace(/\s/g,'').length;
-  inkReveal(bigName, {delay:.1, stagger:STAGGER, dur:DUR});
+  bigFront=bigName.cloneNode(true); bigFront.style.zIndex=BIG_FRONT; fan.appendChild(bigFront);
+  const both=[bigName, bigFront];
+  gsap.set(both,{opacity:1, x:0, y:0, xPercent:-50, yPercent:-50, scale:FRONT});
+  const STAGGER=.07, DUR=1.1, letters=bigName.textContent.replace(/\s/g,'').length, recede=.1+STAGGER*letters;
+  both.forEach(b=>inkReveal(b, {delay:.1, stagger:STAGGER, dur:DUR}));
   // as soon as the last letter starts to surface the name recedes through the card, so the letters
   // finish sharpening behind it
-  gsap.to(bigName,{scale:1, duration:1.4, ease:'power1.inOut', delay:.1+STAGGER*letters,
-    onUpdate(){ if(gsap.getProperty(bigName,'scale')<PLANE) bigName.style.zIndex=BIG_BEHIND; }});
-  return .1+STAGGER*letters+1.4;
+  gsap.to(both,{scale:1, duration:1.4, ease:'power1.inOut', delay:recede});
+  gsap.to(bigFront,{opacity:0, duration:1.1, ease:'sine.inOut', delay:recede+.15});
+  return recede+1.4;
 }
 function hideBigName(){
-  if(!bigName.isConnected) return;
-  gsap.to(bigName,{opacity:0, duration:.5, onComplete:()=>bigName.remove()});
+  [bigName, bigFront].forEach(b=>{
+    if(!b || !b.isConnected) return;
+    gsap.killTweensOf(b); gsap.to(b,{opacity:0, duration:.5, onComplete:()=>b.remove()});
+  });
 }
 
 // desktop, closing screen: a few more cards of the deck fan out from behind the card of the day;

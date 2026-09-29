@@ -135,8 +135,10 @@ body.noir .face.front .tface{transition:background-color .6s ease-in-out;}
 body.noir .fcard.lit .tface{background:#fff;}
 /* desktop: the opened card's name, huge, across the screen behind the card */
 .big-name{position:fixed; left:50%; z-index:950; will-change:transform; pointer-events:none; white-space:nowrap;
-  font-family:'Oswald',sans-serif; font-weight:500; text-transform:uppercase; line-height:1; color:rgba(227,34,34,.8);}
-body:not(.noir) .big-name{font-family:'Cinzel',serif; color:rgba(201,162,75,.45);}
+  font-family:'Oswald',sans-serif; font-weight:500; text-transform:uppercase; line-height:1; color:#b71b1b;}
+/* opaque colours (as the former translucent ones look on the darkened screen): the name is drawn twice,
+   in front of and behind the card, and the two copies must look like one where they overlap */
+body:not(.noir) .big-name{font-family:'Cinzel',serif; color:#5e4c25;}
 /* units of text that surface like ink; kept whole so a line never breaks inside a word */
 .ink-word{display:inline-block; white-space:nowrap;}
 .ink{display:inline-block;}

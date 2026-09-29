@@ -216,7 +216,8 @@ function cutThree(onDone){
     // a third of the deck: its edge of stacked paper along the bottom
     const T=w*.1/3, n=Math.round(T/1.5), layers=[];
     for(let k=1;k<=n;k++) layers.push(`0 ${(T*k/n).toFixed(1)}px 0 ${k===n ? '#5e564e' : k%2 ? '#ddd6cc' : '#c4bcb1'}`);
-    p.style.boxShadow=layers.join(',')+`, 0 ${(T+12).toFixed(1)}px 26px rgba(20,2,2,.9)`;
+    // the pile's top cards shade its edge, as the deck's top cards shade the deck's
+    p.style.boxShadow='0 12px 26px rgba(20,2,2,.9), '+layers.join(',')+`, 0 ${(T+16).toFixed(1)}px 32px rgba(20,2,2,.92)`;
     return p;
   });
   let picking=false;
@@ -834,9 +835,8 @@ function returnToArc(el){
       onComplete:()=>{ restoreInArc(el); activeCard=null; busy=false; }});
 }
 
-// "Собрать колоду": the reading is over for today - the card of the day turns face down and goes to where
-// the deck lay, the whole fan gathers onto it, last dealt first, and the deck is back on the velvet
-// with the time left until the next card of the day
+// "Собрать колоду": the reading is over for today - the fan is gathered up the way it was dealt, backwards,
+// and the deck is back on the velvet with the time left until the next card of the day
 document.getElementById('gatherBtn').addEventListener('click', ()=>{
   if(!activeCard || busy) return;
   busy=true; const el=activeCard;
@@ -851,34 +851,51 @@ function resetDeckStack(){
   [...deckStack.children].forEach((c,i)=>gsap.set(c,{...DECK_REST[i], clearProps:'borderRadius'}));
   deckTilt.tx=deckTilt.ty=0; renderDeckTilt();
 }
+// The card of the day turns face down and is laid where the dealing ended, the left end of the lower arc.
+// From there it is the pile: it slides along the lower arc picking up every card it covers, steps up to
+// the upper arc's right end, sweeps it back to its left end, and flies home onto the velvet.
 function gatherDeck(el){
   const s=el._state, render=()=>renderCard(el,s);
   gsap.killTweensOf(s);
-  // the opening screen, laid out but unseen under the fan, tells where the deck lies
-  openingEl.hidden=false; gsap.set(openingEl,{opacity:0});
+  document.querySelectorAll('.fcard').forEach(c=>c.classList.remove('dim'));
+  dimOverlay.classList.remove('on');
+  const {angleStart, angleEnd, rOuter, rInner, pivotX, pivotY}=fanLayout;
+  const pop={a:angleStart, r:rInner};
+  const place=()=>{ const t=pop.a*Math.PI/180; s.x=pivotX+pop.r*Math.sin(t); s.y=pivotY-pop.r*Math.cos(t); s.rot=pop.a; render(); };
+  const cards=[...fan.querySelectorAll('.fcard:not(.mover)')].filter(c=>c!==el);
+  // a card is taken the moment the pile lies right over it, so it vanishes under the pile unseen
+  const picker=(list, taken)=>()=>{ for(let i=list.length-1;i>=0;i--) if(taken(+list[i].dataset.angle)){ list[i].remove(); list.splice(i,1); } };
+  const lower=cards.filter(c=>c.classList.contains('mirrored')), upper=cards.filter(c=>!c.classList.contains('mirrored'));
+  const pickLower=picker(lower, a=>a<=pop.a+1e-6), pickUpper=picker(upper, a=>a>=pop.a-1e-6);
+  const sweepDur=count=>Math.max(.7, count*.04);
+  const t=angleStart*Math.PI/180;
+  gsap.timeline({onComplete:()=>flyHome(el)})
+    .to(s,{x:pivotX+rInner*Math.sin(t), y:pivotY-rInner*Math.cos(t), w:cardW, h:cardH, rot:angleStart, ry:0, tx:0, ty:0,
+      duration:1.2, ease:'power2.inOut', onUpdate:render})
+    .to(pop,{a:angleEnd, duration:sweepDur(lower.length), ease:'sine.inOut', onStart:pickLower, onUpdate:()=>{ place(); pickLower(); }, onComplete:pickLower})
+    .to(pop,{r:rOuter, duration:.5, ease:'power2.inOut', onUpdate:place})
+    .to(pop,{a:angleStart, duration:sweepDur(upper.length), ease:'sine.inOut', onStart:pickUpper, onUpdate:()=>{ place(); pickUpper(); }, onComplete:pickUpper});
+}
+// the reverse of the flight into the fan: the real deck takes over from the pile, squeezed to its exact
+// size and pose, and unfolds back into the deck on the velvet
+function flyHome(el){
+  const s=el._state;
+  openingEl.hidden=false; gsap.set(openingEl,{opacity:1});
   askBtn.style.visibility='hidden';
   resetDeckStack();
   const r=deckStack.getBoundingClientRect(), w=deckStack.offsetWidth, h=deckStack.offsetHeight;
-  const x=r.left+r.width/2, y=r.top+r.height/2;
-  document.querySelectorAll('.fcard').forEach(c=>c.classList.remove('dim'));
-  dimOverlay.classList.remove('on');
-  gsap.to(s,{x, y, w, h, rot:0, ry:0, tx:0, ty:0, duration:1.1, ease:'power2.inOut', onUpdate:render});
-  // the reverse of dealing: the lower arc from its left end, then the upper arc from its right end
-  const dealOrder=c=>c.classList.contains('mirrored') ? 1000+(+c.dataset.z) : +c.dataset.z;
-  const arc=[...fan.querySelectorAll('.fcard:not(.mover)')].filter(c=>c!==el).sort((a,b)=>dealOrder(b)-dealOrder(a));
-  const START=.7, STAGGER=.022, DUR=.7, jitter=v=>(Math.random()-.5)*v;
-  arc.forEach((c,k)=>animateCard(c, {x:x+jitter(3), y:y+jitter(3), w, h, rot:jitter(5), ry:0, tx:0, ty:0},
-    {duration:DUR, ease:'power2.inOut', delay:START+k*STAGGER, onStart:()=>{ c.classList.remove('lit'); c.style.zIndex=1001+k; }}));
-  gsap.delayedCall(START+(arc.length-1)*STAGGER+DUR+.1, ()=>{
-    // the gathered pile lies exactly on the real deck: show the deck under it and let the fan go
-    gsap.set(openingEl,{opacity:1});
-    gsap.to(fanScreen,{opacity:0, duration:.5, onComplete:()=>{
-      fanScreen.hidden=true; gsap.set(fanScreen,{opacity:1});
-      fan.innerHTML=''; fan.appendChild(dimOverlay);
-      activeCard=null; hoverCard=null; shufflePhase='idle'; busy=false;
-      showComeBack();
-    }});
-  });
+  const restR=getComputedStyle(deckStack.firstElementChild).borderRadius;
+  const sx=cardW/w, sy=cardH/h, rad=cardW*CARD_RADIUS;
+  deckStack.style.setProperty('--edge-o', 0);
+  gsap.set(deckStack,{x:s.x-(r.left+r.width/2), y:s.y-(r.top+r.height/2), rotation:s.rot, scaleX:sx, scaleY:sy});
+  gsap.set(deckStack.children,{rotation:0, x:0, y:0, borderRadius:`${rad/sx}px / ${rad/sy}px`});
+  fanScreen.hidden=true; fan.innerHTML=''; fan.appendChild(dimOverlay);
+  const DUR=1.2, EASE='power3.inOut';
+  [...deckStack.children].forEach((c,i)=>gsap.to(c,{...DECK_REST[i], borderRadius:restR, duration:DUR, ease:EASE,
+    onComplete:()=>gsap.set(c,{clearProps:'borderRadius'})}));
+  gsap.delayedCall(DUR*.5, ()=>deckStack.style.removeProperty('--edge-o'));
+  gsap.to(deckStack,{x:0, y:0, rotation:0, scaleX:1, scaleY:1, duration:DUR, ease:EASE,
+    onComplete:()=>{ activeCard=null; hoverCard=null; shufflePhase='idle'; busy=false; showComeBack(); }});
 }
 // time left until the next card of the day, at local midnight; for now the ask button stays, for testing
 function showComeBack(){

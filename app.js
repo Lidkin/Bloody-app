@@ -347,7 +347,7 @@ function makeCard(card, pivotX, pivotY){
   inner.innerHTML=`<div class="face back"><img src="${IMG_BACK}"></div><div class="face front"></div>`;
   const front=inner.querySelector('.face.front');
   if(card.art!==null){
-    front.innerHTML='<img class="fart">';
+    front.innerHTML='<img class="fart"><div class="paper"></div>';
     front.querySelector('.fart').src=ART[card.art];
   } else {
     front.innerHTML='<div class="tface fart"><div class="tframe"></div><div class="fnum"></div><div class="ftext"></div></div>';
@@ -431,7 +431,7 @@ function arcState(el, lift=0){
   return {x:+el.dataset.pivotX+r*Math.sin(rad), y:+el.dataset.pivotY-r*Math.cos(rad),
     rot:a, w:cardW, h:cardH, ry:0, tx:0, ty:0};
 }
-const EDGE=.011, EDGE_PAPER='#d6cfc6', EDGE_DARK='#6f675f'; // card thickness, as a share of its width
+const EDGE=.005, EDGE_PAPER='#d6cfc6', EDGE_DARK='#6f675f'; // card thickness, as a share of its width
 function renderCard(el, s){
   // positioned by a transform, not left/top: those snap to whole pixels, and slow motion turns jerky
   el.style.left='0px'; el.style.top='0px';
@@ -465,7 +465,7 @@ function restoreInArc(el){
   el.style.removeProperty('--cw'); el.style.removeProperty('--ch');
   el.style.transform=`rotate(${el.dataset.angle}deg) translateY(-${el.dataset.radius}px)`;
   el.firstElementChild.style.transform=''; el.style.zIndex=el.dataset.z;
-  el.querySelector('.face.front').style.boxShadow='';
+  el.querySelector('.face.front').style.boxShadow=''; el.classList.remove('lit');
 }
 
 // Hit-testing uses the cards' fixed slots in the arcs, not their animated positions: otherwise a
@@ -648,10 +648,12 @@ function tiltTo(nx, ny, dur=.5){
 }
 window.addEventListener('pointermove', e=>{
   const s=activeCard && activeCard._state; if(!s) return;
+  // under the cursor the warm paper of the illustration turns pure white
+  activeCard.classList.toggle('lit', e.pointerType==='mouse' && inCard(s, e.clientX, e.clientY));
   if(e.pointerType==='touch' && !e.buttons) return;
   tiltTo(clamp1((e.clientX-s.x)/(s.w*.9)), clamp1((e.clientY-s.y)/(s.h*.7)));
 });
-document.documentElement.addEventListener('pointerleave', ()=>tiltTo(0,0,.9));
+document.documentElement.addEventListener('pointerleave', ()=>{ tiltTo(0,0,.9); activeCard&&activeCard.classList.remove('lit'); });
 window.addEventListener('pointerup', e=>{ if(e.pointerType==='touch') tiltTo(0,0,.9); });
 // the phone's pose when the card opens is neutral; the neutral slowly follows the phone, so the card
 // always drifts back to lying flat

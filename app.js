@@ -1,4 +1,14 @@
 const IMG_BACK = "assets/card-back.png";
+// Every card image follows one template: a 617x1024 file whose cut line (70x120 mm when printed) is the
+// rectangle below; outside it is bleed. On screen a card is only what lies inside the cut line.
+const CUT={fileW:617, fileH:1024, left:23, top:22.5, w:570, h:977.5};
+const CARD_ASPECT=CUT.w/CUT.h, CARD_RADIUS=40/CUT.w; // corner radius as a share of the card width
+// style.css crops every card image to the cut line and rounds the corners from these
+(s=>{
+  s.setProperty('--img-w', CUT.fileW/CUT.w*100+'%'); s.setProperty('--img-h', CUT.fileH/CUT.h*100+'%');
+  s.setProperty('--img-x', -CUT.left/CUT.w*100+'%'); s.setProperty('--img-y', -CUT.top/CUT.h*100+'%');
+  s.setProperty('--card-r', CARD_RADIUS);
+})(document.documentElement.style);
 const ART = [null, "assets/the-magician.png"];
 /* ---------- deck data ---------- */
 const MAJOR = [
@@ -96,7 +106,7 @@ const openingEl=document.getElementById('opening'), fanScreen=document.getElemen
   fan=document.getElementById('fan'), toast=document.getElementById('toast'),
   deckStack=document.getElementById('deckStack'), dimOverlay=document.getElementById('dimOverlay'),
   meaningPanel=document.getElementById('meaningPanel'), spreadOpts=document.getElementById('spreadOpts');
-let mode='day', deckOrder=[], activeCard=null, busy=false, cardW=76, cardH=118;
+let mode='day', deckOrder=[], activeCard=null, busy=false, cardH=118, cardW=cardH*CARD_ASPECT;
 const SHOW_SPREAD_OPTS=false; // spread choice (day / three cards / Celtic cross) is hidden for now
 if(!SHOW_SPREAD_OPTS) spreadOpts.style.display='none';
 
@@ -156,9 +166,9 @@ askBtn.addEventListener('click', ()=>{
 
 // The deck grows and shuffles (the bottom card slides out to alternating sides and goes back on top)
 // until shufflePhase leaves 'shuffling'; then it is cut and settles back to its original size and pose.
-const DECK_REST=[{rotation:-4, x:-3, y:1}, {rotation:2, x:2, y:-1}, {rotation:0, x:0, y:0}]; // by DOM order, as in style.css
+const DECK_REST=[{rotation:-1, x:-1, y:1}, {rotation:2, x:2, y:-1}, {rotation:0, x:0, y:0}]; // by DOM order, as in style.css
 function shuffleDeck(onDone){
-  const imgs=[...deckStack.querySelectorAll('img')], HALF=.2, STEP=.24, GROW=.4;
+  const imgs=[...deckStack.children], HALF=.2, STEP=.24, GROW=.4;
   const w=deckStack.offsetWidth, h=deckStack.offsetHeight, out=w*.7;
   // the cut needs about 2.3 deck heights of room vertically; shrink the zoom on low screens
   // CLEAR: lift (in deck heights) at which even the corners of the turning part stay above the rest
@@ -254,7 +264,8 @@ function flyToFan(){
   const r=deckStack.getBoundingClientRect();
   // squeeze the loose stack into one card of exactly the fan's size so the hand-off is invisible
   const sx=cardW/deckStack.offsetWidth, sy=cardH/deckStack.offsetHeight;
-  gsap.to(deckStack.querySelectorAll('img'),{rotation:0, x:0, y:0, borderRadius:`${7/sx}px / ${7/sy}px`,
+  const rad=cardW*CARD_RADIUS; // the fan card's corner, in the squeezed stack's own units
+  gsap.to(deckStack.children,{rotation:0, x:0, y:0, borderRadius:`${rad/sx}px / ${rad/sy}px`,
     duration:.8, ease:'power2.inOut'});
   gsap.to(deckStack,{x:`+=${tx-(r.left+r.width/2)}`, y:`+=${ty-(r.top+r.height/2)}`,
     rotation:L.angleStart, scaleX:sx, scaleY:sy,
@@ -276,7 +287,7 @@ function layoutFan(){
   // Rainbow layout: two concentric arcs opening downward around one centre (pivotX,pivotY);
   // each card's centre sits on its arc. The radial distance between the arcs is one card
   // height plus the required gap of 2/3 card height, so the arcs never touch.
-  const ASPECT=76/118, GAP=2/3, MIN_STEP=0.28; // MIN_STEP: neighbour spacing on the inner arc, in card widths
+  const ASPECT=CARD_ASPECT, GAP=2/3, MIN_STEP=0.28; // MIN_STEP: neighbour spacing on the inner arc, in card widths
   const topMargin = (SHOW_SPREAD_OPTS ? spreadOpts : document.querySelector('h1.title')).getBoundingClientRect().bottom + 40;
   const bottomMargin = 24 + (parseFloat(getComputedStyle(document.documentElement).paddingBottom)||0);
   const sideMargin = 16;
@@ -477,7 +488,7 @@ function openedPose(el, card){
 }
 // pose of a face-up card that, together with `panel` right under it, fits the viewport minus FIT_MARGIN
 function fitAbove(panel){
-  const GAP=16, panelH=panel.offsetHeight, ASPECT=76/118;
+  const GAP=16, panelH=panel.offsetHeight, ASPECT=CARD_ASPECT;
   const availW=innerWidth-2*FIT_MARGIN, availH=innerHeight-2*FIT_MARGIN-GAP-panelH;
   const h=Math.min(availH, availW/ASPECT), w=h*ASPECT;
   const top=Math.max(FIT_MARGIN, (innerHeight-(h+GAP+panelH))/2);
@@ -562,7 +573,7 @@ async function shareCard(el){
   };
   text('КАРТА ДНЯ', 190, '500 44px Oswald', '#e9e6e1', 10);
 
-  const cw=700, ch=cw*118/76, cx=(W-cw)/2, cy=270, radius=cw*.092;
+  const cw=680, ch=cw/CARD_ASPECT, cx=(W-cw)/2, cy=260, radius=cw*CARD_RADIUS;
   x.save(); x.shadowColor='rgba(0,0,0,.7)'; x.shadowBlur=60; x.shadowOffsetY=20;
   x.fillStyle='#f4f1ec'; x.beginPath(); x.roundRect(cx,cy,cw,ch,radius); x.fill(); x.restore();
   x.save(); x.beginPath(); x.roundRect(cx,cy,cw,ch,radius); x.clip();
@@ -570,7 +581,8 @@ async function shareCard(el){
   if(card.art!==null){
     const img=new Image(); img.src=ART[card.art];
     await img.decode().catch(()=>{});
-    x.drawImage(img, cx, cy, cw, ch);
+    const k=img.naturalWidth/CUT.fileW; // only the part inside the cut line
+    x.drawImage(img, CUT.left*k, CUT.top*k, CUT.w*k, CUT.h*k, cx, cy, cw, ch);
   } else {
     x.strokeStyle='#111'; x.lineWidth=3; x.beginPath(); x.roundRect(cx+cw*.06, cy+cw*.06, cw*.88, ch-cw*.12, cw*.05); x.stroke();
     x.textAlign='center'; x.letterSpacing='0px';

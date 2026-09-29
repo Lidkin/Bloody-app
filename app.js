@@ -598,8 +598,20 @@ const isDesktop=()=>matchMedia('(hover:hover) and (pointer:fine)').matches;
 function onCardOpened(el){
   meaningPanel.classList.add('show'); busy=false;
   inkReveal(document.getElementById('mName'), {delay:.3});
-  inkReveal(document.getElementById('mText'), {byWord:true, delay:.6, stagger:.03, dur:.7});
-  showBigName(el);
+  const mText=document.getElementById('mText'), words=mText.textContent.trim().split(/\s+/).length;
+  inkReveal(mText, {byWord:true, delay:.6, stagger:.03, dur:.7});
+  revealEnd(Math.max(.6+.03*(words-1)+.7, showBigName(el)||0));
+}
+
+// "Теперь ты знаешь" and the way out appear only once everything above has surfaced
+const endPhrase=document.getElementById('endPhrase'), endRule=document.getElementById('endRule');
+function revealEnd(at){
+  const btn=document.getElementById('finishBtn');
+  gsap.killTweensOf([endRule, btn]);
+  gsap.set(btn,{autoAlpha:0}); gsap.set(endRule,{scaleY:0});
+  inkReveal(endPhrase, {delay:at, stagger:.035, dur:.7});
+  gsap.to(endRule,{scaleY:1, duration:.45, ease:'power2.out', delay:at+.5});
+  gsap.fromTo(btn,{x:-10},{autoAlpha:1, x:0, duration:.6, ease:'power2.out', delay:at+.75});
 }
 
 // Text surfaces like ink soaking into paper: letter by letter (or word by word), first blurred and
@@ -648,6 +660,7 @@ function showBigName(el){
   // finish sharpening behind it
   gsap.to(bigName,{scale:1, duration:1.4, ease:'power1.inOut', delay:.1+STAGGER*letters,
     onUpdate(){ if(gsap.getProperty(bigName,'scale')<PLANE) bigName.style.zIndex=BIG_BEHIND; }});
+  return .1+STAGGER*letters+1.4;
 }
 function hideBigName(){
   if(!bigName.isConnected) return;

@@ -79,7 +79,7 @@ body:not(.fonts-ready) .ask-sub{visibility:hidden;}
 .opt.active{color:var(--accent); text-shadow:0 0 10px rgba(var(--accent-rgb),.7);}
 /* perspective makes .fan the containing block of its position:fixed cards, so it must cover the
    viewport exactly - otherwise every card is shifted by the offset of .fan */
-.fan{position:fixed; inset:0; perspective:1000px;}
+.fan{position:fixed; inset:0; perspective:1000px; touch-action:none;} /* a finger dragging over it tilts the opened card */
 .fcard{position:fixed; width:var(--cw,69px); height:var(--ch,118px);
   margin:calc(var(--ch,118px) / -2) 0 0 calc(var(--cw,69px) / -2);
   pointer-events:none; transform-origin:50% 50%; transition:filter .5s ease-in-out;} /* hit-testing is done in app.js */
@@ -90,6 +90,19 @@ body:not(.fonts-ready) .ask-sub{visibility:hidden;}
   border:var(--card-edge); box-shadow:0 6px 14px rgba(0,0,0,.55);}
 .face.front{transform:rotateY(180deg); background:#1a0f14;}
 .face.front .reversed{transform:rotate(180deg);}
+/* sheen of glossy paper; renderCard moves and fades it with the card's tilt */
+.face.front .gloss{position:absolute; inset:0; pointer-events:none; opacity:0; background-size:300% 300%;
+  background-image:linear-gradient(115deg, rgba(0,0,0,.07) 0%, transparent 38%, rgba(255,255,255,.55) 49%, rgba(255,255,255,.12) 55%, transparent 64%, rgba(0,0,0,.07) 100%);}
+/* desktop, closing screen: more cards of the deck, each a link to the shop */
+.fcard.showcase{pointer-events:auto; cursor:pointer;}
+.fcard.showcase:hover{filter:brightness(1.1);}
+/* desktop: the opened card's name, huge, across the screen behind the card */
+.big-name{position:fixed; left:50%; transform:translate(-50%,-50%); z-index:950; pointer-events:none; white-space:nowrap;
+  font-family:'Oswald',sans-serif; font-weight:500; text-transform:uppercase; line-height:1; color:rgba(227,34,34,.8);}
+body:not(.noir) .big-name{font-family:'Cinzel',serif; color:rgba(201,162,75,.45);}
+/* units of text that surface like ink; kept whole so a line never breaks inside a word */
+.ink-word{display:inline-block; white-space:nowrap;}
+.ink{display:inline-block;}
 /* face for cards that have no artwork yet; every size is relative to the card width */
 .face.front .tface{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
   background:var(--tface-bg);}

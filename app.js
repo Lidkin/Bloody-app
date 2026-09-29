@@ -158,6 +158,7 @@ function showAskBtn(html){
 askBtn.addEventListener('click', ()=>{
   if(shufflePhase==='idle'){
     if(busy) return; busy=true; shufflePhase='shuffling';
+    askTiltPermission();
     document.getElementById('askSub').classList.add('gone');
     hideAskBtn(()=>gsap.delayedCall(.5, ()=>{ if(shufflePhase==='shuffling') showAskBtn(STOP_HTML); }));
     shuffleDeck(flyToFan);
@@ -241,7 +242,7 @@ function drawFromDeck(dip){
   const topImg=deckStack.lastElementChild, r=topImg.getBoundingClientRect();
   const card=DECK[Math.floor(Math.random()*DECK.length)];
   const el=makeCard(card, 0, 0); el.style.zIndex=1000;
-  el._fromDeck={topImg, dip, rest:{x:r.left+r.width/2, y:r.top+r.height/2, rot:0, w:r.width, h:r.height, ry:0}};
+  el._fromDeck={topImg, dip, rest:{x:r.left+r.width/2, y:r.top+r.height/2, rot:0, w:r.width, h:r.height, ry:0, tx:0, ty:0}};
   const s=el._state={...el._fromDeck.rest};
   const render=()=>renderCard(el,s);
   render(); fan.appendChild(el); topImg.style.visibility='hidden';
@@ -251,12 +252,12 @@ function drawFromDeck(dip){
     .to(s,{y:s.y-s.h*.45, duration:.9, ease:'sine.in', onUpdate:render})
     // the deck ends up under the description, so it fades back to keep the text readable
     .call(()=>{ dimOverlay.classList.add('on'); gsap.to(deckStack,{opacity:.3, duration:.8}); })
-    .to(s,{...pose, duration:1.3, ease:'power2.out', onUpdate:render,
-      onComplete:()=>{ meaningPanel.classList.add('show'); busy=false; }});
+    .to(s,{...pose, duration:1.3, ease:'power2.out', onUpdate:render, onComplete:()=>onCardOpened(el)});
 }
 // the reverse; the deck then settles and the ask button comes back for the next reading
 function returnToDeck(el){
   const {topImg, dip, rest}=el._fromDeck, s=el._state, render=()=>renderCard(el,s);
+  gsap.killTweensOf(s);
   dimOverlay.classList.remove('on'); gsap.to(deckStack,{opacity:1, duration:.8});
   gsap.timeline()
     .to(s,{...rest, y:rest.y-rest.h*.45, duration:1.1, ease:'power2.inOut', onUpdate:render})
@@ -353,6 +354,7 @@ function makeCard(card, pivotX, pivotY){
     front.querySelector('.fnum').textContent=card.num||'';
     front.querySelector('.ftext').textContent=card.name;
   }
+  front.insertAdjacentHTML('beforeend','<div class="gloss"></div>');
   el.appendChild(inner);
   el._card=card;
   return el;
@@ -423,16 +425,24 @@ const FIT_MARGIN=50;
 let hoverCard=null;
 
 // While a card is animated its geometry lives in el._state = {x,y (centre), rot, w, h, ry}.
+// tx, ty: the tilt of an opened card following the cursor / the phone, in degrees
 function arcState(el, lift=0){
   const a=+el.dataset.angle, r=+el.dataset.radius-lift, rad=a*Math.PI/180;
   return {x:+el.dataset.pivotX+r*Math.sin(rad), y:+el.dataset.pivotY-r*Math.cos(rad),
-    rot:a, w:cardW, h:cardH, ry:0};
+    rot:a, w:cardW, h:cardH, ry:0, tx:0, ty:0};
 }
 function renderCard(el, s){
   el.style.left=s.x+'px'; el.style.top=s.y+'px';
   el.style.setProperty('--cw', s.w+'px'); el.style.setProperty('--ch', s.h+'px');
-  el.style.transform=`rotate(${s.rot}deg)`;
+  const tilted=s.tx||s.ty;
+  el.style.transform=`rotate(${s.rot}deg)`+(tilted ? ` perspective(${s.h*3}px) rotateX(${s.tx}deg) rotateY(${s.ty}deg)` : '');
   el.firstElementChild.style.transform=`perspective(${s.h*4}px) rotateY(${s.ry}deg)`;
+  // the sheen slides across the face against the tilt and brightens with it, like light on glossy paper
+  const gloss=el.querySelector('.gloss');
+  if(gloss){
+    gloss.style.opacity=tilted ? Math.min(1, Math.hypot(s.tx,s.ty)/6) : 0;
+    gloss.style.backgroundPosition=`${50-(s.ty||0)*5}% ${50+(s.tx||0)*5}%`;
+  }
 }
 function animateCard(el, to, vars){
   const s=el._state || (el._state=arcState(el));
@@ -506,7 +516,7 @@ function fitAbove(panel){
   const h=Math.min(availH, availW/ASPECT), w=h*ASPECT;
   const top=Math.max(minTop, (innerHeight-(h+GAP+panelH))/2);
   panel.style.top=(top+h+GAP)+'px'; panel.style.bottom='auto';
-  return {x:innerWidth/2, y:top+h/2, rot:0, w, h, ry:180};
+  return {x:innerWidth/2, y:top+h/2, rot:0, w, h, ry:180, tx:0, ty:0};
 }
 
 function openCard(el, card){
@@ -526,11 +536,124 @@ function openCard(el, card){
       dimOverlay.classList.add('on');
       gsap.to(spreadOpts,{opacity:0,duration:.3});
     })
-    .to(s,{...pose, duration:1, ease:'power2.out', onUpdate:render,
-      onComplete:()=>{
-        meaningPanel.classList.add('show');
-        busy=false;
-      }});
+    .to(s,{...pose, duration:1, ease:'power2.out', onUpdate:render, onComplete:()=>onCardOpened(el)});
+}
+
+const isDesktop=()=>matchMedia('(hover:hover) and (pointer:fine)').matches;
+
+// The card lies open: its description surfaces, and on desktop its name, huge, behind it.
+function onCardOpened(el){
+  meaningPanel.classList.add('show'); busy=false;
+  inkReveal(document.getElementById('mName'), {delay:.3});
+  inkReveal(document.getElementById('mText'), {byWord:true, delay:.6, stagger:.03, dur:.7});
+  showBigName(el);
+}
+
+// Text surfaces like ink soaking into paper: letter by letter (or word by word), first blurred and
+// red, then sharp in its own colour. Words are kept unbreakable so a line never wraps mid-word.
+function inkReveal(el, {byWord=false, delay=0, stagger=.05, dur=.9}={}){
+  const text=el.textContent, color=getComputedStyle(el).color, units=[];
+  el.textContent='';
+  text.split(/(\s+)/).forEach(tok=>{
+    if(!tok) return;
+    if(/^\s+$/.test(tok)){ el.appendChild(document.createTextNode(tok)); return; }
+    const w=document.createElement('span'); w.className='ink-word';
+    if(byWord){ w.textContent=tok; units.push(w); }
+    else [...tok].forEach(ch=>{ const c=document.createElement('span'); c.className='ink'; c.textContent=ch; w.appendChild(c); units.push(c); });
+    el.appendChild(w);
+  });
+  const red=getComputedStyle(document.body).getPropertyValue('--red').trim();
+  gsap.fromTo(units, {opacity:0, filter:'blur(6px)', color:red},
+    {opacity:1, filter:'blur(0px)', color, duration:dur, stagger, delay, ease:'sine.out', clearProps:'filter,color'});
+}
+
+// desktop: the name of the opened card, set huge right across the screen behind the card
+const bigName=document.createElement('div'); bigName.className='big-name';
+function showBigName(el){
+  if(!isDesktop()) return;
+  const s=el._state;
+  bigName.textContent=el._card.name; bigName.style.letterSpacing=''; bigName.style.paddingLeft='';
+  gsap.killTweensOf(bigName); gsap.set(bigName,{opacity:1});
+  fan.appendChild(bigName);
+  bigName.style.fontSize='100px';
+  const fs=Math.min(s.h*.4, 100*innerWidth*.94/bigName.scrollWidth);
+  bigName.style.fontSize=fs+'px'; bigName.style.top=s.y+'px';
+  // a short name would hide behind the card; spread its letters until they show on both sides
+  const minW=Math.min(innerWidth*.94, s.w*2.6), n=bigName.textContent.length;
+  if(bigName.scrollWidth<minW && n>1){
+    const sp=(minW-bigName.scrollWidth)/n;
+    bigName.style.letterSpacing=sp+'px'; bigName.style.paddingLeft=sp+'px'; // balances the space after the last letter
+  }
+  inkReveal(bigName, {delay:.1, stagger:.07, dur:1.1});
+}
+function hideBigName(){
+  if(!bigName.isConnected) return;
+  gsap.to(bigName,{opacity:0, duration:.5, onComplete:()=>bigName.remove()});
+}
+
+// desktop, closing screen: a few more cards of the deck fan out from behind the card of the day;
+// each is a way to the shop
+let showcase=[];
+function showShowcase(el){
+  if(!isDesktop()) return;
+  const s=el._state, others=DECK.filter(c=>c!==el._card);
+  const withArt=others.filter(c=>c.art!==null), majors=others.filter(c=>c.art===null && c.major);
+  for(let i=majors.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [majors[i],majors[j]]=[majors[j],majors[i]]; }
+  const picks=[...withArt, ...majors].slice(0,4); // illustrated cards first, they take the inner places
+  let h=s.h*.62, w=h*CARD_ASPECT;
+  const k=Math.min(1, (innerWidth/2-16-s.w/2-24)/(1.6*w)); // the outer ones must stay in view
+  if(k<.55) return;
+  h*=k; w*=k;
+  [-1,1,-2,2].forEach((side,i)=>{
+    const card=picks[i]; if(!card) return;
+    const far=Math.abs(side)-1, dir=Math.sign(side);
+    const c=makeCard(card, 0, 0); c.classList.add('showcase'); c.title='Колода на Etsy';
+    c.style.zIndex=990-far;
+    c.addEventListener('click', ()=>window.open(document.getElementById('etsyBtn').href, '_blank', 'noopener'));
+    const cs=c._state={x:s.x, y:s.y, rot:0, w, h, ry:180, tx:0, ty:0}, render=()=>renderCard(c,cs);
+    render(); fan.appendChild(c); showcase.push(c);
+    gsap.to(cs,{x:s.x+dir*(s.w/2+24+w*(.35+.75*far)), y:s.y+h*(.05+.1*far), rot:dir*(5+8*far),
+      duration:1, delay:.15*i, ease:'power2.out', onUpdate:render,
+      onComplete:()=>gsap.to(cs,{y:cs.y-6, duration:2.4+i*.35, ease:'sine.inOut', yoyo:true, repeat:-1, onUpdate:render})});
+  });
+}
+function hideShowcase(){
+  const s=activeCard && activeCard._state;
+  showcase.forEach(c=>{
+    const cs=c._state; gsap.killTweensOf(cs);
+    gsap.to(cs,{x:s?s.x:cs.x, y:s?s.y:cs.y, rot:0, duration:.6, ease:'power2.in', onUpdate:()=>renderCard(c,cs), onComplete:()=>c.remove()});
+  });
+  showcase=[];
+}
+
+// An opened card tilts after the cursor (desktop), under a finger dragging over the screen, or with the
+// phone itself; nx, ny in -1..1
+const TILT_X=7, TILT_Y=9, clamp1=v=>Math.max(-1, Math.min(1, v));
+function tiltTo(nx, ny, dur=.5){
+  const el=activeCard; if(!el || busy || !el._state) return;
+  const s=el._state;
+  gsap.to(s,{ty:nx*TILT_Y, tx:-ny*TILT_X, duration:dur, ease:'power2.out', overwrite:'auto', onUpdate:()=>renderCard(el,s)});
+}
+window.addEventListener('pointermove', e=>{
+  const s=activeCard && activeCard._state; if(!s) return;
+  if(e.pointerType==='touch' && !e.buttons) return;
+  tiltTo(clamp1((e.clientX-s.x)/(s.w*.9)), clamp1((e.clientY-s.y)/(s.h*.7)));
+});
+document.documentElement.addEventListener('pointerleave', ()=>tiltTo(0,0,.9));
+window.addEventListener('pointerup', e=>{ if(e.pointerType==='touch') tiltTo(0,0,.9); });
+// the phone's pose when the card opens is neutral; the neutral slowly follows the phone, so the card
+// always drifts back to lying flat
+let tiltBase=null;
+window.addEventListener('deviceorientation', e=>{
+  if(e.beta==null || !activeCard || busy){ tiltBase=null; return; }
+  if(!tiltBase) tiltBase={b:e.beta, g:e.gamma};
+  tiltBase.b+=(e.beta-tiltBase.b)*.01; tiltBase.g+=(e.gamma-tiltBase.g)*.01;
+  tiltTo(clamp1((e.gamma-tiltBase.g)/18), clamp1((e.beta-tiltBase.b)/18), .4);
+});
+// iOS lets a page read the phone's tilt only after asking, from a tap
+function askTiltPermission(){
+  if(isDesktop() || !window.DeviceOrientationEvent || typeof DeviceOrientationEvent.requestPermission!=='function') return;
+  DeviceOrientationEvent.requestPermission().catch(()=>{});
 }
 
 /* ---------- end of a reading ---------- */
@@ -545,9 +668,11 @@ document.getElementById('finishBtn').addEventListener('click', ()=>{
   busy=true; const el=activeCard, s=el._state;
   meaningPanel.classList.remove('show');
   document.getElementById('etsyBtn').href=etsyLink(el._card);
+  hideBigName();
   const pose=fitAbove(finale);
+  gsap.killTweensOf(s);
   gsap.to(s,{...pose, duration:.7, ease:'power2.inOut', onUpdate:()=>renderCard(el,s),
-    onComplete:()=>{ finale.classList.add('show'); busy=false; }});
+    onComplete:()=>{ finale.classList.add('show'); busy=false; showShowcase(el); }});
 });
 document.getElementById('shareBtn').addEventListener('click', ()=>{ if(activeCard) shareCard(activeCard); });
 
@@ -556,6 +681,7 @@ document.getElementById('againBtn').addEventListener('click', ()=>{
   if(!activeCard || busy) return;
   busy=true; const el=activeCard;
   finale.classList.remove('show');
+  hideShowcase(); hideBigName();
   if(el._fromDeck){ returnToDeck(el); return; }
   // the exact reverse: shrink and flip back to just outside the arc, then slide into the slot
   const s=el._state, render=()=>renderCard(el,s);

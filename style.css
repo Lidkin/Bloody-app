@@ -127,6 +127,8 @@ body:not(.fonts-ready) .spread-options{visibility:hidden;}
 .cap-pos{font-family:var(--head-font); font-size:11px; letter-spacing:3px; color:var(--red); text-transform:uppercase;}
 .cap-name{font-family:var(--head-font); font-size:12px; letter-spacing:1.5px; line-height:1.3; color:var(--accent); text-transform:uppercase;}
 .cap-name:empty{display:none;}
+.cap-keys{font-style:italic; font-size:13px; line-height:1.3; color:var(--ink); opacity:.85; margin-top:2px;}
+.cap-keys:empty{display:none;}
 /* perspective makes .fan the containing block of its position:fixed cards, so it must cover the
    viewport exactly - otherwise every card is shifted by the offset of .fan */
 .fan{position:fixed; inset:0; perspective:1000px; touch-action:none;} /* a finger dragging over it tilts the opened card */
@@ -222,6 +224,7 @@ body.noir .return-btn:hover{background:rgba(228,36,35,.15); border-color:var(--r
 .finale{display:flex; flex-direction:column; align-items:center;}
 .finale p{max-width:340px;}
 .finale .summary{max-width:400px; font-style:italic;}
+.finale .summary.card-text{font-style:normal;}
 .finale .f-card{width:100%;}
 .finale .f-card[hidden]{display:none;}
 .finale b{color:var(--accent); font-weight:600;}

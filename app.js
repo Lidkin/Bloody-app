@@ -743,7 +743,7 @@ function startSpread(desktop){
   if(!desktop) return;
   POSITIONS.forEach(p=>{
     const cap=document.createElement('div'); cap.className='spread-cap';
-    cap.innerHTML=`<span class="cap-pos">${p}</span><span class="cap-name"></span>`;
+    cap.innerHTML=`<span class="cap-pos">${p}</span><span class="cap-name"></span><span class="cap-keys"></span>`;
     fan.appendChild(cap); spread.caps.push(cap);
   });
   buildPickList();
@@ -876,10 +876,15 @@ function showSpreadSummary(){
   els.forEach((c,i)=>{
     const s=c._state; gsap.killTweensOf(s); c.classList.remove('dim');
     spread.caps[i].querySelector('.cap-name').textContent=c._card.name;
+    spread.caps[i].querySelector('.cap-keys').textContent=keywords(cardMeaning(c));
     spread.caps[i].style.width=poses[i].w*1.1+'px'; // a long name wraps instead of running into the next one
     placeCap(i, poses[i].x, poses[i].y-poses[i].h/2-10, true);
     gsap.to(s,{...poses[i], duration:1, delay:.08*i, ease:'power2.inOut', onUpdate:()=>renderCard(c,s)});
   });
+  // captions of one height, so the positions line up however long the keywords under them run
+  spread.caps.forEach(c=>c.style.height='');
+  const capH=Math.max(...spread.caps.map(c=>c.offsetHeight));
+  spread.caps.forEach(c=>c.style.height=capH+'px');
   gsap.delayedCall(1.2, ()=>{ spread.summary=true; showCaps(true); finale.classList.add('show'); busy=false; });
 }
 // phones: the three cards lie face up in a small stack, the past on top; a swipe to the left (or a tap)
@@ -954,7 +959,7 @@ fan.addEventListener('pointerup', e=>{
 });
 // poses of n face-up cards side by side that, with their captions above and `panel` under them, fit the viewport
 function fitRow(panel, n){
-  const GAP=16, CAP=46, SP=.14, side=isPortraitMobile() ? 16 : FIT_MARGIN, panelH=panel.offsetHeight;
+  const GAP=16, CAP=96, SP=.14, side=isPortraitMobile() ? 16 : FIT_MARGIN, panelH=panel.offsetHeight;
   const minTop=Math.max(FIT_MARGIN, document.querySelector('h1.title').getBoundingClientRect().bottom+24)+CAP;
   const availW=innerWidth-2*side, availH=innerHeight-minTop-FIT_MARGIN-GAP-panelH;
   const h=Math.min(availH, availW/(CARD_ASPECT*(n+(n-1)*SP))), w=h*CARD_ASPECT;
@@ -1157,8 +1162,10 @@ window.addEventListener('pointermove', e=>{
     tiltDeck(clamp1((e.clientX-r.left-r.width/2)/(r.width*1.6)), clamp1((e.clientY-r.top-r.height/2)/(r.height*1.1)));
     return;
   }
-  if(spread?.summary){ // the open spread: the card under the cursor lights up
-    spread.cards.forEach(c=>c.classList.toggle('lit', e.pointerType==='mouse' && inCard(c._state, e.clientX, e.clientY)));
+  if(spread?.summary){ // the open spread: the card under the cursor lights up and its meaning replaces the summary
+    let over=null;
+    spread.cards.forEach(c=>{ const on=e.pointerType==='mouse' && inCard(c._state, e.clientX, e.clientY); c.classList.toggle('lit', on); if(on) over=c; });
+    if(isDesktop()) showSummaryText(over);
     return;
   }
   const s=activeCard._state; if(!s || sharePreview) return;
@@ -1208,6 +1215,18 @@ document.getElementById('finishBtn').addEventListener('click', ()=>{
 });
 document.getElementById('shareBtn').addEventListener('click', shareStory);
 // the closing screen speaks of one card or of the whole spread
+// the meaning of a card as it fell, and its first sentence - the guidebook's keywords
+const cardMeaning=el=>el.dataset.reversed==='true' ? el._card.rev : el._card.up;
+const keywords=text=>text.split(/(?<=\.)\s/)[0].replace(/\.$/,'');
+// desktop spread: the summary gives way to the meaning of the card pointed at
+let summaryFor=null;
+function showSummaryText(el){
+  if(el===summaryFor) return;
+  summaryFor=el;
+  const sum=document.getElementById('fSummary'), text=el ? cardMeaning(el) : spreadSummary(spread.cards);
+  gsap.killTweensOf(sum);
+  gsap.to(sum,{opacity:0, duration:.15, onComplete:()=>{ sum.textContent=text; sum.classList.toggle('card-text', !!el); gsap.to(sum,{opacity:1, duration:.25}); }});
+}
 function setFinale(els){
   const one=els.length===1, sum=document.getElementById('fSummary');
   prepareStory(els);
@@ -1215,6 +1234,12 @@ function setFinale(els){
   document.getElementById('fDeck').innerHTML=tr(one ? 'deckOne' : 'deckMany');
   shareBtnEl.textContent=tr(one ? 'shareCard' : 'shareSpread');
   sum.hidden=one; sum.textContent=one ? '' : spreadSummary(els);
+  sum.classList.remove('card-text'); sum.style.minHeight=''; summaryFor=null;
+  // it keeps the height of the longest of those texts, so the buttons below do not jump
+  if(!one && isDesktop()){
+    const h=[sum.textContent, ...els.map(cardMeaning)].map(t=>{ sum.textContent=t; return sum.offsetHeight; });
+    sum.textContent=spreadSummary(els); sum.style.minHeight=Math.max(...h)+'px';
+  }
   fCard.hidden=true;
 }
 

@@ -8,6 +8,9 @@ const CARD_ASPECT=CUT.w/CUT.h, CARD_RADIUS=40/CUT.w; // corner radius as a share
   s.setProperty('--img-w', CUT.fileW/CUT.w*100+'%'); s.setProperty('--img-h', CUT.fileH/CUT.h*100+'%');
   s.setProperty('--img-x', -CUT.left/CUT.w*100+'%'); s.setProperty('--img-y', -CUT.top/CUT.h*100+'%');
   s.setProperty('--card-r', CARD_RADIUS);
+  const pc=v=>(v*100).toFixed(3)+'%';
+  s.setProperty('--img-clip', `inset(${pc(CUT.top/CUT.fileH)} ${pc((CUT.fileW-CUT.left-CUT.w)/CUT.fileW)} `+
+    `${pc((CUT.fileH-CUT.top-CUT.h)/CUT.fileH)} ${pc(CUT.left/CUT.fileW)} round ${pc(40/CUT.fileW)} / ${pc(40/CUT.fileH)})`);
 })(document.documentElement.style);
 // every GSAP animation runs a quarter slower than its written duration, for a calmer, smoother feel
 gsap.globalTimeline.timeScale(.8);

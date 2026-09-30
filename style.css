@@ -63,7 +63,10 @@ canvas#dust{position:fixed; inset:0; z-index:1; pointer-events:none;}
 .deck-stack .dcard:nth-child(3){transform:rotate(0deg);}
 /* a card image is shown cut along its print cut line: scaled and shifted so the bleed falls outside */
 .deck-stack .dcard img, .face img{position:absolute; display:block; max-width:none;
-  width:var(--img-w,108.25%); height:var(--img-h,104.76%); left:var(--img-x,-4.04%); top:var(--img-y,-2.3%);}
+  width:var(--img-w,108.25%); height:var(--img-h,104.76%); left:var(--img-x,-4.04%); top:var(--img-y,-2.3%);
+  /* the image crops itself to the cut line too: iOS browsers now and then stop clipping a moving card to
+     its rounded corners (overflow + border-radius), and the bleed would show all round it */
+  clip-path:var(--img-clip); -webkit-clip-path:var(--img-clip);}
 
 /* the texts appear only once the web fonts are in, so they never jump from a fallback font */
 body:not(.fonts-ready) h1.title{visibility:hidden;}

@@ -857,21 +857,16 @@ function placeCap(i, x, y, above){
   cap.style.left=x+'px'; cap.style.top=y+'px'; cap.classList.toggle('above', above);
 }
 const showCaps=on=>spread && spread.caps.forEach(c=>c.classList.toggle('on', on));
-// desktop: the column of positions in the hollow under the lower arc, "Узнать" under it. The cards of the
-// lower arc slide out towards its centre, so the column must stay inside the circle they leave free:
-// as big as fits there, as low as the screen allows
+// desktop: in the hollow under the lower arc, the position whose card is to be picked next. It stands where
+// the column of all three positions with a button under it would begin; that column (kept in the layout
+// but never shown) is fitted inside the circle the slid-out cards of the lower arc leave free: as big as
+// fits there, as low as the screen allows
 function buildPickList(){
   const {rInner, pivotX, pivotY}=fanLayout, R=rInner-cardH-8;
   const list=document.createElement('div'); list.className='pick-list';
-  list.innerHTML=`<div class="pick-hint">${tr('pickHint')}</div>`+POSITIONS.map(p=>`<div class="pick-line">${p}</div>`).join('')+
-    `<button class="finish-btn pick-go"><span class="fill">${tr('reveal')}</span><span class="fill arrow">→</span></button>`;
+  list.innerHTML=`<div class="pick-hint">${POSITIONS.map(p=>`<span class="pick-word">${p}</span>`).join('')}</div>`+
+    POSITIONS.map(p=>`<div class="pick-line">${p}</div>`).join('')+`<div class="pick-go">${tr('reveal')}</div>`;
   list.style.left=pivotX+'px';
-  list.querySelector('.pick-go').addEventListener('click', e=>{
-    e.stopPropagation();
-    if(busy || spread.cards.length<POSITIONS.length) return;
-    busy=true; setHover(null); list.classList.remove('on');
-    gsap.delayedCall(.3, ()=>openSpreadCard(0));
-  });
   fan.appendChild(list); spread.list=list;
   const rows=[...list.querySelectorAll('.pick-line, .pick-go')];
   for(let f=30;f>=11;f--){
@@ -889,9 +884,14 @@ function buildPickList(){
 function updatePickList(){
   const n=spread.cards.length, list=spread.list;
   list.classList.add('on');
-  list.querySelector('.pick-hint').classList.toggle('on', n===0);
-  list.querySelectorAll('.pick-line').forEach((l,i)=>l.classList.toggle('on', i<n));
-  list.querySelector('.pick-go').classList.toggle('on', n===POSITIONS.length);
+  list.querySelectorAll('.pick-word').forEach((w,i)=>w.classList.toggle('on', i===n));
+  // the reading opens by itself a moment after the last card is picked, unless one is put back meanwhile
+  spread.go?.kill(); spread.go=null;
+  if(n===POSITIONS.length) spread.go=gsap.delayedCall(2, ()=>{
+    spread.go=null; if(busy) return;
+    busy=true; setHover(null); list.classList.remove('on');
+    gsap.delayedCall(.3, ()=>openSpreadCard(0));
+  });
 }
 // desktop: a picked card stays slid out of the arc; picked again, it goes back
 function pickCard(el){

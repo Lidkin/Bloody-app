@@ -125,25 +125,18 @@ body:not(.fonts-ready) .spread-options{visibility:hidden;}
 
 /* ---------- FAN ---------- */
 #fanScreen{justify-content:flex-start; padding-top:calc(48px + env(safe-area-inset-top,0px));}
-/* three cards, desktop: the positions line up under the lower arc as the cards are picked, "Узнать" under them */
+/* three cards, desktop: under the lower arc, the position whose card is picked next (app.js, buildPickList) */
 .pick-list{position:fixed; z-index:1500; transform:translateX(-50%); display:flex; flex-direction:column; align-items:center;
   opacity:0; transition:opacity .5s ease-in-out; pointer-events:none;}
 .pick-list.on{opacity:1;}
-.pick-line, .pick-hint, .pick-go{opacity:0; transform:translateY(8px); transition:opacity .5s ease, transform .5s ease;}
-.pick-line.on, .pick-hint.on, .pick-go.on{opacity:1; transform:none;}
-.pick-line{font-family:var(--head-font); font-size:1em; line-height:1.38; text-shadow:0 0 12px #000; letter-spacing:.2em; margin-right:-.2em;
-  color:var(--accent); text-transform:uppercase;}
-.pick-hint{position:absolute; top:1.3em; font-size:.9em; font-style:italic; letter-spacing:1px; color:var(--ink); white-space:nowrap;
-  text-shadow:0 0 12px #000, 0 0 4px #000;}
-.pick-list.on .pick-go.on{pointer-events:auto;}
-.pick-go{margin-top:.5em; font-size:max(13px, .5em);}
-/* it comes a moment after "Будущее"; its arrow sits close to the word until pointed at */
-.pick-go.on{transition-delay:.7s;}
-/* the button is centred on the word alone: the arrow and the word's trailing letter-spacing take no width */
-.finish-btn.pick-go{position:relative;}
-.finish-btn.pick-go::before{content:''; position:absolute; inset:-12px -28px;} /* a roomier target than the letters */
-.finish-btn.pick-go .fill:first-child{margin-right:-3px;}
-.finish-btn.pick-go .arrow{position:absolute; left:100%; margin-left:4px;}
+.pick-line, .pick-go{visibility:hidden;}
+.pick-line{font-family:var(--head-font); font-size:1em; line-height:1.38; letter-spacing:.2em; text-transform:uppercase;}
+.pick-go{margin-top:.5em; font-size:max(13px, .5em); line-height:1.6;}
+.pick-hint{position:absolute; top:1.1em; display:grid; justify-items:center;}
+.pick-word{grid-area:1/1; font-family:var(--head-font); font-size:1.3em; letter-spacing:.2em; margin-right:-.2em; white-space:nowrap;
+  color:var(--accent); text-transform:uppercase; text-shadow:0 0 12px #000, 0 0 4px #000;
+  opacity:0; transform:translateY(8px); transition:opacity .5s ease, transform .5s ease;}
+.pick-word.on{opacity:1; transform:none; transition-delay:.25s;}
 .spread-cap{position:fixed; z-index:1500; display:flex; flex-direction:column; align-items:center; gap:3px;
   text-align:center; transform:translate(-50%,0); opacity:0; transition:opacity .5s ease-in-out; pointer-events:none;}
 .spread-cap.above{transform:translate(-50%,-100%);}

@@ -124,8 +124,10 @@ function hideAskBtn(then){
   gsap.set(askBtn,{opacity:getComputedStyle(askBtn).opacity}); askBtn.style.animation='none';
   gsap.to(askBtn,{opacity:0, duration:.3, onComplete:()=>{ askBtn.style.visibility='hidden'; then&&then(); }});
 }
-function showAskBtn(html){
+function showAskBtn(html, still){
   askBtn.innerHTML=html; askBtn.style.visibility='';
+  askBtn.classList.toggle('still', !!still);
+  if(still){ gsap.fromTo(askBtn,{opacity:0},{opacity:.85, duration:.4, onComplete:()=>gsap.set(askBtn,{clearProps:'opacity'})}); return; }
   // fade in to the pulse's starting opacity, then hand over to the pulse
   gsap.fromTo(askBtn,{opacity:0},{opacity:.45, duration:.4,
     onComplete:()=>{ gsap.set(askBtn,{clearProps:'opacity'}); askBtn.style.animation=''; }});
@@ -866,7 +868,7 @@ function showComeBack(){
   cd.style.fontSize='';
   for(let i=0;i<3;i++) cd.style.fontSize=parseFloat(getComputedStyle(cd).fontSize)*W/cd.getBoundingClientRect().width+'px';
   sub.classList.remove('gone');
-  showAskBtn(ASK_HTML);
+  showAskBtn(ASK_HTML, true);
 }
 function tickCountdown(){
   const cd=document.querySelector('#askSub .countdown'); if(!cd) return;

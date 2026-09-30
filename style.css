@@ -73,6 +73,8 @@ canvas#dust{position:fixed; inset:0; z-index:1; pointer-events:none;}
 body:not(.fonts-ready) .ask-btn, body:not(.fonts-ready) h1.title, body:not(.fonts-ready) .theme-toggle{visibility:hidden;}
 /* pointed at, the label stops flickering and lights up bright red */
 .ask-btn{transition:color .35s ease, text-shadow .35s ease;}
+/* once the countdown is set, the label stays steady */
+.ask-btn.still{animation:none; opacity:.85;}
 @media (hover:hover){
   .ask-btn:hover{animation:none; opacity:1; color:var(--red); text-shadow:0 0 10px rgba(227,34,34,.7), 0 0 24px rgba(227,34,34,.45);}
 }

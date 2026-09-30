@@ -787,13 +787,24 @@ function openedPose(el, card){
   document.getElementById('mTitle').textContent=card.title ? tr('q')(card.title) : '';
   document.getElementById('mOrient').textContent=tr(reversed ? 'reversed' : 'upright');
   document.getElementById('mText').textContent=reversed?card.rev:card.up;
+  fitCardHead();
   return fitAbove(meaningPanel);
 }
+// the name over an open card stays on one line, its letters shrinking if it is too long for the screen
+const cardHead=document.getElementById('cardHead');
+function fitCardHead(){
+  const h=document.getElementById('mName'); h.style.fontSize=h.style.letterSpacing='';
+  for(let f=19; f>=12 && cardHead.offsetWidth>innerWidth-28; f-=.5){ h.style.fontSize=f+'px'; h.style.letterSpacing=f*.15+'px'; }
+}
+// the name takes the title's place for as long as the description is shown
+new MutationObserver(()=>document.body.classList.toggle('card-open', meaningPanel.classList.contains('show')))
+  .observe(meaningPanel, {attributes:true, attributeFilter:['class']});
 // pose of a face-up card that, together with `panel` right under it, fits the viewport minus FIT_MARGIN
 function fitAbove(panel){
   const GAP=16, panelH=panel.offsetHeight, ASPECT=CARD_ASPECT;
-  // the title stays above the scene, so the card must keep clear of it
-  const minTop=Math.max(FIT_MARGIN, document.querySelector('h1.title').getBoundingClientRect().bottom+24);
+  // the title (or, over an open card, its name) stays above the scene, so the card must keep clear of it
+  const head=panel===meaningPanel ? cardHead : document.querySelector('h1.title');
+  const minTop=Math.max(FIT_MARGIN, head.getBoundingClientRect().bottom+24);
   const availW=innerWidth-2*FIT_MARGIN;
   // the closing block stands on the bottom of the screen (style.css): the card is centred in the room above it
   if(panel===finale){
@@ -1165,7 +1176,7 @@ function showBigName(el){
   const s=el._state;
   if(bigFront){ gsap.killTweensOf(bigFront); bigFront.remove(); }
   bigName.textContent=el._card.name; bigName.style.letterSpacing=''; bigName.style.paddingLeft='';
-  gsap.killTweensOf(bigName); gsap.set(bigName,{clearProps:'color'});
+  gsap.killTweensOf(bigName); bigName.style.color='';
   bigName.style.zIndex=BIG_BEHIND;
   const FRONT=1.1; // its scale while in front of the card; it ends at 1
   fan.appendChild(bigName);
@@ -1182,13 +1193,14 @@ function showBigName(el){
   const both=[bigName, bigFront];
   gsap.set(both,{opacity:1, x:0, y:0, xPercent:-50, yPercent:-50, scale:FRONT});
   const STAGGER=.07, DUR=1.1, letters=bigName.textContent.replace(/\s/g,'').length, recede=.1+STAGGER*letters;
+  // the copy behind the card surfaces straight into the dark colour it keeps there, so as the name sinks
+  // through the card its letters are already darkening
+  bigName.style.color=BIG_DIM;
   both.forEach(b=>inkReveal(b, {delay:.1, stagger:STAGGER, dur:DUR}));
   // as soon as the last letter starts to surface the name recedes through the card, so the letters
   // finish sharpening behind it
   gsap.to(both,{scale:1, duration:1.4, ease:'power1.inOut', delay:recede});
   gsap.to(bigFront,{opacity:0, duration:1.1, ease:'sine.inOut', delay:recede+.15});
-  // once every letter has surfaced (each letter's own colour is cleared by then)
-  gsap.to(bigName,{color:BIG_DIM, duration:1.8, ease:'sine.inOut', delay:recede+1.1});
   return recede+1.4;
 }
 function hideBigName(){

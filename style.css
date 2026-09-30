@@ -113,7 +113,7 @@ body:not(.fonts-ready) .ask-sub{visibility:hidden;}
 /* phones: a thin frame shows round one reading, then round the other - pick one; once the card of the day is
    drawn, only "Три карты" keeps calling. It lies outside the words' box, so nothing moves */
 @media not all and (hover:hover) and (pointer:fine){
-  .opt::before{content:''; position:absolute; top:0; bottom:0; left:-18px; right:-15px; border:1px solid rgba(var(--accent-rgb),.55);
+  .opt::before{content:''; position:absolute; top:0; bottom:0; left:-18px; right:-15px; border:.67px solid rgba(var(--accent-rgb),.55);
     border-radius:24px; opacity:0; animation:frame 8s ease-in-out infinite; pointer-events:none; transition:border-color .35s ease;}
   .opt-col + .opt::before{animation-delay:4s;}
   .opt.done::before{animation:none; opacity:0;}
@@ -333,6 +333,15 @@ h1.title{position:fixed; top:calc(14px + env(safe-area-inset-top,0px)); left:50%
 body:not(.fonts-ready) .lang-switch{visibility:hidden;}
 body.noir h1.title, body.noir .meaning-panel h2{letter-spacing:4px; font-weight:500;}
 body.noir h1.title{opacity:.75;}
+/* while a card lies open with its description, its name and orientation take the title's place */
+h1.title{transition:opacity .5s ease-in-out;}
+body.card-open h1.title{opacity:0 !important;}
+.card-head{position:fixed; top:calc(14px + env(safe-area-inset-top,0px)); left:50%; transform:translateX(-50%); z-index:5;
+  text-align:center; white-space:nowrap; opacity:0; pointer-events:none; transition:opacity .5s ease-in-out;}
+body.card-open .card-head{opacity:1;}
+.card-head h2{margin:0; font-family:var(--head-font); color:var(--accent); font-size:19px; line-height:24px; letter-spacing:4px; font-weight:500;}
+.card-head .orient{display:block; font-family:var(--head-font); color:var(--orient); font-size:13px; line-height:18px; letter-spacing:2px; text-transform:uppercase;}
+@media (hover:hover) and (pointer:fine){ .card-head{top:calc(64px + env(safe-area-inset-top,0px));} }
 /* narrow phones: a smaller title; fitTitle (app.js) keeps it on one line clear of RU / EN */
 @media (max-width:480px){ body.noir h1.title{font-size:12px; letter-spacing:3px;} }
 /* a phone held sideways: the page is made for upright phones and a browser page cannot lock the rotation,

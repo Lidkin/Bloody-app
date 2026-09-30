@@ -294,9 +294,11 @@ function markDayDrawn(){ dayDrawn=dayKey(); if(DAY_LOCK) try{ localStorage.setIt
 
 // Card sounds, synthesised from filtered noise: a short tick for a card laid on cards, a swish for a card
 // sliding over the deck. Browsers only let sound start after the first tap / click.
+// SOUND=false switches them all off (with the sound button commented out in index.html)
+const SOUND=false;
 const sfx=(()=>{
   let ctx=null, noise=null, last=0;
-  let on=true; try{ on=localStorage.getItem('sound')!=='off'; }catch(e){}
+  let on=SOUND; try{ on=localStorage.getItem('sound')!=='off'; }catch(e){}
   const init=()=>{
     if(ctx) return ctx.state==='suspended' && ctx.resume();
     const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return;
@@ -304,7 +306,7 @@ const sfx=(()=>{
     noise=ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
     const d=noise.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1;
   };
-  addEventListener('pointerdown', init, true); addEventListener('keydown', init, true);
+  if(SOUND){ addEventListener('pointerdown', init, true); addEventListener('keydown', init, true); }
   const burst=({dur, freq, to=freq, q=1, gain, attack=.002, at=0})=>{
     const t=ctx.currentTime+at, src=ctx.createBufferSource(), f=ctx.createBiquadFilter(), g=ctx.createGain();
     src.buffer=noise; f.type='bandpass'; f.Q.value=q;
@@ -313,7 +315,7 @@ const sfx=(()=>{
     src.connect(f).connect(g).connect(ctx.destination);
     src.start(t, Math.random()*(1-dur-.01)); src.stop(t+dur+.02);
   };
-  const ready=()=>on && ctx && ctx.state==='running';
+  const ready=()=>SOUND && on && ctx && ctx.state==='running';
   const vary=v=>v*(.85+Math.random()*.3);
   return {
     get on(){ return on; },
@@ -330,8 +332,10 @@ const sfx=(()=>{
   };
 })();
 const soundBtn=document.getElementById('soundBtn');
-soundBtn.classList.toggle('muted', !sfx.on);
-soundBtn.addEventListener('click', ()=>{ sfx.on=!sfx.on; soundBtn.classList.toggle('muted', !sfx.on); if(sfx.on) setTimeout(()=>sfx.tick(), 30); });
+if(soundBtn){
+  soundBtn.classList.toggle('muted', !sfx.on);
+  soundBtn.addEventListener('click', ()=>{ sfx.on=!sfx.on; soundBtn.classList.toggle('muted', !sfx.on); if(sfx.on) setTimeout(()=>sfx.tick(), 30); });
+}
 
 function showToast(msg){toast.textContent=msg; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'),1600);}
 
@@ -340,7 +344,7 @@ function showToast(msg){toast.textContent=msg; toast.classList.add('show'); setT
 const langSwitch=document.getElementById('langSwitch'), askSub=document.getElementById('askSub'), whisper=document.getElementById('whisper');
 let shufflePhase='idle'; // idle -> dealing (-> idle once the fan is dealt / the card is back on the deck)
 function showStart(on){
-  [askSub, spreadOpts, langSwitch, soundBtn, whisper].forEach(e=>e.classList.toggle('gone', !on));
+  [askSub, spreadOpts, langSwitch, soundBtn, whisper].forEach(e=>e?.classList.toggle('gone', !on));
 }
 spreadOpts.querySelectorAll('.opt').forEach(o=>o.addEventListener('click', ()=>{
   if(shufflePhase!=='idle' || busy || !deckAtRest()) return;

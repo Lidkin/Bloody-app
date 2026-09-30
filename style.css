@@ -109,10 +109,9 @@ body:not(.fonts-ready) .ask-sub{visibility:hidden;}
   transform:scaleX(0); transition:transform .35s ease;}
 .opt.done{opacity:.45; filter:none; cursor:default; animation:none;}
 @media (hover:hover) and (pointer:fine){
-  .opt:not(.done):hover{animation:none; background-position:50% 0; filter:drop-shadow(0 0 8px rgba(228,36,35,.6));}
   .opt:not(.done):hover::after{transform:scaleX(1);}
 }
-.opt:not(.done):active{animation:none; background-position:50% 0; filter:drop-shadow(0 0 8px rgba(228,36,35,.6));}
+@media not all and (hover:hover) and (pointer:fine){ .opt:not(.done):active{animation:none; background-position:50% 0; filter:drop-shadow(0 0 8px rgba(228,36,35,.6));} }
 body:not(.fonts-ready) .spread-options{visibility:hidden;}
 
 /* ---------- FAN ---------- */

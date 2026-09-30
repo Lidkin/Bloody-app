@@ -857,14 +857,14 @@ function placeCap(i, x, y, above){
   cap.style.left=x+'px'; cap.style.top=y+'px'; cap.classList.toggle('above', above);
 }
 const showCaps=on=>spread && spread.caps.forEach(c=>c.classList.toggle('on', on));
-// desktop: in the hollow under the lower arc, the position whose card is to be picked next. It stands where
+// desktop: in the hollow under the lower arc, "выбери три карты", then the position of the card just picked. It stands where
 // the column of all three positions with a button under it would begin; that column (kept in the layout
 // but never shown) is fitted inside the circle the slid-out cards of the lower arc leave free: as big as
 // fits there, as low as the screen allows
 function buildPickList(){
   const {rInner, pivotX, pivotY}=fanLayout, R=rInner-cardH-8;
   const list=document.createElement('div'); list.className='pick-list';
-  list.innerHTML=`<div class="pick-hint">${POSITIONS.map(p=>`<span class="pick-word">${p}</span>`).join('')}</div>`+
+  list.innerHTML=`<div class="pick-hint"><span class="pick-word pick-ask">${tr('pickHint')}</span>${POSITIONS.map(p=>`<span class="pick-word">${p}</span>`).join('')}</div>`+
     POSITIONS.map(p=>`<div class="pick-line">${p}</div>`).join('')+`<div class="pick-go">${tr('reveal')}</div>`;
   list.style.left=pivotX+'px';
   fan.appendChild(list); spread.list=list;
@@ -884,7 +884,7 @@ function buildPickList(){
 function updatePickList(){
   const n=spread.cards.length, list=spread.list;
   list.classList.add('on');
-  list.querySelectorAll('.pick-word').forEach((w,i)=>w.classList.toggle('on', i===n));
+  list.querySelectorAll('.pick-word').forEach((w,i)=>w.classList.toggle('on', i===n)); // the hint, then each position as its card is picked
   // the reading opens by itself a moment after the last card is picked, unless one is put back meanwhile
   spread.go?.kill(); spread.go=null;
   if(n===POSITIONS.length) spread.go=gsap.delayedCall(2, ()=>{

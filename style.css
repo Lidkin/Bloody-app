@@ -125,7 +125,7 @@ body:not(.fonts-ready) .spread-options{visibility:hidden;}
 
 /* ---------- FAN ---------- */
 #fanScreen{justify-content:flex-start; padding-top:calc(48px + env(safe-area-inset-top,0px));}
-/* three cards, desktop: under the lower arc, the position whose card is picked next (app.js, buildPickList) */
+/* three cards, desktop: under the lower arc, "выбери три карты", then the position of the card just picked (app.js, buildPickList) */
 .pick-list{position:fixed; z-index:1500; transform:translateX(-50%); display:flex; flex-direction:column; align-items:center;
   opacity:0; transition:opacity .5s ease-in-out; pointer-events:none;}
 .pick-list.on{opacity:1;}
@@ -137,6 +137,7 @@ body:not(.fonts-ready) .spread-options{visibility:hidden;}
   color:var(--accent); text-transform:uppercase; text-shadow:0 0 12px #000, 0 0 4px #000;
   opacity:0; transform:translateY(8px); transition:opacity .5s ease, transform .5s ease;}
 .pick-word.on{opacity:1; transform:none; transition-delay:.25s;}
+.pick-word.pick-ask{font-family:inherit; font-size:.9em; font-style:italic; letter-spacing:1px; margin-right:0; text-transform:none; color:var(--ink);}
 .spread-cap{position:fixed; z-index:1500; display:flex; flex-direction:column; align-items:center; gap:3px;
   text-align:center; transform:translate(-50%,0); opacity:0; transition:opacity .5s ease-in-out; pointer-events:none;}
 .spread-cap.above{transform:translate(-50%,-100%);}

@@ -160,7 +160,7 @@ function showAskBtn(html){
 askBtn.addEventListener('click', ()=>{
   if(shufflePhase!=='idle' || busy) return;
   busy=true; shufflePhase='cutting';
-  askTiltPermission(); tiltDeck(0, 0, .4);
+  askTiltPermission(); tiltDeck(0, 0, .4); deckStack.classList.remove('lit');
   document.getElementById('askSub').classList.add('gone');
   hideAskBtn();
   afterShufflePass(()=>cutThree(()=> isPortraitMobile() ? drawFromDeck(0) : (shufflePhase='idle', flyToFan())));
@@ -202,7 +202,10 @@ function shufflePass(){
 }
 // runs `then` once the deck is whole again: at once, or when the card now out of the deck is back in
 function afterShufflePass(then){ passing ? afterPass=then : then(); }
-deckStack.addEventListener('pointerenter', ()=>{ deckHovered=true; deckStack.classList.add('lit'); if(!passing && deckAtRest()) shufflePass(); });
+deckStack.addEventListener('pointerenter', ()=>{
+  deckHovered=true;
+  if(deckAtRest()){ deckStack.classList.add('lit'); if(!passing) shufflePass(); }
+});
 deckStack.addEventListener('pointerleave', ()=>{ deckHovered=false; deckStack.classList.remove('lit'); });
 
 // The deck is split into three piles: the top third goes left, the next third right, the bottom one
@@ -232,6 +235,8 @@ function cutThree(onDone){
     p.addEventListener('click', ()=>{
       if(!picking) return;
       picking=false; hideAskBtn();
+      // the pointed-at pile's paper warms back up while the piles stack, to the tone of the deck they become
+      piles.forEach(o=>o.classList.add('picked'));
       const others=piles.filter(o=>o!==p);
       p.style.zIndex=10;
       // the cut deck stays the neat stack the piles made, no card sticking out

@@ -130,7 +130,8 @@ body:not(.fonts-ready) .ask-sub{visibility:hidden;}
    it turns pure white under the cursor */
 .paper{position:absolute; inset:0; pointer-events:none; background:#f4f1ec; mix-blend-mode:multiply;
   transition:opacity .6s ease-in-out;}
-.fcard.lit .paper, .fcard.showcase:hover .paper, .deck-stack.lit .paper, .wcard.pile:hover .paper{opacity:0;}
+.fcard.lit .paper, .fcard.showcase:hover .paper, .deck-stack.lit .paper, .wcard.pile:not(.picked):hover .paper{opacity:0;}
+.wcard.pile.picked .paper{transition-duration:1.1s;}
 body.noir .face.front .tface{transition:background-color .6s ease-in-out;}
 body.noir .fcard.lit .tface{background:#fff;}
 /* desktop: the opened card's name, huge, across the screen behind the card */

@@ -919,9 +919,11 @@ function inkReveal(el, {byWord=false, delay=0, stagger=.05, dur=.9}={}){
 }
 
 // desktop: the name of the opened card, set huge right across the screen. It surfaces in front of the
-// card, then sinks through it and stays behind it
+// card, then sinks through it and stays behind it, darkening into the background so as not to compete
+// with the card's artwork
 const bigName=document.createElement('div'); bigName.className='big-name';
 const BIG_FRONT=1001, BIG_BEHIND=950; // the opened card is at z 1000
+const BIG_DIM='#3a0c0d'; // behind the card: dark burgundy, barely off the darkened screen
 // It is drawn twice, behind and in front of the card; the front copy fades as the name sinks, so the
 // letters over the card dissolve into it gradually instead of jumping behind it
 let bigFront=null;
@@ -930,7 +932,7 @@ function showBigName(el){
   const s=el._state;
   if(bigFront){ gsap.killTweensOf(bigFront); bigFront.remove(); }
   bigName.textContent=el._card.name; bigName.style.letterSpacing=''; bigName.style.paddingLeft='';
-  gsap.killTweensOf(bigName);
+  gsap.killTweensOf(bigName); gsap.set(bigName,{clearProps:'color'});
   bigName.style.zIndex=BIG_BEHIND;
   const FRONT=1.1; // its scale while in front of the card; it ends at 1
   fan.appendChild(bigName);
@@ -952,6 +954,8 @@ function showBigName(el){
   // finish sharpening behind it
   gsap.to(both,{scale:1, duration:1.4, ease:'power1.inOut', delay:recede});
   gsap.to(bigFront,{opacity:0, duration:1.1, ease:'sine.inOut', delay:recede+.15});
+  // once every letter has surfaced (each letter's own colour is cleared by then)
+  gsap.to(bigName,{color:BIG_DIM, duration:1.8, ease:'sine.inOut', delay:recede+1.1});
   return recede+1.4;
 }
 function hideBigName(){

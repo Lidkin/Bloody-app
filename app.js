@@ -343,7 +343,7 @@ function flyToFan(){
   const rad=cardW*CARD_RADIUS; // the fan card's corner, in the squeezed stack's own units
   deckStack.style.willChange='transform';
   // the short delay lets the frame that laid out the fan screen pass, so the flight starts without a hitch
-  const DUR=.9, EASE='power3.inOut', DELAY=.08;
+  const DUR=1.1, EASE='power3.inOut', DELAY=.08;
   // the stack squeezes into one fan card: its edge thins all the way to that card's own thin edge
   tweenDeckEdge(FAN_EDGE.x/sx, FAN_EDGE.y/sy, {duration:DUR, ease:EASE, delay:DELAY});
   gsap.to(deckStack.children,{rotation:0, x:0, y:0, borderRadius:`${rad/sx}px / ${rad/sy}px`,
@@ -463,7 +463,7 @@ function buildFan(onReady){
   const outerIdx = deckOrder.slice(0, nOuter);
   const innerIdx = deckOrder.slice(nOuter);
   const dropOuter=dropper(outerIdx, rOuter, 100), dropInner=dropper(innerIdx, rInner, 0, true);
-  const sweepDur=count=>Math.max(.55, count*.034);
+  const sweepDur=count=>Math.max(.45, count*.025);
 
   // wait until the mover's image is decoded, otherwise it blinks for a frame on appear
   const img=mover.querySelector('img');
@@ -478,7 +478,7 @@ function buildFan(onReady){
     tl.to(pop,{a:angleEnd,duration:sweepDur(outerIdx.length),ease:'sine.inOut',
       onStart:dropOuter, onUpdate:()=>{ setMover(); dropOuter(); }, onComplete:dropOuter});
     // the rest of the deck steps down to the lower arc's right end and deals it back, mirroring the upper one
-    tl.to(pop,{r:rInner,duration:.38,ease:'power2.inOut',onUpdate:setMover});
+    tl.to(pop,{r:rInner,duration:.5,ease:'power2.inOut',onUpdate:setMover});
     tl.to(pop,{a:angleStart,duration:sweepDur(innerIdx.length),ease:'sine.inOut',
       onStart:dropInner, onUpdate:()=>{ setMover(); dropInner(); }, onComplete:dropInner});
   });
@@ -1190,19 +1190,19 @@ function gatherDeck(el, extras=[]){
   const picker=(list, taken)=>()=>{ for(let i=list.length-1;i>=0;i--) if(taken(+list[i].dataset.angle)){ list[i].remove(); list.splice(i,1); } };
   const lower=cards.filter(c=>c.classList.contains('mirrored')), upper=cards.filter(c=>!c.classList.contains('mirrored'));
   const pickLower=picker(lower, a=>a<=pop.a+1e-6), pickUpper=picker(upper, a=>a>=pop.a-1e-6);
-  const sweepDur=count=>Math.max(.55, count*.03);
+  const sweepDur=count=>Math.max(.45, count*.022);
   const t=angleStart*Math.PI/180;
   const laid={x:pivotX+rInner*Math.sin(t), y:pivotY-rInner*Math.cos(t), w:cardW, h:cardH, rot:angleStart, ry:0, tx:0, ty:0};
   const tl=gsap.timeline({onComplete:()=>flyHome(el)});
   el.style.zIndex=1000;
   extras.forEach((c,i)=>{
     const cs=c._state; gsap.killTweensOf(cs); c.style.zIndex=997+i;
-    tl.to(cs,{...laid, duration:.95, ease:'power2.inOut', onUpdate:()=>renderCard(c,cs)}, i*.1);
+    tl.to(cs,{...laid, duration:1.2, ease:'power2.inOut', onUpdate:()=>renderCard(c,cs)}, i*.12);
   });
-  tl.to(s,{...laid, duration:.95, ease:'power2.inOut', onUpdate:render}, extras.length*.1)
+  tl.to(s,{...laid, duration:1.2, ease:'power2.inOut', onUpdate:render}, extras.length*.12)
     .call(()=>extras.forEach(c=>c.remove()))
     .to(pop,{a:angleEnd, duration:sweepDur(lower.length), ease:'sine.inOut', onStart:pickLower, onUpdate:()=>{ place(); pickLower(); }, onComplete:pickLower})
-    .to(pop,{r:rOuter, duration:.38, ease:'power2.inOut', onUpdate:place})
+    .to(pop,{r:rOuter, duration:.5, ease:'power2.inOut', onUpdate:place})
     .to(pop,{a:angleStart, duration:sweepDur(upper.length), ease:'sine.inOut', onStart:pickUpper, onUpdate:()=>{ place(); pickUpper(); }, onComplete:pickUpper});
 }
 // the reverse of the flight into the fan: the real deck takes over from the pile, squeezed to its exact
@@ -1220,7 +1220,7 @@ function flyHome(el){
   gsap.set(deckStack,{x:s.x-(r.left+r.width/2), y:s.y-(r.top+r.height/2), rotation:s.rot, scaleX:sx, scaleY:sy});
   gsap.set(deckStack.children,{rotation:0, x:0, y:0, borderRadius:`${rad/sx}px / ${rad/sy}px`});
   fanScreen.hidden=true; fan.innerHTML=''; fan.appendChild(dimOverlay);
-  const DUR=.95, EASE='power3.inOut';
+  const DUR=1.2, EASE='power3.inOut';
   [...deckStack.children].forEach((c,i)=>gsap.to(c,{...DECK_REST[i], borderRadius:restR, duration:DUR, ease:EASE,
     onComplete:()=>gsap.set(c,{clearProps:'borderRadius'})}));
   tweenDeckEdge(rest.x, rest.y, {duration:DUR, ease:EASE});

@@ -1021,12 +1021,11 @@ document.getElementById('finishBtn').addEventListener('click', ()=>{
   gsap.to(s,{...pose, duration:.7, ease:'power2.inOut', onUpdate:()=>renderCard(el,s),
     onComplete:()=>{ finale.classList.add('show'); busy=false; showShowcase(el); }});
 });
-document.getElementById('shareBtn').addEventListener('click', ()=>{
-  if(spread) shareSpread(spread.cards); else if(activeCard) shareCard(activeCard);
-});
+document.getElementById('shareBtn').addEventListener('click', shareStory);
 // the closing screen speaks of one card or of the whole spread
 function setFinale(els){
   const one=els.length===1, sum=document.getElementById('fSummary');
+  prepareStory(els);
   document.getElementById('etsyBtn').href=etsyLink(els[0]._card);
   document.getElementById('fWhat').textContent=one ? 'Эта карта' : 'Эти карты';
   shareBtnEl.textContent=one ? 'Поделиться картой' : 'Поделиться раскладом';
@@ -1224,28 +1223,37 @@ async function drawStoryCard(x, card, reversed, cx, cy, cw){
   x.restore();
   return ch;
 }
-async function deliverStory(c, name, title, message){
-  const blob=await new Promise(r=>c.toBlob(r,'image/png'));
-  const file=new File([blob], name, {type:'image/png'});
-  if(navigator.canShare && navigator.canShare({files:[file]})){
-    await navigator.share({files:[file], title, text:message}).catch(()=>{});
-  } else {
-    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=file.name; a.click();
-    setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
-    showToast('Картинка сохранена — её можно выложить в сторис');
-  }
+// The picture is drawn as soon as the closing screen comes up, so a tap on "Поделиться" opens the share
+// sheet at once: phone browsers (Safari above all) allow it only right in the tap, not after a wait
+let story=null, storyJob=null; // story: {file, title, text} once drawn
+function prepareStory(els){
+  story=null;
+  const job=storyJob=(els.length===1 ? drawCardStory(els[0]) : drawSpreadStory(els))
+    .then(d=>new Promise(r=>d.c.toBlob(b=>r({file:new File([b], d.name, {type:'image/png'}), title:d.title, text:d.text}), 'image/png')))
+    .then(st=>{ if(job===storyJob) story=st; return st; });
 }
-async function shareCard(el){
+async function shareStory(){
+  const st=story || await storyJob;
+  if(!st) return;
+  if(navigator.canShare && navigator.canShare({files:[st.file]})){
+    try{ await navigator.share({files:[st.file], title:st.title, text:st.text}); return; }
+    catch(e){ if(e.name==='AbortError') return; } // closed by the user; anything else - the picture is saved instead
+  }
+  const a=document.createElement('a'); a.href=URL.createObjectURL(st.file); a.download=st.file.name; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+  showToast('Картинка сохранена — её можно выложить в сторис');
+}
+async function drawCardStory(el){
   const card=el._card, reversed=el.dataset.reversed==='true';
   const {c, x, W, text}=storyCanvas('КАРТА ДНЯ');
   const cw=680, cy=260, ch=await drawStoryCard(x, card, reversed, (W-cw)/2, cy, cw);
   const below=cy+ch+120;
   text(card.name, below, '500 72px Oswald', '#f2efea', 4);
   text(reversed?'ПЕРЕВЁРНУТОЕ ПОЛОЖЕНИЕ':'ПРЯМОЕ ПОЛОЖЕНИЕ', below+64, '500 32px Oswald', '#e32222', 6);
-  deliverStory(c, 'card-of-the-day.png', 'Карта дня', `Моя карта дня — ${card.name}. Bloody Feast Tarot: ${ETSY_URL}`);
+  return {c, name:'card-of-the-day.png', title:'Карта дня', text:`Моя карта дня — ${card.name}. Bloody Feast Tarot: ${ETSY_URL}`};
 }
 // the spread: its three cards side by side, each under its position and over its name, then the summary
-async function shareSpread(els){
+async function drawSpreadStory(els){
   const {c, x, W, text}=storyCanvas('ТРИ КАРТЫ');
   const cw=300, gap=45, left=(W-3*cw-2*gap)/2, cy=390;
   let ch=0;
@@ -1260,6 +1268,6 @@ async function shareSpread(els){
   const words=spreadSummary(els).split(' '), lines=[''];
   words.forEach(w=>{ const t=(lines.at(-1)+' '+w).trim(); x.measureText(t).width>W-160 ? lines.push(w) : lines[lines.length-1]=t; });
   lines.forEach((l,i)=>text(l, cy+ch+170+i*54, 'italic 500 40px "Cormorant Garamond"', '#d9d4ce'));
-  deliverStory(c, 'three-cards.png', 'Три карты',
-    `Мой расклад: ${els.map((e,i)=>POSITIONS[i]+' — '+e._card.name).join(', ')}. Bloody Feast Tarot: ${ETSY_URL}`);
+  return {c, name:'three-cards.png', title:'Три карты',
+    text:`Мой расклад: ${els.map((e,i)=>POSITIONS[i]+' — '+e._card.name).join(', ')}. Bloody Feast Tarot: ${ETSY_URL}`};
 }

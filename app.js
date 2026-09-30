@@ -143,7 +143,7 @@ function flareLetter(){
   setTimeout(flareBurst, at+4000+Math.random()*5000);
 })();
 const ASK_HTML=askBtn.innerHTML;
-let shufflePhase='idle'; // idle -> cutting (-> idle once the fan is dealt / the card is back on the deck)
+let shufflePhase='idle'; // idle -> dealing (-> idle once the fan is dealt / the card is back on the deck)
 function hideAskBtn(then){
   // the pulse keyframes would override the inline opacity, so freeze the pulse where it is and fade from there
   gsap.set(askBtn,{opacity:getComputedStyle(askBtn).opacity}); askBtn.style.animation='none';
@@ -155,30 +155,21 @@ function showAskBtn(html){
   gsap.fromTo(askBtn,{opacity:0},{opacity:.45, duration:.4,
     onComplete:()=>{ gsap.set(askBtn,{clearProps:'opacity'}); askBtn.style.animation=''; }});
 }
-// the ask button goes straight to the cut (once a shuffling card, if any, is back in the deck);
+// the ask button sends the deck into the fan (once a shuffling card, if any, is back in the deck);
 // portrait phones get no fan: the card of the day is drawn straight from the deck
 askBtn.addEventListener('click', ()=>{
   if(shufflePhase!=='idle' || busy) return;
-  busy=true; shufflePhase='cutting';
+  busy=true; shufflePhase='dealing';
   askTiltPermission(); tiltDeck(0, 0, .4); deckStack.classList.remove('lit');
   document.getElementById('askSub').classList.add('gone');
   hideAskBtn();
-  afterShufflePass(()=>cutThree(()=> isPortraitMobile() ? drawFromDeck(0) : (shufflePhase='idle', flyToFan())));
+  afterShufflePass(()=> isPortraitMobile() ? drawFromDeck(0) : (shufflePhase='idle', flyToFan()));
 });
 
 // Shuffle: pointing at the resting deck (or holding a finger on it) shuffles it - again and again the
 // top card slides out sideways until it is fully clear of the deck, and only then slides back in under
-// it, so no card ever passes through another. Cut: the deck is split into three piles and the user
-// picks the one that goes on top.
+// it, so no card ever passes through another.
 const DECK_REST=[{rotation:-1, x:-1, y:1}, {rotation:2, x:2, y:-1}, {rotation:0, x:0, y:0}]; // by DOM order, as in style.css
-const velvet=document.getElementById('velvet');
-const CUT_HTML='<span class="orn">✦</span> Выбери стопку <span class="orn">✦</span>';
-// a loose card back on the table, centred on the deck; moved by GSAP x / y
-function tableCard(){
-  const c=document.createElement('div'); c.className='wcard';
-  c.innerHTML=`<img src="${IMG_BACK}" alt=""><div class="paper"></div>`;
-  velvet.appendChild(c); return c;
-}
 let deckHovered=false, passing=false, passSide=1, afterPass=null;
 function shufflePass(){
   if(!deckHovered || !deckAtRest()){
@@ -207,63 +198,6 @@ deckStack.addEventListener('pointerenter', ()=>{
   if(deckAtRest()){ deckStack.classList.add('lit'); if(!passing) shufflePass(); }
 });
 deckStack.addEventListener('pointerleave', ()=>{ deckHovered=false; deckStack.classList.remove('lit'); });
-
-// The deck is split into three piles: the top third goes left, the next third right, the bottom one
-// stays. The user taps a pile; the other two are stacked and the chosen one is laid on top.
-function cutThree(onDone){
-  shufflePhase='cutting';
-  const w=deckStack.offsetWidth, h=deckStack.offsetHeight, gap=w*.2;
-  const fit=Math.min(1, innerWidth*.94/(3*w+2*gap)), D=(w+gap)*fit;
-  // a pile's edge of stacked paper along its bottom, T thick, drawn like the deck's: shaded by the two top
-  // cards lying over it, with the same shadow on the table under it
-  // (s, d: how much of the shading and of the table shadow is drawn)
-  const pileShadow=(T, s=1, d=1)=>{
-    const n=6, layers=[], shade=`0 12px 26px rgba(20,2,2,${(.9*s).toFixed(3)})`;
-    for(let k=1;k<=n;k++) layers.push(`0 ${(T*k/n).toFixed(2)}px 0 ${k===n ? '#5e564e' : k%2 ? '#ddd6cc' : '#c4bcb1'}`);
-    return `${shade}, ${shade}, `+layers.join(',')+`, 0 ${(T+16).toFixed(2)}px 32px rgba(20,2,2,${(.92*d).toFixed(3)})`;
-  };
-  const tweenPile=(p, from, to, vars)=>gsap.to(from,{...to, ...vars, onUpdate:()=>{ p.style.boxShadow=pileShadow(from.T, from.s, from.d); }});
-  const T_DECK=w*.05, T_PILE=T_DECK/2; // the deck's edge at rest (see renderDeckTilt)
-  const piles=[0,1,2].map(i=>{
-    const p=tableCard(); p.classList.add('pile'); p.style.zIndex=3-i; // piles[0] is the top of the deck
-    p.style.boxShadow=pileShadow(T_PILE);
-    return p;
-  });
-  let picking=false;
-  gsap.set(deckStack,{opacity:0});
-  gsap.timeline({onComplete:()=>{ picking=true; showAskBtn(CUT_HTML); }})
-    .to(piles, {scale:fit, duration:.5, ease:'sine.inOut'}, 0)
-    .to(piles[0],{x:-D, duration:.8, ease:'power2.inOut'}, .1)
-    .to(piles[1],{x:D, duration:.8, ease:'power2.inOut'}, .5);
-  piles.forEach(p=>{
-    p.addEventListener('pointerenter', e=>{ if(picking && e.pointerType==='mouse') gsap.to(p,{y:-12, duration:.35, ease:'power2.out'}); });
-    p.addEventListener('pointerleave', ()=>{ if(picking) gsap.to(p,{y:0, duration:.35, ease:'power2.out'}); });
-    p.addEventListener('click', ()=>{
-      if(!picking) return;
-      picking=false; hideAskBtn();
-      // the pointed-at pile's paper warms back up while the piles stack, to the tone of the deck they become
-      piles.forEach(o=>o.classList.add('picked'));
-      const others=piles.filter(o=>o!==p);
-      p.style.zIndex=10;
-      // stacked, the piles must look exactly like the deck that takes their place: the bottom pile's edge
-      // grows to the whole deck's edge, while the piles landing on it keep only the thin edge of the deck's
-      // top cards, and no shadows of their own
-      const base=others.reduce((a,b)=>+a.style.zIndex<+b.style.zIndex ? a : b);
-      const onTop={T:T_DECK*.17, s:0, d:0};
-      tweenPile(base, {T:T_PILE, s:1, d:1}, {T:T_DECK}, {duration:1.2, ease:'power2.inOut'});
-      others.forEach((o,k)=>{ if(o!==base) tweenPile(o, {T:T_PILE, s:1, d:1}, onTop, {duration:.7, delay:.12*k, ease:'power2.inOut'}); });
-      tweenPile(p, {T:T_PILE, s:1, d:1}, onTop, {duration:.7, delay:.5, ease:'power2.inOut'});
-      // the cut deck stays the neat stack the piles made, no card sticking out
-      gsap.timeline({onComplete:()=>{
-        gsap.set(deckStack.children,{rotation:0, x:0, y:0}); gsap.set(deckStack,{opacity:1});
-        piles.forEach(o=>o.remove()); gsap.delayedCall(.25, onDone);
-      }})
-        .to(others,{x:0, y:0, scale:1, duration:.7, ease:'power2.inOut', stagger:.12}, 0)
-        .to(p,{y:-h*.18, scale:fit*1.04, duration:.45, ease:'power2.out'}, 0)
-        .to(p,{x:0, y:0, scale:1, duration:.7, ease:'power2.inOut'}, .5);
-    });
-  });
-}
 
 // the deck shrinks back from the shuffle zoom, rises by the dip and its cards fall back into their loose pose
 function settleDeck(dip, onDone){

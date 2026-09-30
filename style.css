@@ -67,12 +67,19 @@ canvas#dust{position:fixed; inset:0; z-index:1; pointer-events:none;}
 
 /* the texts appear only once the web fonts are in, so they never jump from a fallback font */
 body:not(.fonts-ready) h1.title{visibility:hidden;}
-/* one line tall whatever it holds: the countdown hangs below it, so the deck above never shifts */
-.ask-sub{margin-top:14px; height:1.3em; line-height:1.3em; overflow:visible; color:var(--muted); font-size:16px; font-style:italic; letter-spacing:1px; transition:opacity .5s ease-in-out;}
+/* the countdown hangs under "Карта дня" out of the flow, so nothing on the screen shifts when it appears */
+.opt-col{position:relative;}
+.ask-sub{position:absolute; left:50%; top:100%; transform:translateX(-50%); margin-top:4px; white-space:nowrap; text-align:center;
+  color:var(--muted); font-size:14px; line-height:1.2; font-style:italic; letter-spacing:.5px; transition:opacity .5s ease-in-out;}
 .ask-sub.gone{opacity:0;}
-/* scaled in showComeBack to the phrase's width; the negative margin cancels the spacing after the last digit */
-.ask-sub .countdown{display:block; width:fit-content; margin:6px auto 0; font-family:var(--head-font); font-style:normal; font-size:22px;
-  line-height:1; letter-spacing:.18em; color:var(--accent); font-variant-numeric:tabular-nums;}
+/* the negative margin cancels the spacing after the last digit */
+.ask-sub .countdown{display:block; width:fit-content; margin:3px auto 0; font-family:var(--head-font); font-style:normal; font-size:16px;
+  line-height:1; letter-spacing:.18em; color:var(--accent); opacity:.8; font-variant-numeric:tabular-nums;}
+/* the fortune-teller's whisper at the foot of the resting deck, answered by "Теперь ты знаешь" at the end */
+.whisper{position:fixed; left:0; right:0; bottom:calc(5vh + env(safe-area-inset-bottom,0px)); z-index:5; text-align:center;
+  color:var(--muted); font-size:18px; font-style:italic; letter-spacing:1px; opacity:.8; pointer-events:none; transition:opacity .8s ease-in-out;}
+.whisper.gone{opacity:0;}
+body:not(.fonts-ready) .whisper{visibility:hidden;}
 .ask-sub .countdown::after{content:''; margin-right:-.18em;}
 body:not(.fonts-ready) .ask-sub{visibility:hidden;}
 
@@ -193,10 +200,11 @@ body:not(.noir) .big-name{font-family:'Cinzel',serif; color:#5e4c25;}
 /* the card's own title from the guidebook, Minor Arcana only */
 .meaning-panel .card-title{display:block; font-style:italic; color:var(--ink); opacity:.8; font-size:16px; margin:0 0 4px;}
 .meaning-panel .card-title:empty{display:none;}
-.meaning-panel .orient{display:block; color:var(--orient); font-size:14px; letter-spacing:2px; text-transform:uppercase; margin-bottom:6px;}
+.meaning-panel .orient{display:block; font-family:var(--head-font); color:var(--orient); font-size:14px; letter-spacing:2px; text-transform:uppercase; margin-bottom:6px;}
 .meaning-panel p{color:var(--ink); font-size:15px; line-height:1.4; margin:0 0 12px;}
 .meaning-end{display:flex; align-items:center; justify-content:center; gap:22px; margin-top:6px;}
-.end-phrase, .finish-btn{font-family:var(--head-font); font-size:14px; letter-spacing:3px; text-transform:uppercase; color:var(--accent);}
+.finish-btn{font-family:var(--head-font); font-size:14px; letter-spacing:3px; text-transform:uppercase; color:var(--accent);}
+.end-phrase{font-size:19px; font-style:italic; letter-spacing:.5px; color:var(--ink);}
 .end-rule{width:1px; height:22px; background:var(--red); opacity:.7; transform-origin:50% 50%;}
 .finish-btn{background:none; border:none; padding:6px 0; cursor:pointer;}
 /* the letters fill with red from the left, the arrow right after them; the red edge waits half a word

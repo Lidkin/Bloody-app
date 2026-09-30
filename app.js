@@ -200,7 +200,7 @@ for(let i=0;i<78;i++){
 
 /* ---------- language ---------- */
 const UI={
-ru:{title:'Таро Лидии Хаит', comeBack:'возвращайся через',
+ru:{title:'Таро Лидии Хаит', comeBack:'возвращайся через', whisper:'ты хочешь знать?',
   optDay:'Карта дня', optThree:'Три карты', positions:['Прошлое','Настоящее','Будущее'],
   upright:'Прямое положение', reversed:'Перевёрнутое положение', pickHint:'выбери три карты', reveal:'Узнать',
   next:'Далее', finish:'Завершить', nowYouKnow:'Теперь ты знаешь',
@@ -221,7 +221,7 @@ ru:{title:'Таро Лидии Хаит', comeBack:'возвращайся че�
     n=>`${n} легла перевёрнутой — здесь энергия застревает.`,
     'Две карты перевёрнуты — сначала стоит разобраться с тем, что мешает.',
     'Все карты перевёрнуты — время посмотреть внутрь себя, прежде чем действовать.']},
-en:{title:'Tarot by Lidiia Khait', comeBack:'come back in',
+en:{title:'Tarot by Lidiia Khait', comeBack:'come back in', whisper:'do you want to know?',
   optDay:'Card of the day', optThree:'Three cards', positions:['Past','Present','Future'],
   upright:'Upright', reversed:'Reversed', pickHint:'choose three cards', reveal:'Reveal',
   next:'Next', finish:'Finish', nowYouKnow:'Now you know',
@@ -337,10 +337,10 @@ function showToast(msg){toast.textContent=msg; toast.classList.add('show'); setT
 
 // Each spread option starts its own reading: the deck goes into the fan (once a shuffling card, if any,
 // is back in the deck); portrait phones get no fan - the cards are drawn straight from the deck.
-const langSwitch=document.getElementById('langSwitch'), askSub=document.getElementById('askSub');
+const langSwitch=document.getElementById('langSwitch'), askSub=document.getElementById('askSub'), whisper=document.getElementById('whisper');
 let shufflePhase='idle'; // idle -> dealing (-> idle once the fan is dealt / the card is back on the deck)
 function showStart(on){
-  [askSub, spreadOpts, langSwitch, soundBtn].forEach(e=>e.classList.toggle('gone', !on));
+  [askSub, spreadOpts, langSwitch, soundBtn, whisper].forEach(e=>e.classList.toggle('gone', !on));
 }
 spreadOpts.querySelectorAll('.opt').forEach(o=>o.addEventListener('click', ()=>{
   if(shufflePhase!=='idle' || busy || !deckAtRest()) return;
@@ -1408,8 +1408,6 @@ function setAskSub(){
   if(!dayDone){ sub.textContent=''; return false; }
   sub.innerHTML=`<span class="cd-phrase">${tr('comeBack')}</span><span class="countdown"></span>`;
   tickCountdown();
-  const cd=sub.querySelector('.countdown'), W=sub.querySelector('.cd-phrase').getBoundingClientRect().width;
-  for(let i=0;i<3;i++) cd.style.fontSize=parseFloat(getComputedStyle(cd).fontSize)*W/cd.getBoundingClientRect().width+'px';
   return true;
 }
 function tickCountdown(){

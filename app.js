@@ -1626,7 +1626,10 @@ async function shareStory(){
   const st=story || await storyJob;
   if(!st) return;
   if(navigator.canShare && navigator.canShare({files:[st.file]})){
-    try{ await navigator.share({files:[st.file], title:st.title, text:st.text}); return; }
+    // iOS shows a preview of the picture in the share sheet only when nothing but the file is shared;
+    // the picture itself names the deck and the shop
+    const iOS=/iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
+    try{ await navigator.share(iOS ? {files:[st.file]} : {files:[st.file], title:st.title, text:st.text}); return; }
     catch(e){ if(e.name==='AbortError') return; } // closed by the user; anything else - the picture is saved instead
   }
   const a=document.createElement('a'); a.href=URL.createObjectURL(st.file); a.download=st.file.name; a.click();

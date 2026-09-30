@@ -1203,7 +1203,7 @@ function inkReveal(el, {byWord=false, delay=0, stagger=.05, dur=.9}={}){
 // with the card's artwork
 const bigName=document.createElement('div'); bigName.className='big-name';
 const BIG_FRONT=1001, BIG_BEHIND=950; // the opened card is at z 1000
-const BIG_DIM='#240202'; // behind the card: dark burgundy, barely off the darkened screen
+const BIG_DIM='rgba(0,0,0,.55)'; // behind the card: a shadow pressed into the velvet
 // It is drawn twice, behind and in front of the card; the front copy fades as the name sinks, so the
 // letters over the card dissolve into it gradually instead of jumping behind it
 let bigFront=null;

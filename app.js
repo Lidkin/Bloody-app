@@ -890,7 +890,14 @@ function updatePickList(){
   if(n===POSITIONS.length) spread.go=gsap.delayedCall(2, ()=>{
     spread.go=null; if(busy) return;
     busy=true; setHover(null); list.classList.remove('on');
-    gsap.delayedCall(.3, ()=>openSpreadCard(0));
+    // the fan is cleared away first; under the velvet the past rises above it and comes back out of it
+    // opening, so with no neighbours left it needs no sliding out of its arc
+    const first=spread.cards[0];
+    setDim(2, first, ()=>{
+      first.style.transition='none'; first.style.opacity='0'; first.style.zIndex=1000;
+      first.offsetWidth; first.style.transition=''; first.style.opacity='';
+      openSpreadCard(0);
+    });
   });
 }
 // desktop: a picked card stays slid out of the arc; picked again, it goes back
@@ -936,17 +943,15 @@ function drawSpreadCard(i){
     c.remove(); place(); openSpreadCard(i);
   }});
 }
-// a card of the spread grows out of its place and opens, the rest of the table sinks into the dark
+// a card of the spread grows out of its place and opens, the rest of the table is cleared away
 function openSpreadCard(i){
   const el=spread.cards[i]; spread.i=i;
   busy=true; activeCard=el;
-  // desktop: the table goes fully dark only once the card's name surfaces (onCardOpened)
-  setDim(el._fromDeck ? 2 : 1, el); showCaps(false); el.classList.remove('lit');
+  setDim(2, el); showCaps(false); el.classList.remove('lit');
   if(el.classList.contains('away')) fadeInCard(el);
   const s=el._state, pose=openedPose(el, el._card), render=()=>renderCard(el,s), tl=gsap.timeline();
   gsap.killTweensOf(s);
-  // out of the arc first (desktop), so rising above its neighbours shows no jump
-  if(!el._fromDeck) tl.to(s,{...arcState(el, cardH), duration:.35, ease:'power1.in', onUpdate:render});
+  // desktop: the fan is cleared away by now, so the card opens right where it lies
   tl.call(()=>{ el.style.zIndex=1000; sfx.slide(1, .7); })
     .to(s,{...pose, duration:1.3, ease:'power2.inOut', onUpdate:render, onComplete:()=>onCardOpened(el)});
 }
@@ -1111,15 +1116,16 @@ function spreadSummary(els){
 // again, so an open card lies over the live background of the start screen. Once cleared, it stays so
 // until level 0 brings it back the same way.
 let tableCleared=false;
-function setDim(level, except){
+function setDim(level, except, onCovered){
   document.querySelectorAll('.fcard').forEach(c=>c.classList.toggle('dim', level>0 && c!==except));
   dimOverlay.classList.toggle('on', level>0);
   if(level===2 && !tableCleared){
     tableCleared=true;
     gsap.to(dimOverlay,{opacity:1, duration:.7, ease:'sine.inOut', overwrite:true, onComplete:()=>{
       if(!tableCleared) return;
-      fan.querySelectorAll('.fcard').forEach(c=>{ if(c!==activeCard) c.classList.add('away'); });
+      fan.querySelectorAll('.fcard').forEach(c=>{ if(c!==activeCard && c!==except) c.classList.add('away'); });
       if(!openingEl.hidden) gsap.set(deckStack,{opacity:0});
+      onCovered?.();
       gsap.to(dimOverlay,{opacity:0, duration:.9, ease:'sine.inOut'});
     }});
   } else if(level===1 && !tableCleared){

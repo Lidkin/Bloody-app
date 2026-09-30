@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Таро Лидии Хаит</title>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Cinzel:wght@600;700&family=Oswald:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Oswald:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <link rel="stylesheet" href="style.css">
 </head>
@@ -21,12 +21,11 @@
       <div class="dcard"><img src="assets/card-back.png" alt=""><div class="paper"></div></div><div class="dcard"><img src="assets/card-back.png" alt=""><div class="paper"></div></div><div class="dcard"><img src="assets/card-back.png" alt=""><div class="paper"></div></div>
     </div>
   </div>
-  <button class="ask-btn" id="askBtn" data-i18n="ask">Задать вопрос</button>
-  <div class="ask-sub" id="askSub">ты хочешь знать?</div>
   <div class="spread-options" id="spreadOpts">
-    <button class="opt active" data-mode="day" data-i18n="optDay">Карта дня</button>
+    <button class="opt" data-mode="day" data-i18n="optDay">Карта дня</button>
     <button class="opt" data-mode="three" data-i18n="optThree">Три карты</button>
   </div>
+  <div class="ask-sub" id="askSub"></div>
 </div>
 
 <div class="scene" id="fanScreen" hidden>

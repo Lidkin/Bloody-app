@@ -200,7 +200,7 @@ for(let i=0;i<78;i++){
 
 /* ---------- language ---------- */
 const UI={
-ru:{title:'Таро Лидии Хаит', ask:'Задать вопрос', askSub:'ты хочешь знать?', comeBack:'возвращайся через',
+ru:{title:'Таро Лидии Хаит', comeBack:'возвращайся через',
   optDay:'Карта дня', optThree:'Три карты', positions:['Прошлое','Настоящее','Будущее'],
   upright:'Прямое положение', reversed:'Перевёрнутое положение', pickHint:'выбери три карты', reveal:'Узнать',
   next:'Далее', finish:'Завершить', nowYouKnow:'Теперь ты знаешь',
@@ -221,7 +221,7 @@ ru:{title:'Таро Лидии Хаит', ask:'Задать вопрос', askSu
     n=>`${n} легла перевёрнутой — здесь энергия застревает.`,
     'Две карты перевёрнуты — сначала стоит разобраться с тем, что мешает.',
     'Все карты перевёрнуты — время посмотреть внутрь себя, прежде чем действовать.']},
-en:{title:'Tarot by Lidiia Khait', ask:'Ask a question', askSub:'do you want to know?', comeBack:'come back in',
+en:{title:'Tarot by Lidiia Khait', comeBack:'come back in',
   optDay:'Card of the day', optThree:'Three cards', positions:['Past','Present','Future'],
   upright:'Upright', reversed:'Reversed', pickHint:'choose three cards', reveal:'Reveal',
   next:'Next', finish:'Finish', nowYouKnow:'Now you know',
@@ -289,41 +289,21 @@ let dayDone=false;
 
 function showToast(msg){toast.textContent=msg; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'),1600);}
 
-// The ask button starts the shuffle and then turns into "Довольно": the deck keeps shuffling until
-// the user stops it, like in a real reading.
-const askBtn=document.getElementById('askBtn'), langSwitch=document.getElementById('langSwitch');
+// Each spread option starts its own reading: the deck goes into the fan (once a shuffling card, if any,
+// is back in the deck); portrait phones get no fan - the cards are drawn straight from the deck.
+const langSwitch=document.getElementById('langSwitch'), askSub=document.getElementById('askSub');
 let shufflePhase='idle'; // idle -> dealing (-> idle once the fan is dealt / the card is back on the deck)
-function hideAskBtn(then){
-  // the pulse keyframes would override the inline opacity, so freeze the pulse where it is and fade from there
-  gsap.set(askBtn,{opacity:getComputedStyle(askBtn).opacity}); askBtn.style.animation='none';
-  gsap.to(askBtn,{opacity:0, duration:.3, onComplete:()=>{ askBtn.style.visibility='hidden'; then&&then(); }});
+function showStart(on){
+  [askSub, spreadOpts, langSwitch].forEach(e=>e.classList.toggle('gone', !on));
 }
-function showAskBtn(html, still){
-  askBtn.innerHTML=html; askBtn.style.visibility='';
-  askBtn.classList.toggle('still', !!still);
-  if(still){ gsap.fromTo(askBtn,{opacity:0},{opacity:.85, duration:.4, onComplete:()=>gsap.set(askBtn,{clearProps:'opacity'})}); return; }
-  // fade in to the pulse's starting opacity, then hand over to the pulse
-  gsap.fromTo(askBtn,{opacity:0},{opacity:.45, duration:.4,
-    onComplete:()=>{ gsap.set(askBtn,{clearProps:'opacity'}); askBtn.style.animation=''; }});
-}
-// the ask button sends the deck into the fan (once a shuffling card, if any, is back in the deck);
-// portrait phones get no fan: the card of the day is drawn straight from the deck
-askBtn.addEventListener('click', ()=>{
-  if(shufflePhase!=='idle' || busy) return;
+spreadOpts.querySelectorAll('.opt').forEach(o=>o.addEventListener('click', ()=>{
+  if(shufflePhase!=='idle' || busy || !deckAtRest()) return;
+  mode=o.dataset.mode;
   busy=true; shufflePhase='dealing';
   askTiltPermission(); tiltDeck(0, 0, .4); deckStack.classList.remove('lit');
-  document.getElementById('askSub').classList.add('gone'); spreadOpts.classList.add('gone'); langSwitch.classList.add('gone');
-  hideAskBtn();
+  showStart(false);
   afterShufflePass(()=> isPortraitMobile() ? (mode==='three' ? drawSpreadCard(0) : drawFromDeck(0))
     : (shufflePhase='idle', flyToFan()));
-});
-// the spread is chosen on the resting deck; the line under the ask button follows the choice
-spreadOpts.querySelectorAll('.opt').forEach(o=>o.addEventListener('click', ()=>{
-  if(!deckAtRest() || o.dataset.mode===mode) return;
-  spreadOpts.querySelectorAll('.opt').forEach(x=>x.classList.toggle('active', x===o));
-  mode=o.dataset.mode;
-  const still=setAskSub();
-  askBtn.classList.toggle('still', still); if(!still) askBtn.style.animation='';
 }));
 
 // Shuffle: pointing at the resting deck (or holding a finger on it) shuffles it - again and again the
@@ -426,7 +406,7 @@ function returnToDeck(el, onBack){
     .call(()=>{
       topImg.style.visibility=''; el.remove(); fanScreen.hidden=true; activeCard=null;
       settleDeck(dip, ()=>{
-        if(onBack) onBack(); else { showAskBtn(tr('ask')); document.getElementById('askSub').classList.remove('gone'); }
+        if(onBack) onBack(); else endReading();
         busy=false;
       });
     });
@@ -1346,7 +1326,6 @@ function gatherDeck(el, extras=[]){
 function flyHome(el){
   const s=el._state;
   openingEl.hidden=false; gsap.set(openingEl,{opacity:1});
-  askBtn.style.visibility='hidden';
   resetDeckStack();
   const r=deckStack.getBoundingClientRect(), w=deckStack.offsetWidth, h=deckStack.offsetHeight;
   const restR=getComputedStyle(deckStack.firstElementChild).borderRadius;
@@ -1367,15 +1346,14 @@ function flyHome(el){
 function endReading(){
   if(mode==='day') dayDone=true;
   spread=null; fan.querySelectorAll('.spread-cap, .pick-list').forEach(e=>e.remove());
-  const still=setAskSub();
-  document.getElementById('askSub').classList.remove('gone'); spreadOpts.classList.remove('gone'); langSwitch.classList.remove('gone');
-  showAskBtn(tr('ask'), still);
+  setAskSub(); showStart(true);
 }
-// the line under the ask button: the question, or once the card of the day is drawn, the time left until
-// the next one, at local midnight (for now the ask button stays, for testing); true for the countdown
+// once the card of the day is drawn, the line under the options counts down to the next one, at local
+// midnight, and the option dims (for now it can still be drawn, for testing)
 function setAskSub(){
-  const sub=document.getElementById('askSub');
-  if(mode!=='day' || !dayDone){ sub.textContent=tr('askSub'); return false; }
+  const sub=askSub;
+  spreadOpts.querySelector('[data-mode=day]').classList.toggle('done', dayDone);
+  if(!dayDone){ sub.textContent=''; return false; }
   sub.innerHTML=`<span class="cd-phrase">${tr('comeBack')}</span><span class="countdown"></span>`;
   tickCountdown();
   const cd=sub.querySelector('.countdown'), W=sub.querySelector('.cd-phrase').getBoundingClientRect().width;

@@ -54,20 +54,6 @@ Object.entries(SUITS).forEach(([k,[label,theme]])=>{
   });
 });
 
-/* ---------- theme ---------- */
-// 'noir' - the deck's red / black / white; 'gold' - the original gold esoteric look
-const THEMES={noir:'Нуар', gold:'Золото'};
-let theme=localStorage.getItem('theme') in THEMES ? localStorage.getItem('theme') : 'noir';
-const themeToggle=document.getElementById('themeToggle');
-function applyTheme(){
-  document.body.classList.toggle('noir', theme==='noir');
-  themeToggle.textContent='Тема: '+THEMES[theme];
-}
-themeToggle.addEventListener('click', ()=>{
-  theme = theme==='noir' ? 'gold' : 'noir';
-  localStorage.setItem('theme', theme); applyTheme();
-});
-applyTheme();
 document.fonts.ready.then(()=>document.body.classList.add('fonts-ready'));
 
 /* ---------- particles ---------- */
@@ -77,26 +63,21 @@ resize(); addEventListener('resize',resize);
 const P = Array.from({length:70},()=>({x:Math.random()*innerWidth,y:Math.random()*innerHeight,r:Math.random()*1.6+.3,
   vy:-(Math.random()*.25+.05), vx:(Math.random()-.5)*.15, a:Math.random()*.5+.2,
   mix:Math.random(), flash:0}));
-// noir dust: each speck sits somewhere between grey and burgundy and now and then flares bright red
-const ASH=[150,138,142], BURGUNDY=[150,38,54], FLARE=[255,34,34], FLASH_FRAMES=70;
+// dust: each speck sits somewhere between grey and burgundy and now and then flares the red of the card backs
+const ASH=[150,138,142], BURGUNDY=[150,38,54], FLARE=[228,36,35], FLASH_FRAMES=70;
 const lerp=(a,b,t)=>a.map((v,i)=>Math.round(v+(b[i]-v)*t));
 function tick(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
-  const noir=theme==='noir';
   P.forEach(p=>{
     p.y+=p.vy; p.x+=p.vx+Math.sin(p.y*.01)*.1;
     if(p.y<-5){p.y=innerHeight+5; p.x=Math.random()*innerWidth;}
-    let r=p.r;
-    if(!noir){ ctx.fillStyle='#e8cf8a'; ctx.globalAlpha=p.a; ctx.shadowBlur=0; }
-    else{
-      if(!p.flash && Math.random()<.0003) p.flash=FLASH_FRAMES;
-      const f = p.flash ? Math.sin(Math.PI*p.flash/FLASH_FRAMES) : 0; // 0 -> 1 -> 0
-      if(p.flash) p.flash--;
-      ctx.fillStyle=`rgb(${lerp(lerp(ASH,BURGUNDY,p.mix),FLARE,f)})`;
-      ctx.globalAlpha=p.a*.8+(1-p.a*.8)*f;
-      ctx.shadowColor='#ff2222'; ctx.shadowBlur=6*f;
-      r=p.r*(1+.5*f);
-    }
+    if(!p.flash && Math.random()<.0003) p.flash=FLASH_FRAMES;
+    const f = p.flash ? Math.sin(Math.PI*p.flash/FLASH_FRAMES) : 0; // 0 -> 1 -> 0
+    if(p.flash) p.flash--;
+    ctx.fillStyle=`rgb(${lerp(lerp(ASH,BURGUNDY,p.mix),FLARE,f)})`;
+    ctx.globalAlpha=p.a*.8+(1-p.a*.8)*f;
+    ctx.shadowColor='#e42423'; ctx.shadowBlur=6*f;
+    const r=p.r*(1+.5*f);
     ctx.beginPath(); ctx.arc(p.x,p.y,r,0,7); ctx.fill();
   });
   requestAnimationFrame(tick);
@@ -1215,7 +1196,7 @@ async function drawStoryCard(x, card, reversed, cx, cy, cw){
   } else {
     x.strokeStyle='#111'; x.lineWidth=3*k; x.beginPath(); x.roundRect(cx+cw*.06, cy+cw*.06, cw*.88, ch-cw*.12, cw*.05); x.stroke();
     x.textAlign='center'; x.letterSpacing='0px';
-    if(card.num){ x.font=`500 ${96*k}px Oswald`; x.fillStyle='#e32222'; x.fillText(card.num, cx+cw/2, cy+ch/2-60*k); }
+    if(card.num){ x.font=`500 ${96*k}px Oswald`; x.fillStyle='#e42423'; x.fillText(card.num, cx+cw/2, cy+ch/2-60*k); }
     x.font=`500 ${72*k}px Oswald`; x.fillStyle='#111';
     const m=x.measureText(card.name).width; if(m>cw*.8) x.font=`500 ${72*k*cw*.8/m}px Oswald`;
     x.fillText(card.name, cx+cw/2, cy+ch/2+50*k);
@@ -1249,7 +1230,7 @@ async function drawCardStory(el){
   const cw=680, cy=260, ch=await drawStoryCard(x, card, reversed, (W-cw)/2, cy, cw);
   const below=cy+ch+120;
   text(card.name, below, '500 72px Oswald', '#f2efea', 4);
-  text(reversed?'ПЕРЕВЁРНУТОЕ ПОЛОЖЕНИЕ':'ПРЯМОЕ ПОЛОЖЕНИЕ', below+64, '500 32px Oswald', '#e32222', 6);
+  text(reversed?'ПЕРЕВЁРНУТОЕ ПОЛОЖЕНИЕ':'ПРЯМОЕ ПОЛОЖЕНИЕ', below+64, '500 32px Oswald', '#e42423', 6);
   return {c, name:'card-of-the-day.png', title:'Карта дня', text:`Моя карта дня — ${card.name}. Bloody Feast Tarot: ${ETSY_URL}`};
 }
 // the spread: its three cards side by side, each under its position and over its name, then the summary
@@ -1259,7 +1240,7 @@ async function drawSpreadStory(els){
   let ch=0;
   for(const [i, el] of els.entries()){
     const cx=left+i*(cw+gap), mid=cx+cw/2;
-    text(POSITIONS[i].toUpperCase(), cy-40, '500 30px Oswald', '#e32222', 6, mid);
+    text(POSITIONS[i].toUpperCase(), cy-40, '500 30px Oswald', '#e42423', 6, mid);
     ch=await drawStoryCard(x, el._card, el.dataset.reversed==='true', cx, cy, cw);
     text(el._card.name.toUpperCase(), cy+ch+64, '500 32px Oswald', '#f2efea', 2, mid, cw+gap-10);
   }

@@ -214,13 +214,19 @@ function cutThree(onDone){
   shufflePhase='cutting';
   const w=deckStack.offsetWidth, h=deckStack.offsetHeight, gap=w*.2;
   const fit=Math.min(1, innerWidth*.94/(3*w+2*gap)), D=(w+gap)*fit;
+  // a pile's edge of stacked paper along its bottom, T thick, drawn like the deck's: shaded by the two top
+  // cards lying over it, with the same shadow on the table under it
+  // (s, d: how much of the shading and of the table shadow is drawn)
+  const pileShadow=(T, s=1, d=1)=>{
+    const n=6, layers=[], shade=`0 12px 26px rgba(20,2,2,${(.9*s).toFixed(3)})`;
+    for(let k=1;k<=n;k++) layers.push(`0 ${(T*k/n).toFixed(2)}px 0 ${k===n ? '#5e564e' : k%2 ? '#ddd6cc' : '#c4bcb1'}`);
+    return `${shade}, ${shade}, `+layers.join(',')+`, 0 ${(T+16).toFixed(2)}px 32px rgba(20,2,2,${(.92*d).toFixed(3)})`;
+  };
+  const tweenPile=(p, from, to, vars)=>gsap.to(from,{...to, ...vars, onUpdate:()=>{ p.style.boxShadow=pileShadow(from.T, from.s, from.d); }});
+  const T_DECK=w*.05, T_PILE=T_DECK/2; // the deck's edge at rest (see renderDeckTilt)
   const piles=[0,1,2].map(i=>{
     const p=tableCard(); p.classList.add('pile'); p.style.zIndex=3-i; // piles[0] is the top of the deck
-    // a third of the deck: its edge of stacked paper along the bottom
-    const T=w*.1/3, n=Math.round(T/1.5), layers=[];
-    for(let k=1;k<=n;k++) layers.push(`0 ${(T*k/n).toFixed(1)}px 0 ${k===n ? '#5e564e' : k%2 ? '#ddd6cc' : '#c4bcb1'}`);
-    // the pile's top cards shade its edge, as the deck's top cards shade the deck's
-    p.style.boxShadow='0 12px 26px rgba(20,2,2,.9), '+layers.join(',')+`, 0 ${(T+16).toFixed(1)}px 32px rgba(20,2,2,.92)`;
+    p.style.boxShadow=pileShadow(T_PILE);
     return p;
   });
   let picking=false;
@@ -239,6 +245,14 @@ function cutThree(onDone){
       piles.forEach(o=>o.classList.add('picked'));
       const others=piles.filter(o=>o!==p);
       p.style.zIndex=10;
+      // stacked, the piles must look exactly like the deck that takes their place: the bottom pile's edge
+      // grows to the whole deck's edge, while the piles landing on it keep only the thin edge of the deck's
+      // top cards, and no shadows of their own
+      const base=others.reduce((a,b)=>+a.style.zIndex<+b.style.zIndex ? a : b);
+      const onTop={T:T_DECK*.17, s:0, d:0};
+      tweenPile(base, {T:T_PILE, s:1, d:1}, {T:T_DECK}, {duration:1.2, ease:'power2.inOut'});
+      others.forEach((o,k)=>{ if(o!==base) tweenPile(o, {T:T_PILE, s:1, d:1}, onTop, {duration:.7, delay:.12*k, ease:'power2.inOut'}); });
+      tweenPile(p, {T:T_PILE, s:1, d:1}, onTop, {duration:.7, delay:.5, ease:'power2.inOut'});
       // the cut deck stays the neat stack the piles made, no card sticking out
       gsap.timeline({onComplete:()=>{
         gsap.set(deckStack.children,{rotation:0, x:0, y:0}); gsap.set(deckStack,{opacity:1});
@@ -267,6 +281,15 @@ function renderDeckTilt(){
   deckStack.style.setProperty('--ex', (-ty/DECK_TILT_Y*T).toFixed(2)+'px');
   deckStack.style.setProperty('--ey', (T*.5+tx/DECK_TILT_X*T*.8).toFixed(2)+'px');
   gsap.set(deckStack,{rotationX:tx, rotationY:ty, transformPerspective:900});
+}
+// the edge of a single card lying in the upper arc (.face.back in style.css), in screen px
+const FAN_EDGE={x:-1.8, y:.9};
+const deckEdge=()=>({x:parseFloat(deckStack.style.getPropertyValue('--ex'))||0, y:parseFloat(deckStack.style.getPropertyValue('--ey'))||0});
+function tweenDeckEdge(x, y, vars){
+  const e=deckEdge();
+  return gsap.to(e,{x, y, ...vars, onUpdate:()=>{
+    deckStack.style.setProperty('--ex', e.x.toFixed(2)+'px'); deckStack.style.setProperty('--ey', e.y.toFixed(2)+'px');
+  }});
 }
 function tiltDeck(nx, ny, dur=.6){
   gsap.to(deckTilt,{ty:nx*DECK_TILT_Y, tx:-ny*DECK_TILT_X, duration:dur, ease:'power2.out', overwrite:'auto', onUpdate:renderDeckTilt});
@@ -324,10 +347,11 @@ function flyToFan(){
   // squeeze the loose stack into one card of exactly the fan's size so the hand-off is invisible
   const sx=cardW/deckStack.offsetWidth, sy=cardH/deckStack.offsetHeight;
   const rad=cardW*CARD_RADIUS; // the fan card's corner, in the squeezed stack's own units
-  deckStack.style.setProperty('--edge-o', 0); // the stack squeezes into one fan card, which has no deck under it
   deckStack.style.willChange='transform';
   // the short delay lets the frame that laid out the fan screen pass, so the flight starts without a hitch
   const DUR=1.1, EASE='power3.inOut', DELAY=.08;
+  // the stack squeezes into one fan card: its edge thins all the way to that card's own thin edge
+  tweenDeckEdge(FAN_EDGE.x/sx, FAN_EDGE.y/sy, {duration:DUR, ease:EASE, delay:DELAY});
   gsap.to(deckStack.children,{rotation:0, x:0, y:0, borderRadius:`${rad/sx}px / ${rad/sy}px`,
     duration:DUR, ease:EASE, delay:DELAY});
   gsap.to(deckStack,{x:`+=${tx-(r.left+r.width/2)}`, y:`+=${ty-(r.top+r.height/2)}`,
@@ -891,14 +915,15 @@ function flyHome(el){
   const r=deckStack.getBoundingClientRect(), w=deckStack.offsetWidth, h=deckStack.offsetHeight;
   const restR=getComputedStyle(deckStack.firstElementChild).borderRadius;
   const sx=cardW/w, sy=cardH/h, rad=cardW*CARD_RADIUS;
-  deckStack.style.setProperty('--edge-o', 0);
+  const rest=deckEdge();
+  deckStack.style.setProperty('--ex', FAN_EDGE.x/sx+'px'); deckStack.style.setProperty('--ey', FAN_EDGE.y/sy+'px');
   gsap.set(deckStack,{x:s.x-(r.left+r.width/2), y:s.y-(r.top+r.height/2), rotation:s.rot, scaleX:sx, scaleY:sy});
   gsap.set(deckStack.children,{rotation:0, x:0, y:0, borderRadius:`${rad/sx}px / ${rad/sy}px`});
   fanScreen.hidden=true; fan.innerHTML=''; fan.appendChild(dimOverlay);
   const DUR=1.2, EASE='power3.inOut';
   [...deckStack.children].forEach((c,i)=>gsap.to(c,{...DECK_REST[i], borderRadius:restR, duration:DUR, ease:EASE,
     onComplete:()=>gsap.set(c,{clearProps:'borderRadius'})}));
-  gsap.delayedCall(DUR*.5, ()=>deckStack.style.removeProperty('--edge-o'));
+  tweenDeckEdge(rest.x, rest.y, {duration:DUR, ease:EASE});
   gsap.to(deckStack,{x:0, y:0, rotation:0, scaleX:1, scaleY:1, duration:DUR, ease:EASE,
     onComplete:()=>{ activeCard=null; hoverCard=null; shufflePhase='idle'; busy=false; showComeBack(); }});
 }

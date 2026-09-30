@@ -1164,6 +1164,8 @@ setInterval(tickCountdown, 1000);
 
 // A story-sized (9:16) picture of the card of the day (or of the spread) with the deck's name and shop -
 // shared through the system share sheet where files can be shared (phones), otherwise downloaded.
+// Everything on it stays inside the middle 4:5 (SAFE), which a post keeps when it crops the picture.
+const SAFE={top:(1920-1350)/2, bottom:(1920+1350)/2};
 function storyCanvas(title){
   const W=1080, H=1920, c=document.createElement('canvas'); c.width=W; c.height=H;
   const x=c.getContext('2d');
@@ -1176,9 +1178,9 @@ function storyCanvas(title){
     if(maxW){ const m=x.measureText(str).width; if(m>maxW) x.font=font.replace(/(\d+)px/, (_,n)=>Math.floor(n*maxW/m)+'px'); }
     x.fillText(str, cx, y);
   };
-  text(title, 190, '500 44px Oswald', '#e9e6e1', 10);
-  text('BLOODY FEAST TAROT', H-170, '500 42px Oswald', '#e9e6e1', 10);
-  text('illusbyme.etsy.com', H-110, 'italic 500 36px "Cormorant Garamond"', '#8a8784');
+  text(title, SAFE.top+80, '500 40px Oswald', '#e9e6e1', 10);
+  text('BLOODY FEAST TAROT', SAFE.bottom-92, '500 40px Oswald', '#e9e6e1', 10);
+  text('illusbyme.etsy.com', SAFE.bottom-40, 'italic 500 34px "Cormorant Garamond"', '#8a8784');
   return {c, x, W, H, text};
 }
 // a card face (only what lies inside its cut line) at cx, cy, cw wide
@@ -1235,17 +1237,17 @@ function wrapLines(x, str, font, maxW){
 async function drawCardStory(el){
   const card=el._card, reversed=el.dataset.reversed==='true';
   const {c, x, W, text}=storyCanvas('КАРТА ДНЯ');
-  text(card.name.toUpperCase(), 280, '500 84px Oswald', '#f2efea', 6, W/2, W-120);
-  const cw=580, cy=350, ch=await drawStoryCard(x, card, reversed, (W-cw)/2, cy, cw);
-  const font='italic 500 46px "Cormorant Garamond"';
+  text(card.name.toUpperCase(), SAFE.top+162, '500 72px Oswald', '#f2efea', 6, W/2, W-120);
+  const cw=440, cy=SAFE.top+200, ch=await drawStoryCard(x, card, reversed, (W-cw)/2, cy, cw);
+  const font='italic 500 42px "Cormorant Garamond"';
   const meaning=reversed ? card.rev : card.up;
-  wrapLines(x, meaning[0].toUpperCase()+meaning.slice(1), font, W-200).forEach((l,i)=>text(l, cy+ch+110+i*60, font, '#d9d4ce'));
+  wrapLines(x, meaning[0].toUpperCase()+meaning.slice(1), font, W-200).forEach((l,i)=>text(l, cy+ch+72+i*54, font, '#d9d4ce'));
   return {c, name:'card-of-the-day.png', title:'Карта дня', text:`Моя карта дня — ${card.name}. Bloody Feast Tarot: ${ETSY_URL}`};
 }
 // the spread: its three cards side by side, each under its position and over its name, then the summary
 async function drawSpreadStory(els){
   const {c, x, W, text}=storyCanvas('ТРИ КАРТЫ');
-  const cw=300, gap=45, left=(W-3*cw-2*gap)/2, cy=390;
+  const cw=290, gap=45, left=(W-3*cw-2*gap)/2, cy=SAFE.top+220;
   let ch=0;
   for(const [i, el] of els.entries()){
     const cx=left+i*(cw+gap), mid=cx+cw/2;
@@ -1255,7 +1257,7 @@ async function drawSpreadStory(els){
   }
   // the summary, wrapped to the width of the row
   const font='italic 500 40px "Cormorant Garamond"';
-  wrapLines(x, spreadSummary(els), font, W-160).forEach((l,i)=>text(l, cy+ch+170+i*54, font, '#d9d4ce'));
+  wrapLines(x, spreadSummary(els), font, W-160).forEach((l,i)=>text(l, cy+ch+150+i*54, font, '#d9d4ce'));
   return {c, name:'three-cards.png', title:'Три карты',
     text:`Мой расклад: ${els.map((e,i)=>POSITIONS[i]+' — '+e._card.name).join(', ')}. Bloody Feast Tarot: ${ETSY_URL}`};
 }

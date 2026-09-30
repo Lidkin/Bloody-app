@@ -14,87 +14,186 @@ gsap.globalTimeline.timeScale(.8);
 const ART = [null, "assets/the-magician.png"];
 /* ---------- deck data ---------- */
 // the deck in both languages; a card's name and meanings follow the current language (see "language" below)
+// every card as [name, upright, reversed, title]; titles (from the guidebook) only for the Minor Arcana
 const DATA={
 ru:{
-MAJOR:[
-["Шут","Начало пути, спонтанность, безрассудная свобода.","Опрометчивость, страх сделать первый шаг."],
-["Маг","Воля, мастерство — все ресурсы уже в ваших руках.","Манипуляция, нереализованный потенциал, обман."],
-["Верховная Жрица","Интуиция, тайное знание, тишина перед ответом.","Скрытые мотивы, отрыв от внутреннего голоса."],
-["Императрица","Изобилие, творчество, забота и плодородие.","Застой, гиперопека, творческий блок."],
-["Император","Структура, власть, стабильность через дисциплину.","Тирания, жёсткость, потеря контроля."],
-["Иерофант","Традиция, обучение, духовное наставничество.","Догма, бунт против системы, ложный авторитет."],
-["Влюблённые","Выбор, союз, гармония ценностей.","Разлад, неверный выбор, дисбаланс."],
-["Колесница","Победа через волю, движение вперёд.","Потеря направления, агрессия, застревание."],
-["Сила","Внутренняя стойкость, мягкое укрощение страстей.","Слабость воли, самосомнение, скрытая ярость."],
-["Отшельник","Уединение, поиск истины внутри себя.","Изоляция, отрицание помощи, одиночество."],
-["Колесо Фортуны","Перемены, циклы судьбы, поворотный момент.","Сопротивление переменам, невезение, застой."],
-["Справедливость","Причина и следствие, честность, баланс.","Несправедливость, уклонение от ответственности."],
-["Повешенный","Пауза, новый взгляд, жертва ради прозрения.","Бессмысленная жертва, застревание, промедление."],
-["Смерть","Завершение, трансформация, освобождение старого.","Сопротивление концу, страх перемен."],
-["Умеренность","Гармония, терпение, алхимия противоположностей.","Дисбаланс, крайности, нетерпение."],
-["Дьявол","Привязанность, искушение, иллюзия несвободы.","Освобождение от зависимости, прозрение."],
-["Башня","Внезапный слом, откровение, освобождающий кризис.","Отложенный крах, страх перемен, избегание."],
-["Звезда","Надежда, вдохновение, исцеление после бури.","Отчаяние, потеря веры, истощение."],
-["Луна","Неопределённость, подсознание, скрытые страхи.","Прояснение иллюзий, выход из тумана."],
-["Солнце","Радость, ясность, успех и жизненная сила.","Временное затмение радости, завышенные ожидания."],
-["Суд","Пробуждение, возрождение, итог и призвание.","Самокритика, отказ услышать зов, застревание."],
-["Мир","Завершение цикла, целостность, достижение цели.","Незавершённость, задержка финала."]
-],
 SUITS:{w:["Жезлов","энергию и действие"],c:["Кубков","чувства и отношения"],s:["Мечей","мысли и конфликты"],p:["Пентаклей","материю и стабильность"]},
-RANKS:["Туз","Двойка","Тройка","Четвёрка","Пятёрка","Шестёрка","Семёрка","Восьмёрка","Девятка","Десятка","Паж","Рыцарь","Королева","Король"],
-RMEAN:["новое начало и потенциал","выбор и баланс сил","рост через сотрудничество","передышка и переоценка","испытание и трение",
-  "движение к гармонии","переоценка стратегии","сосредоточенное усилие","почти достигнутая цель","итог цикла, полнота",
-  "любопытство и весть","решительное движение","зрелое владение темой","полная реализация и власть"],
-minor:(rank,suit,mean,theme)=>[rank+" "+suit, mean+" — через призму "+theme+".", "блок, задержка или искажение в теме «"+theme+"»."]
+CARDS:[
+["Шут", "Новый путь, свобода, дерзкий шаг в неизвестность.", "Манипуляция, роль жертвы, самообман.", ""],
+["Маг", "Воля, находчивость, умелое обращение с инструментами.", "Ложь, обман, эксплуатация.", ""],
+["Верховная Жрица", "Интуиция, тайное знание, духовное прозрение.", "Утаённые секреты, отрицание, слепота к правде.", ""],
+["Императрица", "Плодородие, созидание, изобилие.", "Потеря контроля, зависимость, мученичество.", ""],
+["Император", "Власть, структура, дисциплина, стабильность. Сила устанавливать контроль, строить системы и навязывать правила. Император требует уважения и повиновения, даруя защиту через подчинение.", "Тирания, жёсткость, жестокость под маской порядка. Злоупотребление властью, одержимость контролем или рабство у собственных правил. То, что строилось ради стабильности, может стать тюрьмой.", ""],
+["Иерофант", "Вера, общность, упорядоченные убеждения.", "Фанатизм, слепое повиновение, насилие догмы.", ""],
+["Влюблённые", "Партнёрство, доверие, глубокая связь.", "Токсичность, одержимость, разрушительная страсть.", ""],
+["Колесница", "Безжалостная воля, решительное движение, цель, доведённая до конца. Миссия выполнена любой ценой.", "Слепая сила, потеря контроля, цель без направления. То, что гнало тебя вперёд, теперь тянет на дно.", ""],
+["Сила", "Власть воли, неумолимый контроль, сила под маской спокойствия. Способность действовать решительно, когда чувства дрогнули бы.", "Ярость под видом силы, жестокость под видом заботы, насилие, берущее верх над разумом. Контроль ускользает, когда побеждает желание причинить боль.", ""],
+["Отшельник", "Уединение, беспощадный поиск истины, откровение во тьме. Смелость взглянуть на то, что другие закапывают.", "Изоляция, одержимость, погружение в безумие. Мудрость, потерянная в эхе собственной тени.", ""],
+["Колесо Фортуны", "Поворотный момент, неизбежные перемены, судьба в движении. Колесо вращается — вверх или вниз, но двигаться придётся.", "Невезение, хаос, сопротивление переменам. Колесо давит сильнее, когда отказываешься вращаться вместе с ним.", ""],
+["Справедливость", "Правда восстановлена, последствия наступили, порядок оплачен. Справедливость режет глубоко, но не промахивается.", "Несправедливость, злоупотребление властью, искажённая правда. Когда клинок служит предвзятости, кровь льётся напрасно.", ""],
+["Повешенный", "Смирение, иной взгляд, жертва ради глубокого понимания. Отпустив, увидишь то, что скрывал контроль.", "Сопротивление, отрицание, бессмысленное страдание. Отказ отпустить лишь туже затягивает верёвку.", ""],
+["Смерть", "Конец, необратимые перемены, переход в новую фазу. Прежнее должно умереть, чтобы будущее могло восстать.", "Страх перемен, цепляние за ушедшее, распад без обновления. Отказ отпустить лишь продлевает гниение.", ""],
+["Умеренность", "Равновесие, терпение, осознанная трансформация. Искусство смешивать противоположности в единое целое.", "Разлад, излишества, дисбаланс. Когда контроль ускользает, то, что должно исцелять, начинает разрушать.", ""],
+["Дьявол", "Искушение, одержимость, капитуляция перед желанием. Власть, полученная через то, что управляет тобой.", "Освобождение, пробуждение, ослабление хватки порока. Цепи падают, когда перестаёшь их кормить.", ""],
+["Башня", "Внезапный крах, откровение, насильственные перемены. Падение, срывающее иллюзии.", "Отрицание, страх потрясений, цепляние за руины. Сопротивление падению лишь делает приземление жёстче.", ""],
+["Звезда", "Обновление, хрупкая надежда, свет после тьмы. Исцеление, найденное через страдание.", "Отчаяние, пустота, утраченная вера. Раны звучат громче света.", ""],
+["Луна", "Иллюзия, инстинкт, зов бессознательного. Доверься тому, что не объяснить разумом.", "Заблуждение, страх, скольжение в хаос. Когда разум распадается, любой путь становится лабиринтом.", ""],
+["Солнце", "Ясность, успех, сияющая правда. Радость, прорезающая любую тень.", "Наивность, ложное счастье, опасность под маской оптимизма. То, что кажется безобидным, может ранить глубже всего.", ""],
+["Суд", "Пробуждение, ответственность, окончательно открытая правда. Прошлое требует приговора.", "Вина, отрицание, нежелание отвечать за последствия. Прятаться бесполезно, когда раздаётся зов.", ""],
+["Мир", "Завершение, целостность, исполнение. Круг замыкается, и начинается новый.", "Застой, незавершённые дела. История не продолжится, пока не перевёрнута последняя страница.", ""],
+["Туз Жезлов", "Созидание, воспламенение, сила воли. Рана становится дверью.", "Заблокированная энергия, фальстарты, растраченная страсть. Спичка шипит, но не вспыхивает.", "Искра"],
+["Двойка Жезлов", "Решение, амбиции, исследование. Мир ждёт твоего надреза.", "Колебания, страх неизвестности, отсутствие направления. Рука дрожит перед разрезом.", "Выбор"],
+["Тройка Жезлов", "Рост, продвижение, дальновидность. Сцена готова — действуй.", "Задержки, промахи, недальновидность. Клинок готов, а план — нет.", "Подготовка"],
+["Четвёрка Жезлов", "Гармония, празднование, завершение. Работа приносит плоды, и это великолепно.", "Разобщённость, нестабильность, незавершённые дела. Ложный триумф рушится.", "Витрина трофеев"],
+["Пятёрка Жезлов", "Соперничество, напряжение, проверка сил. Битва оттачивает мастерство.", "Избегание, внутренний конфликт, рассеянная энергия. Бой без цели тупит клинок.", "Схватка"],
+["Шестёрка Жезлов", "Достижение, признание, лидерство. Триумф неоспорим.", "Эго, пустая похвала, отложенный успех. Корона, врезающаяся в кожу.", "Триумф"],
+["Семёрка Жезлов", "Упорство, стойкость, умение стоять на своём. Сопротивление становится сутью.", "Перегрузка, капитуляция, изнеможение. Даже самые сильные руки устают.", "Оборона"],
+["Восьмёрка Жезлов", "Быстрые действия, стремительные перемены, общение. Стрелы судьбы уже в полёте.", "Задержки, хаос, неверное направление. Брошенный клинок не вернуть.", "Бросок"],
+["Девятка Жезлов", "Настойчивость, защита, стойкость. Рана — доказательство, что ты ещё жив.", "Поражение, паранойя, отказ от борьбы. Дух, натянутый до предела.", "Израненный"],
+["Десятка Жезлов", "Бремя, долг, обязательства. Успех требует жертв.", "Крах, освобождение, делегирование. Сложи то, что больше не тебе нести.", "Перегрузка"],
+["Паж Жезлов", "Вдохновение, энтузиазм, начинания. Послание должно быть доставлено любой ценой.", "Незрелость, рассеянность, неуверенность в себе. Голос срывается, не дойдя до толпы.", "Искра голоса"],
+["Рыцарь Жезлов", "Страсть, смелость, погоня. Бей раньше, чем мир узнает о твоём приближении.", "Безрассудство, спешка, выгорание. Слишком дикий взмах ранит и того, кто держит клинок.", "Дикий удар"],
+["Королева Жезлов", "Харизма, лидерство, решимость. Сила, которая притягивает и разрушает.", "Ревность, неуверенность, манипуляция. Пламя, пожирающее своего носителя.", "Пылающее сердце"],
+["Король Жезлов", "Лидерство, влияние, смелое видение. Архитектор хаоса и созидания.", "Тирания, высокомерие, вспыльчивость. Корона раздавливает череп, на котором сидит.", "Последнее слово"],
+["Туз Кубков", "Новые чувства, отношения, сострадание, вдохновение. Чаша переполнена возможностями.", "Заблокированные чувства, эмоциональное онемение, подавленная любовь. Сердце запечатано — но давление растёт.", "Первая капля"],
+["Двойка Кубков", "Партнёрство, влечение, примирение, гармония. Сердца бьются в унисон.", "Дисбаланс, подорванное доверие, разлука. Одно сердце отдаёт больше другого.", "Договор"],
+["Тройка Кубков", "Праздник, дружба, сотрудничество. Разделённое счастье умножается.", "Излишества, сплетни, предательство. То, что объединяло, начинает гнить.", "Тост"],
+["Четвёрка Кубков", "Апатия, скука, эмоциональная отстранённость. Возможности проходят мимо, пока ты сидишь в собственной пустоте.", "Новое осознание, возвращение к жизни, умение взять упущенное. Онемение начинает проходить.", "Горький отвар"],
+["Пятёрка Кубков", "Печаль, разочарование, зацикленность на потере. Тяжесть утраченного заслоняет то, что ещё возможно.", "Принятие, прощение, обновление. Прошлое не переписать — но будущее можно.", "Разлитое"],
+["Шестёрка Кубков", "Воспоминания, детство, щедрость, воссоединение. Возвращение к простым временам и сердечным связям.", "Цепляние за прошлое, нездоровая сентиментальность, нежелание взрослеть. То, что утешало, теперь сковывает.", "От мёртвых"],
+["Семёрка Кубков", "Возможности, воображение, мечты. Мир полон дверей, но не все ведут к спасению.", "Заблуждение, растерянность, неверные решения. Мечта сворачивается в ловушку, и каждая чаша становится гробом.", "Бред"],
+["Восьмёрка Кубков", "Умение отпустить, духовный поиск, отказ от того, что больше не служит. Путь вперёд требует жертвы.", "Страх перемен, избегание, застой. Ты знаешь, что пора уходить, — но всё равно остаёшься.", "Уход"],
+["Девятка Кубков", "Исполнение желаний, комфорт, успех. Всё в пределах досягаемости.", "Поверхностное счастье, жадность, потакание себе. Удовлетворение сворачивается в излишество.", "Радость коллекционера"],
+["Десятка Кубков", "Прочное счастье, полнота, семья, эмоциональная целостность. История подходит к прекрасному финалу.", "Разочарование, разбитые мечты, разорванные связи. Сказка распадается.", "Переполнение"],
+["Паж Кубков", "Новые эмоциональные начала, интуиция, открытость. Вдохновение приходит оттуда, откуда не ждёшь.", "Незрелость, бегство от реальности, творческий блок. Эмоции захлёстывают, а не ведут.", "Шут чувств"],
+["Рыцарь Кубков", "Предложение, творчество, следование зову сердца. Мечта становится миссией.", "Переменчивость, разочарование, пустые обещания. Мечтатель дрейфует и нигде не причаливает.", "Преследователь"],
+["Королева Кубков", "Эмпатия, забота, эмоциональная мудрость. Чувствуй глубоко, но сохраняй равновесие.", "Перегрузка, созависимость, эмоциональная манипуляция. Прилив поднимается слишком высоко.", "Сосуд"],
+["Король Кубков", "Равновесие, контроль, мудрый совет, сострадание с позиции силы. Чувства подчиняются трону.", "Подавление, вспыльчивость, эмоциональная отстранённость. Сердце короля заперто в собственной темнице.", "Спокойствие"],
+["Туз Мечей", "Прорыв, новая идея, решительная ясность. Острый ум видит сквозь туман.", "Растерянность, злоупотребление силой, затуманенное суждение. Клинок тупится, а с ним и правда.", "Надрез"],
+["Двойка Мечей", "Нерешительность, тупик, трудный выбор. Ни один путь не обойдётся без боли.", "Эмоциональная перегрузка, избегание, скрытая правда. Отказ выбирать сам становится выбором.", "Повязка"],
+["Тройка Мечей", "Разбитое сердце, горе, болезненная правда. Любовь кровоточит, но исцеление начинается с разреза.", "Освобождение, прощение, эмоциональное восстановление. Рана ещё ноет, но больше не правит тобой.", "Вскрытие"],
+["Четвёрка Мечей", "Отдых, медитация, восстановление. Отступление — это сила, а не слабость.", "Выгорание, застой, вынужденная изоляция. Непролеченная рана становится гниением.", "Бдение"],
+["Пятёрка Мечей", "Поражение, конфликт, предательство. Трофеи войны запятнаны кровью.", "Примирение, компромисс, усвоенные уроки. Иногда милосердие — самое острое оружие.", "После бойни"],
+["Шестёрка Мечей", "Переход, путешествие, восстановление. Спасение возможно, хотя шрамы останутся.", "Сопротивление переменам, эмоциональный груз, затянувшееся исцеление. Реку не перейти, если отказываешься войти в воду.", "Переправа"],
+["Семёрка Мечей", "Стратегия, скрытность, расчётливые действия. Хитрый план режет глубже грубой силы.", "Разоблачение, раскрытое предательство, самообман. Ложь оборачивается внутрь и режет своего творца.", "Кража"],
+["Восьмёрка Мечей", "Ограничения, страх, оцепенение. Свобода рядом, но её не видно.", "Освобождение, новый взгляд, избавление. Разум разжимает хватку, и путь открывается.", "Клетка"],
+["Девятка Мечей", "Страх, вина, отчаяние. Разум пожирает сам себя.", "Исцеление, принятие, встреча со страхами. Тени съёживаются в свете осознанности.", "Бессонница"],
+["Десятка Мечей", "Поражение, крах, болезненная развязка. История заканчивается, но страница перевернётся.", "Восстановление, стойкость, возрождение. Даже из смерти что-то поднимается.", "Конец"],
+["Паж Мечей", "Новые идеи, любопытство, наблюдательность, бдительность. Вопросы оттачивают ум.", "Обман, сплетни, поспешные действия. Любопытство становится навязчивым и безрассудным.", "Наблюдатель"],
+["Рыцарь Мечей", "Быстрые действия, амбиции, решимость. Слова становятся оружием, и битвы выиграны.", "Импульсивность, безрассудство, агрессия. Правда превращается в жестокость, если обращаться с ней небрежно.", "Атака"],
+["Королева Мечей", "Ясность, честность, независимость, проницательная мудрость. Разум властвует над чувствами.", "Холодность, горечь, манипуляция. Правда становится оружием, чтобы ранить.", "Казнь"],
+["Король Мечей", "Власть, структура, интеллект, стратегическое мышление. Ясность правит королевством.", "Тирания, злоупотребление властью, жестокость. Закон служит только тому, кто его пишет.", "Приговор"],
+["Туз Пентаклей", "Новая возможность, процветание, материальное начало. Подношение принято — теперь его нужно взрастить.", "Упущенные шансы, фальстарты, растраченный потенциал. Семя гниёт, если его не трогать.", "Подношение"],
+["Двойка Пентаклей", "Баланс, гибкость, умение распределять время, лавирование между противоположностями. Способность жонглировать, не теряя опоры.", "Перегрузка, нестабильность, крах под давлением. Слишком много груза — и тело под тобой ломается.", "Равновесие"],
+["Тройка Пентаклей", "Сотрудничество, командная работа, создание долговечного. Сила группы превосходит силу одного.", "Разобщённость, корыстные мотивы, крах под давлением. Без доверия конструкция рушится — и кровоточить будут все.", "Архитектура боли"],
+["Четвёрка Пентаклей", "Контроль, стабильность, осторожное накопление. Защита того, что твоё.", "Жадность, застой, накопительство из страха. Чем крепче хватка, тем больше жизни утекает.", "Коллекционер"],
+["Пятёрка Пентаклей", "Лишения, утрата, бедность — но и стойкость, выносливость. Помощь может быть ближе, чем кажется.", "Восстановление после краха, медленное возвращение к стабильности. Осознание ценности общности после изгнания.", "Изгнанник"],
+["Шестёрка Пентаклей", "Щедрость, умение делиться, помощь нуждающимся. Напоминание, что дарение меняет обе стороны.", "Эксплуатация, манипуляция через благотворительность. Дары, к которым прикованы цепи.", "Дар мясника"],
+["Семёрка Пентаклей", "Терпение, оценка, отложенное вознаграждение. Прогресс, который приходит капля за каплей.", "Нетерпение, досада, слишком ранний отказ от усилий. Урожай гибнет, не успев созреть.", "Урожай"],
+["Восьмёрка Пентаклей", "Развитие навыков, усердие, сосредоточенность. Цена совершенства платится каплями крови.", "Перфекционизм, выгорание, механическая работа без страсти. Ремесло становится клеткой.", "Мастер"],
+["Девятка Пентаклей", "Самодостаточность, роскошь, заслуженный успех. Награда за долгий труд наконец твоя.", "Пустота за богатством, изоляция, ложная защищённость. У тебя есть всё — и всё же ничто не ощущается целым.", "Маска довольства"],
+["Десятка Пентаклей", "Процветание, семья, традиции, стабильность, которая переживёт тебя.", "Прерванный род, семейный конфликт, богатство без смысла. Наследие, отравленное у корней.", "Наследие"],
+["Паж Пентаклей", "Новые начинания в работе или учёбе, энтузиазм, потенциал. Идея, готовая к взращиванию.", "Прокрастинация, незрелость, рассеянность. Копать, не зная, что ищешь.", "Раскопанная тайна"],
+["Рыцарь Пентаклей", "Упорный труд, рутина, ответственность, настойчивость. Долгая дорога, пройденная честно.", "Застой, монотонность, упрямство. Движение без смысла — путь, ведущий в никуда.", "Неумолимый путь"],
+["Королева Пентаклей", "Забота, находчивость, материальная защищённость. Надёжная гавань для роста.", "Удушающая опека, зависимость, бесхозяйственность. Забота, которая контролирует, любовь, которая пожирает.", "Хранительница могил"],
+["Король Пентаклей", "Богатство, стабильность, лидерство, наследие, созданное усердием. Королевство процветает, потому что почва напитана.", "Коррупция, жадность, страх потери. Правитель, который копит вместо того, чтобы взращивать, забыв, что сделало землю плодородной.", "Кровь земли"]
+]
 },
 en:{
-MAJOR:[
-["The Fool","New beginnings, spontaneity, reckless freedom.","Recklessness, fear of taking the first step."],
-["The Magician","Willpower, mastery — every resource is already in your hands.","Manipulation, untapped potential, deceit."],
-["The High Priestess","Intuition, secret knowledge, the silence before the answer.","Hidden motives, losing touch with your inner voice."],
-["The Empress","Abundance, creativity, care and fertility.","Stagnation, smothering, creative block."],
-["The Emperor","Structure, authority, stability through discipline.","Tyranny, rigidity, loss of control."],
-["The Hierophant","Tradition, learning, spiritual guidance.","Dogma, rebellion against the system, false authority."],
-["The Lovers","Choice, union, harmony of values.","Discord, a wrong choice, imbalance."],
-["The Chariot","Victory through will, moving forward.","Loss of direction, aggression, getting stuck."],
-["Strength","Inner fortitude, gently taming the passions.","Weak will, self-doubt, hidden rage."],
-["The Hermit","Solitude, searching for the truth within.","Isolation, refusing help, loneliness."],
-["Wheel of Fortune","Change, the cycles of fate, a turning point.","Resisting change, bad luck, stagnation."],
-["Justice","Cause and effect, honesty, balance.","Injustice, dodging responsibility."],
-["The Hanged Man","A pause, a new perspective, sacrifice for the sake of insight.","Pointless sacrifice, getting stuck, delay."],
-["Death","Endings, transformation, letting go of the old.","Resisting the end, fear of change."],
-["Temperance","Harmony, patience, the alchemy of opposites.","Imbalance, extremes, impatience."],
-["The Devil","Attachment, temptation, the illusion of being trapped.","Breaking free from dependence, insight."],
-["The Tower","Sudden collapse, revelation, a liberating crisis.","A delayed collapse, fear of change, avoidance."],
-["The Star","Hope, inspiration, healing after the storm.","Despair, loss of faith, exhaustion."],
-["The Moon","Uncertainty, the subconscious, hidden fears.","Illusions clearing, coming out of the fog."],
-["The Sun","Joy, clarity, success and vitality.","Joy briefly eclipsed, inflated expectations."],
-["Judgement","Awakening, rebirth, reckoning and calling.","Self-criticism, refusing to hear the call, getting stuck."],
-["The World","The completion of a cycle, wholeness, reaching the goal.","Something left unfinished, a delayed ending."]
-],
 SUITS:{w:["Wands","energy and action"],c:["Cups","feelings and relationships"],s:["Swords","thoughts and conflicts"],p:["Pentacles","material matters and stability"]},
-RANKS:["Ace","Two","Three","Four","Five","Six","Seven","Eight","Nine","Ten","Page","Knight","Queen","King"],
-RMEAN:["a new beginning and potential","choice and a balance of forces","growth through cooperation","a respite and reassessment","trial and friction",
-  "moving towards harmony","rethinking the strategy","focused effort","a goal almost reached","the end of a cycle, fullness",
-  "curiosity and news","decisive movement","mature command of the matter","full realisation and power"],
-minor:(rank,suit,mean,theme)=>[rank+" of "+suit, mean+" — through the lens of "+theme+".", "a block, delay or distortion in "+theme+"."]
+CARDS:[
+["The Fool", "New journey, freedom, daring step into the unknown.", "Manipulation, victimhood, self-delusion.", ""],
+["The Magician", "Willpower, resourcefulness, clever use of tools.", "Lies, trickery, exploitation.", ""],
+["The High Priestess", "Intuition, hidden knowledge, spiritual insight.", "Secrets withheld, denial, blindness to the truth.", ""],
+["The Empress", "Fertility, creation, abundance.", "Loss of control, dependence, martyrdom.", ""],
+["The Emperor", "Authority, structure, discipline, stability. The power to establish control, build systems, and impose rules. The Emperor demands respect and obedience, offering protection through domination.", "Tyranny, rigidity, cruelty masked as order. Abuse of authority, obsession with control, or becoming enslaved to one’s own rules. What was built for stability may turn into a prison.", ""],
+["The Hierophant", "Faith, community, structured belief.", "Fanaticism, blind obedience, violence of dogma.", ""],
+["The Lovers", "Partnership, trust, meaningful bond.", "Toxicity, obsession, destructive passion.", ""],
+["The Chariot", "Ruthless will, decisive movement, purpose carried through. A mission completed, no matter the cost.", "Misguided force, collapse of control, aim without direction. What once drove you forward now drags you down.", ""],
+["Strength", "Dominance through will, relentless control, power hidden beneath calm. The capacity to act decisively when emotion would falter.", "Rage disguised as strength, cruelty masked as care, violence that overpowers reason. Control slips when the will to harm takes over.", ""],
+["The Hermit", "Solitude, ruthless search for truth, revelation in darkness. The courage to confront what others bury.", "Isolation, obsession, descent into madness. Wisdom lost in the echo of one’s own shadow.", ""],
+["Wheel of Fortune", "Turning point, inevitable change, destiny unfolding. The cycle moves — rise or fall, but move you must.", "Misfortune, chaos, resistance to change. The wheel grinds harder when you refuse to turn with it.", ""],
+["Justice", "Truth enforced, consequences delivered, order at a cost. Justice cuts deep but does not miss.", "Injustice, abuse of power, truth distorted. When the blade serves bias, blood is shed for nothing.", ""],
+["The Hanged Man", "Surrender, altered perspective, sacrifice for deeper understanding. Letting go reveals what control concealed.", "Resistance, denial, pointless suffering. Refusal to release only tightens the rope.", ""],
+["Death", "Ending, irreversible change, passage into the next phase. What was must die for what will be to rise.", "Fear of change, clinging to what’s gone, decay without renewal. Refusal to release only prolongs the rot.", ""],
+["Temperance", "Balance, patience, deliberate transformation. The art of mixing opposites into something whole.", "Discord, excess, imbalance. When control slips, what should heal begins to destroy.", ""],
+["The Devil", "Temptation, obsession, surrender to desire. Power gained through what controls you.", "Breaking free, awakening, loosening the grip of vice. The chains fall when you stop feeding them.", ""],
+["The Tower", "Sudden collapse, revelation, violent change. The fall that strips away illusion.", "Denial, fear of upheaval, clinging to ruins. Refusing the fall only makes the landing harder.", ""],
+["The Star", "Renewal, fragile hope, light after darkness. Healing found through suffering.", "Despair, emptiness, lost faith. The wounds speak louder than the light.", ""],
+["The Moon", "Illusion, instinct, the pull of the unconscious. Trust what reason cannot explain.", "Delusion, fear, slipping into chaos. When the mind unravels, every path becomes a maze.", ""],
+["The Sun", "Clarity, success, radiant truth. Joy that cuts through every shadow.", "Naivety, false happiness, danger beneath optimism. What seems harmless may wound the deepest.", ""],
+["Judgement", "Awakening, accountability, final truth revealed. The past demands its sentence.", "Guilt, denial, refusal to face consequences. Hiding changes nothing when the call comes.", ""],
+["The World", "Completion, wholeness, fulfillment. The circle closes, and a new one begins.", "Stagnation, unfinished business. The story cannot progress until the last page is turned.", ""],
+["Ace of Wands", "Creation, ignition, willpower. The wound becomes the doorway.", "Blocked energy, false starts, wasted passion. The match sputters before the flame.", "The Spark"],
+["Two of Wands", "Decision, ambition, exploration. The world is waiting for your incision.", "Hesitation, fear of the unknown, lack of direction. The hand trembles before the cut.", "The Choice"],
+["Three of Wands", "Growth, progress, long-term vision. The stage is set — now act.", "Delays, missteps, lack of foresight. The blade is ready, but the plan is not.", "The Preparation"],
+["Four of Wands", "Harmony, celebration, completion. The work bears fruit, and it is glorious.", "Disconnection, instability, unfinished business. A false triumph collapses.", "The Trophy Case"],
+["Five of Wands", "Competition, tension, testing strength. Battle sharpens skill.", "Avoidance, internal conflict, scattered energy. Fighting without purpose dulls the blade.", "The Clash"],
+["Six of Wands", "Achievement, recognition, leadership. Triumph is undeniable.", "Ego, hollow praise, delayed success. A crown that cuts into the scalp.", "The Triumph"],
+["Seven of Wands", "Perseverance, resilience, standing your ground. Resistance becomes identity.", "Overwhelm, surrender, exhaustion. Even the strongest arms grow heavy.", "The Stand"],
+["Eight of Wands", "Swift action, rapid change, communication. The arrows of fate are already in flight.", "Delays, chaos, misdirection. A thrown blade cannot be recalled.", "The Release"],
+["Nine of Wands", "Persistence, defense, grit. The wound is proof you’re still alive.", "Defeat, paranoia, giving up. A spirit stretched to breaking.", "The Scarred"],
+["Ten of Wands", "Burden, duty, obligation. Success demands sacrifice.", "Collapse, release, delegation. Lay down what is no longer yours to carry.", "The Overload"],
+["Page of Wands", "Inspiration, enthusiasm, beginnings. The message must be delivered, no matter the cost.", "Immaturity, scattered energy, self-doubt. The voice falters before it reaches the crowd.", "The Spark of Voice"],
+["Knight of Wands", "Passion, courage, pursuit. Strike before the world knows you’re coming.", "Recklessness, haste, burnout. A blade swung too wildly cuts the wielder too.", "The Wild Strike"],
+["Queen of Wands", "Charisma, leadership, determination. Power that draws and destroys.", "Jealousy, insecurity, manipulation. Flame that consumes its bearer.", "The Burning Heart"],
+["King of Wands", "Leadership, influence, bold vision. The architect of chaos and creation.", "Tyranny, arrogance, volatility. The crown crushes the skull that wears it.", "The Final Word"],
+["Ace of Cups", "New emotions, relationships, compassion, inspiration. The cup overflows with potential.", "Blocked feelings, emotional numbness, suppressed love. The heart stays sealed — but pressure builds.", "First Drop"],
+["Two of Cups", "Partnership, attraction, reconciliation, harmony. Hearts beat in unison.", "Imbalance, broken trust, separation. One heart gives more than the other.", "The Pact"],
+["Three of Cups", "Celebration, friendship, collaboration. Shared happiness multiplies.", "Overindulgence, gossip, betrayal. What united begins to decay.", "The Toast"],
+["Four of Cups", "Apathy, boredom, emotional withdrawal. Opportunities go unnoticed while you sit in your own emptiness.", "New awareness, reengagement, seizing what was once overlooked. The numbness begins to fade.", "The Bitter Brew"],
+["Five of Cups", "Sorrow, disappointment, fixation on loss. The weight of what’s gone overshadows what’s still possible.", "Acceptance, forgiveness, renewal. The past cannot be rewritten — but the future can.", "The Spill"],
+["Six of Cups", "Memories, childhood, generosity, reconnection. A return to simpler times or heartfelt bonds.", "Clinging to the past, unhealthy sentimentality, refusal to grow. What once comforted now confines.", "From The Dead"],
+["Seven of Cups", "Possibilities, imagination, wishful thinking. The world is full of doors, but not all of them lead to salvation.", "Delusion, confusion, poor decisions. The dream curdles into a trap, and every cup becomes a coffin.", "The Delirium"],
+["Eight of Cups", "Letting go, spiritual search, leaving behind what no longer serves. The path forward demands sacrifice.", "Fear of change, avoidance, stagnation. You know it’s time to go — but you stay anyway.", "The Abandonment"],
+["Nine of Cups", "Wishes granted, comfort, success. Everything is within reach.", "Superficial happiness, greed, indulgence. Satisfaction curdles into excess.", "The Collector’s Delight"],
+["Ten of Cups", "Lasting happiness, fulfillment, family, emotional wholeness. A story reaches its beautiful end.", "Disillusionment, broken dreams, fractured bonds. The fairy tale unravels.", "The Overflow"],
+["Page of Cups", "New emotional beginnings, intuition, openness. Inspiration arrives from unexpected places.", "Immaturity, escapism, blocked creativity. Emotions overwhelm rather than guide.", "The Fool of Feelings"],
+["Knight of Cups", "Proposal, creativity, following your heart. The dream becomes a mission.", "Moodiness, disappointment, fickle promises. The dreamer drifts, never landing.", "The Pursuer"],
+["Queen of Cups", "Empathy, nurturing, emotional wisdom. Feel deeply, but stay balanced.", "Overwhelm, co-dependence, emotional manipulation. The tides rise too high.", "The Vessel"],
+["King of Cups", "Balance, control, wise counsel, compassion with authority. Feelings obey the throne.", "Suppression, volatility, emotional detachment. The king’s heart is locked in its own dungeon.", "The Calm"],
+["Ace of Swords", "Breakthrough, new idea, decisive clarity. A sharp mind sees through the fog.", "Confusion, misuse of power, clouded judgment. The blade dulls, and so does the truth.", "The Incision"],
+["Two of Swords", "Indecision, impasse, difficult choices. Neither path is painless.", "Emotional overwhelm, avoidance, hidden truths. The refusal to choose becomes the choice itself.", "The Blindfold"],
+["Three of Swords", "Heartbreak, grief, painful truth. Love bleeds, but healing begins with the cut.", "Release, forgiveness, emotional recovery. The wound still aches, but it no longer rules you.", "The Dissection"],
+["Four of Swords", "Rest, meditation, recuperation. Withdrawal is strength, not weakness.", "Burnout, stagnation, forced isolation. Healing ignored becomes decay.", "The Vigil"],
+["Five of Swords", "Defeat, conflict, betrayal. The spoils of war are stained in blood.", "Reconciliation, compromise, lessons learned. Sometimes, mercy is the sharpest weapon.", "The Aftermath"],
+["Six of Swords", "Transition, journey, recovery. Escape is possible, though scars remain.", "Resistance to change, emotional baggage, delayed healing. You cannot cross the river if you refuse to step in.", "The Crossing"],
+["Seven of Swords", "Strategy, stealth, calculated action. A clever plan cuts deeper than brute force.", "Exposure, betrayal revealed, self-deception. Lies turn inward and slice their maker.", "The Theft"],
+["Eight of Swords", "Restriction, fear, paralysis. Freedom is near, but unseen.", "Liberation, perspective, release. The mind unbinds, and the way forward appears.", "The Cage"],
+["Nine of Swords", "Fear, guilt, despair. The mind devours itself.", "Healing, acceptance, facing fears. Shadows shrink in the light of awareness.", "The Wake"],
+["Ten of Swords", "Defeat, ruin, painful conclusion. The story ends, but the page will turn.", "Recovery, resilience, regeneration. Even from death, something rises.", "The End"],
+["Page of Swords", "New ideas, curiosity, observation, vigilance. Questions sharpen the mind.", "Deception, gossip, premature action. Curiosity turns invasive and reckless.", "The Observer"],
+["Knight of Swords", "Swift action, ambition, determination. Words become weapons, and battles are won.", "Impulsiveness, recklessness, aggression. Truth turns into cruelty when wielded without care.", "The Charge"],
+["Queen of Swords", "Clarity, honesty, independence, perceptive wisdom. The mind reigns above emotion.", "Coldness, bitterness, manipulation. Truth is weaponized and wielded to wound.", "The Execution"],
+["King of Swords", "Authority, structure, intellect, strategic thinking. Clarity rules the kingdom.", "Tyranny, misuse of power, cruelty. The law serves only the one who writes it.", "The Judgement"],
+["Ace of Pentacles", "New opportunity, prosperity, a material beginning. The offering is made — now it must be tended.", "Missed chances, false starts, squandered potential. The seed rots when left untouched.", "The Offering"],
+["Two of Pentacles", "Balance, adaptability, time management, navigating opposing forces. The ability to juggle without losing footing.", "Overwhelm, instability, collapse under pressure. Too many weights — and the body beneath you breaks.", "The Balance"],
+["Three of Pentacles", "Cooperation, teamwork, building something lasting. The strength of the group surpasses the individual.", "Disunity, selfish motives, collapse under pressure. Without trust, the structure fails — and all involved will bleed.", "The Architecture of Pain"],
+["Four of Pentacles", "Control, stability, cautious accumulation. Protecting what’s yours.", "Greed, stagnation, hoarding out of fear. The tighter the grip, the more life drains away.", "The Collector"],
+["Five of Pentacles", "Hardship, loss, poverty — but also resilience and endurance. Help may be closer than it seems.", "Recovery from ruin, slow return to stability. Learning the value of community after exile.", "The Exile"],
+["Six of Pentacles", "Generosity, sharing wealth, helping those in need. A reminder that giving transforms both sides.", "Exploitation, manipulation through charity. Gifts that come with chains attached.", "The Butcher’s Gift"],
+["Seven of Pentacles", "Patience, assessment, delayed gratification. Progress that comes drop by drop.", "Impatience, frustration, abandoning effort too soon. The harvest dies before it’s ripe.", "The Harvest"],
+["Eight of Pentacles", "Skill development, diligence, focus. The price of excellence is paid in drops of blood.", "Perfectionism, burnout, mechanical work without passion. Craft becomes cage.", "The Craftsman"],
+["Nine of Pentacles", "Self-sufficiency, luxury, earned success. The rewards of long labor are finally yours.", "Emptiness beneath the wealth, isolation, false security. You have everything — and yet nothing feels whole.", "The Mask of Satisfaction"],
+["Ten of Pentacles", "Prosperity, family, tradition, stability that endures beyond a lifetime.", "Broken lineage, family conflict, wealth without meaning. A legacy poisoned at its roots.", "The Legacy"],
+["Page of Pentacles", "New beginnings in work or study, enthusiasm, potential. An idea ready to be cultivated.", "Procrastination, immaturity, lack of focus. Digging without knowing what you seek.", "The Unearthed Secret"],
+["Knight of Pentacles", "Hard work, routine, responsibility, persistence. A long road faithfully walked.", "Stagnation, monotony, stubbornness. Movement without meaning — motion that leads nowhere.", "The Relentless Path"],
+["Queen of Pentacles", "Nurturing, resourcefulness, material security. A safe harbor for growth.", "Smothering, dependence, mismanagement. Care that controls, love that consumes.", "The Gravekeeper"],
+["King of Pentacles", "Wealth, stability, leadership, legacy built through diligence. The kingdom thrives because the soil is fed.", "Corruption, greed, fear of loss. A ruler who hoards instead of nurturing, forgetting what made the ground fertile.", "The Blood of the Soil"]
+]
 }};
 
 let DECK = [];
 let id=0;
 const ROMAN=["0","I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII","XIII","XIV","XV","XVI","XVII","XVIII","XIX","XX","XXI"];
 const SUIT_KEYS=['w','c','s','p'];
-function cardText(l, i){ // [name, up, rev] of card i in language l
-  const d=DATA[l];
-  if(i<22) return d.MAJOR[i];
-  const k=SUIT_KEYS[Math.floor((i-22)/14)], r=(i-22)%14;
-  return d.minor(d.RANKS[r], d.SUITS[k][0], d.RMEAN[r], d.SUITS[k][1]);
-}
+function cardText(l, i){ return DATA[l].CARDS[i]; } // [name, up, rev, title] of card i in language l
 const textOf=c=>cardText(lang, c.id);
 for(let i=0;i<78;i++){
   const major=i<22, c={id:id++, art:major && ART[i] ? i : null, major};
   if(major) c.num=ROMAN[i]; else c.suit=SUIT_KEYS[Math.floor((i-22)/14)];
-  Object.defineProperties(c,{name:{get(){return textOf(c)[0];}}, up:{get(){return textOf(c)[1];}}, rev:{get(){return textOf(c)[2];}}});
+  Object.defineProperties(c,{name:{get(){return textOf(c)[0];}}, up:{get(){return textOf(c)[1];}}, rev:{get(){return textOf(c)[2];}},
+    title:{get(){return textOf(c)[3];}}});
   DECK.push(c);
 }
 
@@ -586,6 +685,7 @@ function openedPose(el, card){
   // fill the description first so its real height is known
   document.getElementById('mPos').textContent=spread ? POSITIONS[spread.i] : '';
   document.getElementById('mName').textContent=card.name;
+  document.getElementById('mTitle').textContent=card.title ? tr('q')(card.title) : '';
   document.getElementById('mOrient').textContent=tr(reversed ? 'reversed' : 'upright');
   document.getElementById('mText').textContent=reversed?card.rev:card.up;
   return fitAbove(meaningPanel);
@@ -802,6 +902,7 @@ function fillCarouselText(el){
   const card=el._card, rev=el.dataset.reversed==='true';
   document.getElementById('fPos').textContent=POSITIONS[spread.cards.indexOf(el)];
   document.getElementById('fName').textContent=card.name;
+  document.getElementById('fTitle').textContent=card.title ? tr('q')(card.title) : '';
   document.getElementById('fOrient').textContent=tr(rev ? 'reversed' : 'upright');
   document.getElementById('fText').textContent=rev ? card.rev : card.up;
 }
@@ -879,6 +980,7 @@ function onCardOpened(el){
   if(spread && !el._fromDeck) setDim(2, el);
   meaningPanel.classList.add('show'); busy=false;
   inkReveal(document.getElementById('mName'), {delay:.3});
+  const mTitle=document.getElementById('mTitle'); if(mTitle.textContent) inkReveal(mTitle, {delay:.45});
   const mText=document.getElementById('mText'), words=mText.textContent.trim().split(/\s+/).length;
   inkReveal(mText, {byWord:true, delay:.6, stagger:.03, dur:.7});
   revealEnd(Math.max(.6+.03*(words-1)+.7, showBigName(el)||0));
@@ -1330,13 +1432,16 @@ async function drawCardStory(el){
   const card=el._card, reversed=el.dataset.reversed==='true';
   const {c, x, W, text}=storyCanvas(tr('storyDay'));
   text(card.name.toUpperCase(), SAFE.top+162, '500 72px Oswald', '#f2efea', 6, W/2, W-120);
-  const cw=420, cy=SAFE.top+200, ch=await drawStoryCard(x, card, reversed, (W-cw)/2, cy, cw);
-  const font='italic 500 42px "Cormorant Garamond"';
   const meaning=reversed ? card.rev : card.up;
-  const lines=wrapLines(x, meaning[0].toUpperCase()+meaning.slice(1), font, W-200);
-  lines.forEach((l,i)=>text(l, cy+ch+72+i*54, font, '#d9d4ce'));
+  let font='italic 500 42px "Cormorant Garamond"', lh=54, lines=wrapLines(x, meaning, font, W-200);
+  if(lines.length>2){ font='italic 500 38px "Cormorant Garamond"'; lh=48; lines=wrapLines(x, meaning, font, W-180); }
+  // the card gives up height to a longer meaning, so the invitation stays clear of the deck's name below
+  const cy=SAFE.top+200, askY=h=>cy+h+72+(lines.length-1)*lh+100;
+  const cw=Math.min(420, (SAFE.bottom-205-askY(0))*CARD_ASPECT);
+  const ch=await drawStoryCard(x, card, reversed, (W-cw)/2, cy, cw);
+  lines.forEach((l,i)=>text(l, cy+ch+72+i*lh, font, '#d9d4ce'));
   // an invitation to whoever sees the story, in the red of the card backs
-  text(tr('storyAsk'), cy+ch+72+(lines.length-1)*54+100, '500 44px Oswald', '#e42423', 6, W/2, W-160);
+  text(tr('storyAsk'), askY(ch), '500 44px Oswald', '#e42423', 6, W/2, W-160);
   return {c, name:'card-of-the-day.png', title:tr('optDay'), text:`${tr('shareDay')(card.name)} Bloody Feast Tarot: ${ETSY_URL}`};
 }
 // the spread: its three cards side by side, each under its position and over its name, then the summary

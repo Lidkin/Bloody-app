@@ -192,6 +192,9 @@ body:not(.noir) .big-name{font-family:'Cinzel',serif; color:#5e4c25;}
   text-transform:uppercase; margin-bottom:6px;}
 .meaning-panel .pos-label:empty{display:none;}
 .meaning-panel h2{font-family:var(--head-font); color:var(--accent); letter-spacing:1.5px; font-size:19px; margin:0 0 2px;}
+/* the card's own title from the guidebook, Minor Arcana only */
+.meaning-panel .card-title{display:block; font-style:italic; color:var(--ink); opacity:.8; font-size:16px; margin:0 0 4px;}
+.meaning-panel .card-title:empty{display:none;}
 .meaning-panel .orient{display:block; color:var(--orient); font-size:12px; letter-spacing:2px; text-transform:uppercase; margin-bottom:6px;}
 .meaning-panel p{color:var(--ink); font-size:15px; line-height:1.4; margin:0 0 12px;}
 .meaning-end{display:flex; align-items:center; justify-content:center; gap:22px; margin-top:6px;}

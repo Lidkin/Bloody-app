@@ -558,7 +558,7 @@ function buildPickList(){
   const {rInner, pivotX, pivotY}=fanLayout, R=rInner-cardH-8;
   const list=document.createElement('div'); list.className='pick-list';
   list.innerHTML='<div class="pick-hint">выбери три карты</div>'+POSITIONS.map(p=>`<div class="pick-line">${p}</div>`).join('')+
-    '<button class="finish-btn pick-go"><span class="fill">Узнать</span> <span class="fill arrow">→</span></button>';
+    '<button class="finish-btn pick-go"><span class="fill">Узнать</span><span class="fill arrow">→</span></button>';
   list.style.left=pivotX+'px';
   list.querySelector('.pick-go').addEventListener('click', e=>{
     e.stopPropagation();
@@ -1224,13 +1224,24 @@ async function shareStory(){
   setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
   showToast('Картинка сохранена — её можно выложить в сторис');
 }
+// the lines of `str` in `font`, each at most maxW wide
+function wrapLines(x, str, font, maxW){
+  x.font=font; x.letterSpacing='0px';
+  const lines=[''];
+  str.split(' ').forEach(w=>{ const t=(lines.at(-1)+' '+w).trim(); x.measureText(t).width>maxW ? lines.push(w) : lines[lines.length-1]=t; });
+  return lines;
+}
+// The card always stands upright, so its picture reads well; a reversed one says so in words, and the
+// meaning given is the reversed one
 async function drawCardStory(el){
   const card=el._card, reversed=el.dataset.reversed==='true';
   const {c, x, W, text}=storyCanvas('КАРТА ДНЯ');
-  const cw=680, cy=260, ch=await drawStoryCard(x, card, reversed, (W-cw)/2, cy, cw);
-  const below=cy+ch+120;
-  text(card.name, below, '500 72px Oswald', '#f2efea', 4);
-  text(reversed?'ПЕРЕВЁРНУТОЕ ПОЛОЖЕНИЕ':'ПРЯМОЕ ПОЛОЖЕНИЕ', below+64, '500 32px Oswald', '#e42423', 6);
+  text(card.name.toUpperCase(), 280, '500 84px Oswald', '#f2efea', 6, W/2, W-120);
+  const cw=580, cy=350, ch=await drawStoryCard(x, card, false, (W-cw)/2, cy, cw);
+  text(reversed ? 'ВЫПАЛА В ПЕРЕВЁРНУТОМ ПОЛОЖЕНИИ' : 'ПРЯМОЕ ПОЛОЖЕНИЕ', cy+ch+90, '500 32px Oswald', '#e42423', 6);
+  const font='italic 500 46px "Cormorant Garamond"';
+  const meaning=reversed ? card.rev : card.up;
+  wrapLines(x, meaning[0].toUpperCase()+meaning.slice(1), font, W-200).forEach((l,i)=>text(l, cy+ch+160+i*60, font, '#d9d4ce'));
   return {c, name:'card-of-the-day.png', title:'Карта дня', text:`Моя карта дня — ${card.name}. Bloody Feast Tarot: ${ETSY_URL}`};
 }
 // the spread: its three cards side by side, each under its position and over its name, then the summary
@@ -1241,14 +1252,14 @@ async function drawSpreadStory(els){
   for(const [i, el] of els.entries()){
     const cx=left+i*(cw+gap), mid=cx+cw/2;
     text(POSITIONS[i].toUpperCase(), cy-40, '500 30px Oswald', '#e42423', 6, mid);
-    ch=await drawStoryCard(x, el._card, el.dataset.reversed==='true', cx, cy, cw);
+    // upright like the card of the day, a reversed one marked under its name
+    ch=await drawStoryCard(x, el._card, false, cx, cy, cw);
     text(el._card.name.toUpperCase(), cy+ch+64, '500 32px Oswald', '#f2efea', 2, mid, cw+gap-10);
+    if(el.dataset.reversed==='true') text('ПЕРЕВЁРНУТАЯ', cy+ch+108, '500 24px Oswald', '#e42423', 4, mid);
   }
   // the summary, wrapped to the width of the row
-  x.font='italic 500 40px "Cormorant Garamond"'; x.letterSpacing='0px';
-  const words=spreadSummary(els).split(' '), lines=[''];
-  words.forEach(w=>{ const t=(lines.at(-1)+' '+w).trim(); x.measureText(t).width>W-160 ? lines.push(w) : lines[lines.length-1]=t; });
-  lines.forEach((l,i)=>text(l, cy+ch+170+i*54, 'italic 500 40px "Cormorant Garamond"', '#d9d4ce'));
+  const font='italic 500 40px "Cormorant Garamond"';
+  wrapLines(x, spreadSummary(els), font, W-160).forEach((l,i)=>text(l, cy+ch+200+i*54, font, '#d9d4ce'));
   return {c, name:'three-cards.png', title:'Три карты',
     text:`Мой расклад: ${els.map((e,i)=>POSITIONS[i]+' — '+e._card.name).join(', ')}. Bloody Feast Tarot: ${ETSY_URL}`};
 }

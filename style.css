@@ -108,11 +108,14 @@ body:not(.fonts-ready) .spread-options{visibility:hidden;}
 .pick-list.on{opacity:1;}
 .pick-line, .pick-hint, .pick-go{opacity:0; transform:translateY(8px); transition:opacity .5s ease, transform .5s ease;}
 .pick-line.on, .pick-hint.on, .pick-go.on{opacity:1; transform:none;}
-.pick-line{font-family:var(--head-font); font-size:1em; line-height:1.2; text-shadow:0 0 12px #000; letter-spacing:.2em; margin-right:-.2em;
+.pick-line{font-family:var(--head-font); font-size:1em; line-height:1.38; text-shadow:0 0 12px #000; letter-spacing:.2em; margin-right:-.2em;
   color:var(--accent); text-transform:uppercase;}
 .pick-hint{position:absolute; top:0; font-size:.6em; font-style:italic; letter-spacing:1px; color:var(--muted); white-space:nowrap;}
 .pick-list.on .pick-go.on{pointer-events:auto;}
 .pick-go{margin-top:.5em; font-size:max(13px, .5em);}
+/* it comes a moment after "Будущее"; its arrow sits close to the word until pointed at */
+.pick-go.on{transition-delay:.7s;}
+.finish-btn.pick-go .arrow{margin-left:1px;}
 .spread-cap{position:fixed; z-index:1500; display:flex; flex-direction:column; align-items:center; gap:3px;
   text-align:center; transform:translate(-50%,0); opacity:0; transition:opacity .5s ease-in-out; pointer-events:none;}
 .spread-cap.above{transform:translate(-50%,-100%);}

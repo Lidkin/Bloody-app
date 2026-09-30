@@ -222,7 +222,7 @@ body:not(.noir) .big-name{font-family:'Cinzel',serif; color:#5e4c25;}
 body.noir .return-btn:hover{background:rgba(228,36,35,.15); border-color:var(--red);}
 /* closing screen of a reading */
 .finale{display:flex; flex-direction:column; align-items:center;}
-.finale p{max-width:340px;}
+.finale p{max-width:340px; margin-left:auto; margin-right:auto;}
 .finale .summary{max-width:400px; font-style:italic;}
 .finale .summary.card-text{font-style:normal;}
 .finale .f-card{width:100%;}

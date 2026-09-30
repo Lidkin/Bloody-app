@@ -1165,7 +1165,7 @@ window.addEventListener('pointermove', e=>{
   if(spread?.summary){ // the open spread: the card under the cursor lights up and its meaning replaces the summary
     let over=null;
     spread.cards.forEach(c=>{ const on=e.pointerType==='mouse' && inCard(c._state, e.clientX, e.clientY); c.classList.toggle('lit', on); if(on) over=c; });
-    if(isDesktop()) showSummaryText(over);
+    if(isDesktop() && !spread.carousel) showSummaryText(over); // the stack already shows its top card's meaning
     return;
   }
   const s=activeCard._state; if(!s || sharePreview) return;
@@ -1235,7 +1235,7 @@ function setFinale(els){
   sum.hidden=one; sum.textContent=one ? '' : spreadSummary(els);
   sum.classList.remove('card-text'); sum.style.minHeight=''; summaryFor=null;
   // it keeps the height of the longest of those texts, so the buttons below do not jump
-  if(!one && isDesktop()){
+  if(!one && isDesktop() && !els[0]._fromDeck){
     const h=[sum.textContent, ...els.map(cardMeaning)].map(t=>{ sum.textContent=t; return sum.offsetHeight; });
     sum.textContent=spreadSummary(els); sum.style.minHeight=Math.max(...h)+'px';
   }

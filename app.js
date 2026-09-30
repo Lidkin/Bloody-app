@@ -1318,8 +1318,10 @@ function tiltTo(nx, ny, dur=.5){
   const s=el._state;
   gsap.to(s,{ty:nx*TILT_Y, tx:-ny*TILT_X, duration:dur, ease:'power2.out', overwrite:'auto', onUpdate:()=>renderCard(el,s)});
 }
+const fpCursor=on=>document.documentElement.classList.toggle('fp-cursor', on);
 window.addEventListener('pointermove', e=>{
   if(!activeCard){
+    fpCursor(false);
     if(!deckAtRest() || (e.pointerType==='touch' && !e.buttons)) return;
     const r=deckStack.getBoundingClientRect();
     tiltDeck(clamp1((e.clientX-r.left-r.width/2)/(r.width*1.6)), clamp1((e.clientY-r.top-r.height/2)/(r.height*1.1)));
@@ -1328,17 +1330,19 @@ window.addEventListener('pointermove', e=>{
   if(spread?.summary){ // the open spread: the card under the cursor lights up and its meaning replaces the summary
     let over=null;
     spread.cards.forEach(c=>{ const on=e.pointerType==='mouse' && inCard(c._state, e.clientX, e.clientY); c.classList.toggle('lit', on); if(on) over=c; });
+    fpCursor(!!over);
     if(isDesktop() && !spread.carousel) showSummaryText(over); // the stack already shows its top card's meaning
     return;
   }
   const s=activeCard._state; if(!s || sharePreview) return;
   // under the cursor the warm paper of the illustration turns pure white
-  activeCard.classList.toggle('lit', e.pointerType==='mouse' && inCard(s, e.clientX, e.clientY));
+  const over=e.pointerType==='mouse' && inCard(s, e.clientX, e.clientY);
+  activeCard.classList.toggle('lit', over); fpCursor(over);
   if(e.pointerType==='touch' && !e.buttons) return;
   tiltTo(clamp1((e.clientX-s.x)/(s.w*.9)), clamp1((e.clientY-s.y)/(s.h*.7)));
 });
 const untilt=()=>{ if(activeCard) tiltTo(0,0,.9); else if(deckAtRest()) tiltDeck(0,0,.9); };
-document.documentElement.addEventListener('pointerleave', ()=>{ untilt(); activeCard&&activeCard.classList.remove('lit'); });
+document.documentElement.addEventListener('pointerleave', ()=>{ untilt(); activeCard&&activeCard.classList.remove('lit'); fpCursor(false); });
 window.addEventListener('pointerup', e=>{ if(e.pointerType==='touch') untilt(); });
 // the phone's pose when the card opens is neutral; the neutral slowly follows the phone, so the card
 // always drifts back to lying flat

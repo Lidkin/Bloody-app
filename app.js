@@ -738,7 +738,13 @@ function fitAbove(panel){
   const GAP=16, panelH=panel.offsetHeight, ASPECT=CARD_ASPECT;
   // the title stays above the scene, so the card must keep clear of it
   const minTop=Math.max(FIT_MARGIN, document.querySelector('h1.title').getBoundingClientRect().bottom+24);
-  const availW=innerWidth-2*FIT_MARGIN, availH=innerHeight-minTop-FIT_MARGIN-GAP-panelH;
+  const availW=innerWidth-2*FIT_MARGIN;
+  // the closing block stands on the bottom of the screen (style.css): the card is centred in the room above it
+  if(panel===finale){
+    const room=panel.getBoundingClientRect().top-GAP-minTop, h=Math.min(room, availW/ASPECT), w=h*ASPECT;
+    return {x:innerWidth/2, y:minTop+room/2, rot:0, w, h, ry:180, tx:0, ty:0};
+  }
+  const availH=innerHeight-minTop-FIT_MARGIN-GAP-panelH;
   const h=Math.min(availH, availW/ASPECT), w=h*ASPECT;
   const top=Math.max(minTop, (innerHeight-(h+GAP+panelH))/2);
   panel.style.top=(top+h+GAP)+'px'; panel.style.bottom='auto';
@@ -991,12 +997,12 @@ fan.addEventListener('pointerup', e=>{
 });
 // poses of n face-up cards side by side that, with their captions above and `panel` under them, fit the viewport
 function fitRow(panel, n){
-  const GAP=16, CAP=66, SP=.14, side=isPortraitMobile() ? 16 : FIT_MARGIN, panelH=panel.offsetHeight;
+  const GAP=16, CAP=66, SP=.14, side=isPortraitMobile() ? 16 : FIT_MARGIN;
   const minTop=Math.max(FIT_MARGIN, document.querySelector('h1.title').getBoundingClientRect().bottom+24)+CAP;
-  const availW=innerWidth-2*side, availH=innerHeight-minTop-FIT_MARGIN-GAP-panelH;
-  const h=Math.min(availH, availW/(CARD_ASPECT*(n+(n-1)*SP))), w=h*CARD_ASPECT;
-  const top=Math.max(minTop, (innerHeight-(h+GAP+panelH)+CAP)/2);
-  panel.style.top=(top+h+GAP)+'px'; panel.style.bottom='auto';
+  // the panel (the closing block) stands on the bottom of the screen: the row is centred in the room above it
+  const room=panel.getBoundingClientRect().top-GAP-minTop, availW=innerWidth-2*side;
+  const h=Math.min(room, availW/(CARD_ASPECT*(n+(n-1)*SP))), w=h*CARD_ASPECT;
+  const top=minTop+(room-h)/2;
   return [...Array(n)].map((_,i)=>({x:innerWidth/2+(i-(n-1)/2)*w*(1+SP), y:top+h/2, rot:0, w, h, ry:180, tx:0, ty:0}));
 }
 // a few words on the spread as a whole: how many Major Arcana, a repeated suit, how many reversed cards
@@ -1268,7 +1274,9 @@ function setFinale(els){
   sum.classList.remove('card-text'); sum.style.minHeight=''; summaryFor=null;
   // it keeps the height of the longest of those texts, so the buttons below do not jump
   if(!one && isDesktop() && !els[0]._fromDeck){
-    const h=[sum.textContent, ...els.map(cardMeaning)].map(t=>{ sum.textContent=t; return sum.offsetHeight; });
+    const h=[sum.textContent, ...els.map(cardMeaning)].map((t,i)=>{
+      sum.textContent=t; sum.classList.toggle('card-text', i>0); return sum.offsetHeight; });
+    sum.classList.remove('card-text');
     sum.textContent=spreadSummary(els); sum.style.minHeight=Math.max(...h)+'px';
   }
   fCard.hidden=true;

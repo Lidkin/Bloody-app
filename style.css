@@ -234,7 +234,23 @@ body.noir .return-btn:hover{background:rgba(228,36,35,.15); border-color:var(--r
 .cta:hover{transform:translateY(-1px); box-shadow:0 0 26px rgba(var(--accent-rgb),.55);}
 body.noir .cta{background:var(--red); color:#fff; box-shadow:0 0 18px rgba(228,36,35,.4);}
 body.noir .cta:hover{box-shadow:0 0 28px rgba(228,36,35,.65);}
-.finale-row{display:flex; gap:14px; align-items:center; margin-top:14px; flex-wrap:wrap; justify-content:center;}
+/* phones: the shop button on a line of its own above the other two; wide screens: all three on one line,
+   the shop in the middle, and the line about the deck unbroken */
+.finale-row{display:flex; column-gap:14px; align-items:center; flex-wrap:wrap; justify-content:center;}
+.finale-row .cta{order:-2;}
+.finale-row .row-break{order:-1; flex-basis:100%; height:14px;}
+.finale #fDeck{margin-bottom:14px;}
+@media (hover:hover) and (pointer:fine) and (min-width:760px){
+  .finale{max-width:760px;}
+  .finale #fDeck{max-width:none; white-space:nowrap;}
+  .finale-row{column-gap:22px;}
+  .finale-row .cta{order:0;}
+  .finale-row .row-break{display:none;}
+  .finale-row .return-btn{order:-1;}
+}
+/* the closing block stands on the bottom of the screen; the cards find room above it (fitAbove / fitRow) */
+.finale{top:auto; bottom:calc(28px + env(safe-area-inset-bottom,0px));}
+@media (hover:hover) and (pointer:fine){ .finale{bottom:calc(40px + env(safe-area-inset-bottom,0px));} }
 .link-btn{background:none; border:none; color:var(--muted); font-family:var(--head-font); font-size:14px;
   letter-spacing:1.5px; text-transform:uppercase; cursor:pointer; padding:9px 6px;}
 .link-btn:hover{color:var(--ink);}

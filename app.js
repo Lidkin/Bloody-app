@@ -1359,4 +1359,7 @@ langSwitch.querySelectorAll('button').forEach(b=>b.addEventListener('click', ()=
   lang=b.dataset.lang; try{ localStorage.setItem('lang', lang); }catch(e){}
   applyLang();
 }));
+// visitors whose browser speaks nothing but English are never offered Russian
+const browserLangs=navigator.languages?.length ? navigator.languages : [navigator.language||'en'];
+langSwitch.classList.toggle('off', browserLangs.every(l=>/^en\b/i.test(l)) && lang==='en');
 applyLang();

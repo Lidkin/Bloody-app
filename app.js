@@ -212,7 +212,7 @@ ru:{title:'Таро Лидии Хаит', comeBack:'возвращайся че�
   next:'Далее', finish:'Завершить', nowYouKnow:'Теперь ты знаешь',
   deckOne:'Эта карта — из колоды <b>Bloody Feast Tarot</b>: все 78 карт с авторской графикой в файле для печати на Etsy.',
   deckMany:'Эти карты — из колоды <b>Bloody Feast Tarot</b>: все 78 карт с авторской графикой в файле для печати на Etsy.',
-  etsy:'Купить колоду', share:'Поделиться', gather:'Собрать колоду', onceMore:'<span class="ic">↺</span> Ещё раз',
+  etsy:'Купить для печати на Etsy', heading:'Таро «Кровавый пир»\nот Лидии Хаит', share:'Поделиться', gather:'Собрать колоду', onceMore:'<span class="ic">↺</span> Ещё раз',
   again:'↺ Новое гадание', saved:'Картинка сохранена — её можно выложить в сторис',
   storyDay:'КАРТА ДНЯ', storyThree:'ТРИ КАРТЫ', storyAsk:'А ЧТО ВЫПАДЕТ ТЕБЕ?',
   shareDay:name=>`Моя карта дня — ${name}.`, shareSpreadText:list=>`Мой расклад: ${list}.`,
@@ -233,7 +233,7 @@ en:{title:'Tarot by Lidiia Khait', comeBack:'come back in', whisper:'do you want
   next:'Next', finish:'Finish', nowYouKnow:'Now you know',
   deckOne:'This card comes from the <b>Bloody Feast Tarot</b> deck: all 78 cards with original artwork in a printable file on Etsy.',
   deckMany:'These cards come from the <b>Bloody Feast Tarot</b> deck: all 78 cards with original artwork in a printable file on Etsy.',
-  etsy:'Buy the deck', share:'Share', gather:'Gather the deck', onceMore:'<span class="ic">↺</span> Once more',
+  etsy:'Printable deck on Etsy', heading:'Bloody Feast Tarot deck\nby Lidiia Khait', share:'Share', gather:'Gather the deck', onceMore:'<span class="ic">↺</span> Once more',
   again:'↺ New reading', saved:'Image saved — you can post it to your story',
   storyDay:'CARD OF THE DAY', storyThree:'THREE CARDS', storyAsk:'WHAT WILL YOU DRAW?',
   shareDay:name=>`My card of the day: ${name}.`, shareSpreadText:list=>`My spread: ${list}.`,
@@ -983,7 +983,6 @@ function fillCarouselText(el){
   document.getElementById('fPos').textContent=POSITIONS[spread.cards.indexOf(el)];
   document.getElementById('fName').textContent=card.name;
   document.getElementById('fTitle').textContent=card.title ? tr('q')(card.title) : '';
-  document.getElementById('fOrient').textContent=tr(rev ? 'reversed' : 'upright');
   document.getElementById('fText').textContent=rev ? card.rev : card.up;
 }
 // dir 1: the top card goes under the stack; -1: the bottom card comes on top
@@ -1303,6 +1302,7 @@ function setFinale(els){
   prepareStory(els);
   document.getElementById('etsyBtn').href=etsyLink(els[0]._card);
   document.getElementById('fDeck').innerHTML=tr(one ? 'deckOne' : 'deckMany');
+  document.getElementById('fDeck').hidden=!!els[0]._fromDeck && !one; // phones, three cards: room for the cards instead
   shareBtnEl.textContent=tr('share');
   document.getElementById('gatherBtn').innerHTML=tr(one ? 'gather' : 'onceMore');
   sum.hidden=one; sum.textContent=one ? '' : spreadSummary(els);

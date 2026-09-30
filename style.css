@@ -314,4 +314,5 @@ body:not(.fonts-ready) .lang-switch{visibility:hidden;}
 body.noir h1.title, body.noir .meaning-panel h2{letter-spacing:4px; font-weight:500;}
 body.noir h1.title{opacity:.75;}
 /* narrow phones: a tighter title leaves room for RU / EN beside it */
-@media (max-width:480px){ body.noir h1.title{font-size:12px; letter-spacing:3px;} }
+@media (max-width:480px){ body.noir h1.title{font-size:12px; letter-spacing:3px; white-space:pre; line-height:17px; text-align:center;} }
+@media (max-width:340px){ body.noir h1.title{font-size:11px; letter-spacing:2px;} }

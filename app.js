@@ -743,7 +743,7 @@ function startSpread(desktop){
   if(!desktop) return;
   POSITIONS.forEach(p=>{
     const cap=document.createElement('div'); cap.className='spread-cap';
-    cap.innerHTML=`<span class="cap-pos">${p}</span><span class="cap-name"></span><span class="cap-keys"></span>`;
+    cap.innerHTML=`<span class="cap-pos">${p}</span><span class="cap-name"></span><span class="cap-title"></span>`;
     fan.appendChild(cap); spread.caps.push(cap);
   });
   buildPickList();
@@ -876,12 +876,12 @@ function showSpreadSummary(){
   els.forEach((c,i)=>{
     const s=c._state; gsap.killTweensOf(s); c.classList.remove('dim');
     spread.caps[i].querySelector('.cap-name').textContent=c._card.name;
-    spread.caps[i].querySelector('.cap-keys').textContent=keywords(cardMeaning(c));
+    spread.caps[i].querySelector('.cap-title').textContent=c._card.title ? tr('q')(c._card.title) : '';
     spread.caps[i].style.width=poses[i].w*1.1+'px'; // a long name wraps instead of running into the next one
     placeCap(i, poses[i].x, poses[i].y-poses[i].h/2-10, true);
     gsap.to(s,{...poses[i], duration:1, delay:.08*i, ease:'power2.inOut', onUpdate:()=>renderCard(c,s)});
   });
-  // captions of one height, so the positions line up however long the keywords under them run
+  // captions of one height, so the positions line up whether or not a card has a title
   spread.caps.forEach(c=>c.style.height='');
   const capH=Math.max(...spread.caps.map(c=>c.offsetHeight));
   spread.caps.forEach(c=>c.style.height=capH+'px');
@@ -959,7 +959,7 @@ fan.addEventListener('pointerup', e=>{
 });
 // poses of n face-up cards side by side that, with their captions above and `panel` under them, fit the viewport
 function fitRow(panel, n){
-  const GAP=16, CAP=96, SP=.14, side=isPortraitMobile() ? 16 : FIT_MARGIN, panelH=panel.offsetHeight;
+  const GAP=16, CAP=66, SP=.14, side=isPortraitMobile() ? 16 : FIT_MARGIN, panelH=panel.offsetHeight;
   const minTop=Math.max(FIT_MARGIN, document.querySelector('h1.title').getBoundingClientRect().bottom+24)+CAP;
   const availW=innerWidth-2*side, availH=innerHeight-minTop-FIT_MARGIN-GAP-panelH;
   const h=Math.min(availH, availW/(CARD_ASPECT*(n+(n-1)*SP))), w=h*CARD_ASPECT;
@@ -1215,9 +1215,8 @@ document.getElementById('finishBtn').addEventListener('click', ()=>{
 });
 document.getElementById('shareBtn').addEventListener('click', shareStory);
 // the closing screen speaks of one card or of the whole spread
-// the meaning of a card as it fell, and its first sentence - the guidebook's keywords
+// the meaning of a card as it fell
 const cardMeaning=el=>el.dataset.reversed==='true' ? el._card.rev : el._card.up;
-const keywords=text=>text.split(/(?<=\.)\s/)[0].replace(/\.$/,'');
 // desktop spread: the summary gives way to the meaning of the card pointed at
 let summaryFor=null;
 function showSummaryText(el){

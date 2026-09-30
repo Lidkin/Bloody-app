@@ -477,7 +477,7 @@ const isPortraitMobile=()=>matchMedia('(orientation: portrait)').matches &&
 // A real card element takes the place of the top image of the deck for this.
 function drawFromDeck(dip){
   fanScreen.hidden=false;
-  fan.innerHTML=''; fan.appendChild(dimOverlay); dimOverlay.classList.remove('on');
+  fan.innerHTML=''; fan.appendChild(dimOverlay); dimOverlay.classList.remove('on','share-bg');
   const topImg=deckStack.lastElementChild, r=topImg.getBoundingClientRect();
   const card=DECK[Math.floor(Math.random()*DECK.length)];
   const el=makeCard(card, 0, 0); el.style.zIndex=1000;
@@ -498,7 +498,7 @@ function drawFromDeck(dip){
 function returnToDeck(el, onBack){
   const {topImg, dip, rest}=el._fromDeck, s=el._state, render=()=>renderCard(el,s);
   gsap.killTweensOf(s);
-  dimOverlay.classList.remove('on'); gsap.to(deckStack,{opacity:1, duration:.8});
+  dimOverlay.classList.remove('on','share-bg'); gsap.to(deckStack,{opacity:1, duration:.8});
   gsap.timeline()
     .to(s,{...rest, y:rest.y-rest.h*.45, duration:1.1, ease:'power2.inOut', onUpdate:render})
     .to(s,{y:rest.y, duration:.5, ease:'sine.out', onUpdate:render})
@@ -611,7 +611,7 @@ function loadFace(el){
 }
 
 function buildFan(onReady){
-  hoverCard=null; fan.innerHTML=''; fan.appendChild(dimOverlay); dimOverlay.classList.remove('on');
+  hoverCard=null; fan.innerHTML=''; fan.appendChild(dimOverlay); dimOverlay.classList.remove('on','share-bg');
   meaningPanel.classList.remove('show'); finale.classList.remove('show');
   deckOrder=[...DECK.keys()];
   for(let i=deckOrder.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[deckOrder[i],deckOrder[j]]=[deckOrder[j],deckOrder[i]];}
@@ -785,7 +785,6 @@ function openedPose(el, card){
   document.getElementById('mPos').textContent=spread ? POSITIONS[spread.i] : '';
   document.getElementById('mName').textContent=card.name;
   document.getElementById('mTitle').textContent=card.title ? tr('q')(card.title) : '';
-  document.getElementById('mOrient').textContent=tr(reversed ? 'reversed' : 'upright');
   document.getElementById('mText').textContent=reversed?card.rev:card.up;
   fitCardHead();
   return fitAbove(meaningPanel);
@@ -910,7 +909,7 @@ function pickCard(el){
 function drawSpreadCard(i){
   busy=true;
   if(!spread){
-    fanScreen.hidden=false; fan.innerHTML=''; fan.appendChild(dimOverlay); dimOverlay.classList.remove('on');
+    fanScreen.hidden=false; fan.innerHTML=''; fan.appendChild(dimOverlay); dimOverlay.classList.remove('on','share-bg');
     startSpread(false);
   }
   const r=deckStack.lastElementChild.getBoundingClientRect();
@@ -962,7 +961,7 @@ function nextSpreadCard(){
   if(el._fromDeck){
     gsap.to(s,{x:-s.w*.7, rot:-14, tx:0, ty:0, duration:.8, ease:'power2.in', onUpdate:render, onComplete:()=>{
       el.style.visibility='hidden';
-      dimOverlay.classList.remove('on'); gsap.to(deckStack,{opacity:1, duration:.6});
+      dimOverlay.classList.remove('on','share-bg'); gsap.to(deckStack,{opacity:1, duration:.6});
       gsap.delayedCall(.7, ()=>drawSpreadCard(spread.i+1));
     }});
     return;
@@ -1110,7 +1109,7 @@ function setDim(level, except){
   document.querySelectorAll('.fcard').forEach(c=>{
     c.classList.toggle('dim', level===2 && c!==except); c.classList.toggle('dim-soft', level===1 && c!==except);
   });
-  dimOverlay.classList.toggle('on', level===2); dimOverlay.classList.toggle('soft', level===1);
+  dimOverlay.classList.toggle('on', level===2); dimOverlay.classList.toggle('soft', level===1); dimOverlay.classList.remove('share-bg');
 }
 
 const isDesktop=()=>matchMedia('(hover:hover) and (pointer:fine)').matches;
@@ -1253,7 +1252,7 @@ let sharePreview=false;
 const shareBtnEl=document.getElementById('shareBtn');
 shareBtnEl.addEventListener('pointerenter', e=>{
   if(e.pointerType!=='mouse' || !activeCard || busy || spread) return;
-  sharePreview=true;
+  sharePreview=true; dimOverlay.classList.add('share-bg');
   const el=activeCard, s=el._state;
   gsap.to(s,{tx:0, ty:0, duration:.5, ease:'power2.out', overwrite:'auto', onUpdate:()=>renderCard(el,s)});
   el.classList.add('lit');
@@ -1261,7 +1260,7 @@ shareBtnEl.addEventListener('pointerenter', e=>{
 });
 shareBtnEl.addEventListener('pointerleave', ()=>{
   if(!sharePreview) return;
-  sharePreview=false;
+  sharePreview=false; dimOverlay.classList.remove('share-bg');
   if(activeCard) activeCard.classList.remove('lit');
   showcase.forEach((c,k)=>fanOutCard(c, .08*k));
 });
@@ -1347,7 +1346,7 @@ document.getElementById('finishBtn').addEventListener('click', e=>{
   gsap.to(s,{...pose, duration:.7, ease:'power2.inOut', onUpdate:()=>renderCard(el,s),
     onComplete:()=>{ finale.classList.add('show'); busy=false; showShowcase(el); }});
 });
-document.getElementById('shareBtn').addEventListener('click', shareStory);
+document.getElementById('shareBtn').addEventListener('click', ()=>{ dimOverlay.classList.add('share-bg'); shareStory(); });
 // the closing screen speaks of one card or of the whole spread
 // the meaning of a card as it fell
 const cardMeaning=el=>el.dataset.reversed==='true' ? el._card.rev : el._card.up;
@@ -1396,7 +1395,7 @@ function returnToArc(el){
   const s=el._state, render=()=>renderCard(el,s);
   gsap.killTweensOf(s);
   document.querySelectorAll('.fcard').forEach(c=>c.classList.remove('dim'));
-  dimOverlay.classList.remove('on');
+  dimOverlay.classList.remove('on','share-bg');
   gsap.timeline()
     .to(s,{...arcState(el, cardH), duration:.9, ease:'power2.inOut', onUpdate:render})
     .call(()=>{ el.style.zIndex=el.dataset.z; })
@@ -1425,7 +1424,7 @@ function tuckUnderDeck(els, onBack){
   const {w, h}=rest, rot=4, out=(h*Math.cos(.07)+w*Math.sin(.07))/2+h/2+10;
   // a card of the day takes back the place of the top image it was drawn as, a spread takes the top card of the deck
   const img=topImg || deckStack.lastElementChild;
-  dimOverlay.classList.remove('on'); gsap.to(deckStack,{opacity:1, duration:.8});
+  dimOverlay.classList.remove('on','share-bg'); gsap.to(deckStack,{opacity:1, duration:.8});
   const tl=gsap.timeline();
   els.forEach((el,i)=>{
     const s=el._state; gsap.killTweensOf(s); el.classList.remove('dim', 'dim-soft', 'lit'); el.style.zIndex=1000+i;

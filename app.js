@@ -667,6 +667,10 @@ function buildPickList(){
     // the top corners of every row must lie inside the free circle
     if(rows.every(r=>Math.hypot(r.offsetWidth/2, pivotY-(top+r.offsetTop))<=R)) break;
   }
+  // a touch larger than the fit, growing upwards from the same bottom line
+  const bottom=list.offsetTop+list.offsetHeight;
+  list.style.fontSize=parseFloat(list.style.fontSize)+2+'px';
+  list.style.top=bottom-list.offsetHeight+'px';
 }
 function updatePickList(){
   const n=spread.cards.length, list=spread.list;

@@ -115,7 +115,10 @@ body:not(.fonts-ready) .spread-options{visibility:hidden;}
 .pick-go{margin-top:.5em; font-size:max(13px, .5em);}
 /* it comes a moment after "Будущее"; its arrow sits close to the word until pointed at */
 .pick-go.on{transition-delay:.7s;}
-.finish-btn.pick-go .arrow{margin-left:1px;}
+/* the button is centred on the word alone: the arrow and the word's trailing letter-spacing take no width */
+.finish-btn.pick-go{position:relative;}
+.finish-btn.pick-go .fill:first-child{margin-right:-3px;}
+.finish-btn.pick-go .arrow{position:absolute; left:100%; margin-left:4px;}
 .spread-cap{position:fixed; z-index:1500; display:flex; flex-direction:column; align-items:center; gap:3px;
   text-align:center; transform:translate(-50%,0); opacity:0; transition:opacity .5s ease-in-out; pointer-events:none;}
 .spread-cap.above{transform:translate(-50%,-100%);}

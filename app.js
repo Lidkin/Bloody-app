@@ -284,8 +284,54 @@ const openingEl=document.getElementById('opening'), fanScreen=document.getElemen
   deckStack=document.getElementById('deckStack'), dimOverlay=document.getElementById('dimOverlay'),
   meaningPanel=document.getElementById('meaningPanel'), spreadOpts=document.getElementById('spreadOpts');
 let mode='day', deckOrder=[], activeCard=null, busy=false, cardH=118, cardW=cardH*CARD_ASPECT;
-// the card of the day has been drawn today (kept only until the page reloads, for now)
-let dayDone=false;
+// the card of the day can be drawn once a local day; the day it was drawn is kept in localStorage.
+// ?test in the address lifts the lock
+const DAY_LOCK=!/[?&]test\b/.test(location.search);
+const dayKey=()=>{ const d=new Date(); return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`; };
+let dayDrawn=null; try{ dayDrawn=localStorage.getItem('dayDrawn'); }catch(e){}
+let dayDone=DAY_LOCK && dayDrawn===dayKey();
+function markDayDrawn(){ dayDrawn=dayKey(); if(DAY_LOCK) try{ localStorage.setItem('dayDrawn', dayDrawn); }catch(e){} }
+
+// Card sounds, synthesised from filtered noise: a short tick for a card laid on cards, a swish for a card
+// sliding over the deck. Browsers only let sound start after the first tap / click.
+const sfx=(()=>{
+  let ctx=null, noise=null, last=0;
+  let on=true; try{ on=localStorage.getItem('sound')!=='off'; }catch(e){}
+  const init=()=>{
+    if(ctx) return ctx.state==='suspended' && ctx.resume();
+    const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return;
+    ctx=new AC();
+    noise=ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+    const d=noise.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1;
+  };
+  addEventListener('pointerdown', init, true); addEventListener('keydown', init, true);
+  const burst=({dur, freq, to=freq, q=1, gain, attack=.002, at=0})=>{
+    const t=ctx.currentTime+at, src=ctx.createBufferSource(), f=ctx.createBiquadFilter(), g=ctx.createGain();
+    src.buffer=noise; f.type='bandpass'; f.Q.value=q;
+    f.frequency.setValueAtTime(freq, t); f.frequency.exponentialRampToValueAtTime(to, t+dur);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(gain, t+attack); g.gain.exponentialRampToValueAtTime(.0001, t+dur);
+    src.connect(f).connect(g).connect(ctx.destination);
+    src.start(t, Math.random()*(1-dur-.01)); src.stop(t+dur+.02);
+  };
+  const ready=()=>on && ctx && ctx.state==='running';
+  const vary=v=>v*(.85+Math.random()*.3);
+  return {
+    get on(){ return on; },
+    set on(v){ on=v; try{ localStorage.setItem('sound', v ? 'on' : 'off'); }catch(e){} },
+    tick(level=1){
+      const now=performance.now(); if(!ready() || now-last<22) return; last=now;
+      burst({dur:vary(.05), freq:vary(2600), q:1.1, gain:.28*level});
+      burst({dur:.035, freq:vary(420), q:1.5, gain:.22*level});
+    },
+    slide(level=1, dur=.4){
+      if(!ready()) return;
+      burst({dur:vary(dur), freq:vary(2200), to:900, q:.6, gain:.1*level, attack:dur*.3});
+    },
+  };
+})();
+const soundBtn=document.getElementById('soundBtn');
+soundBtn.classList.toggle('muted', !sfx.on);
+soundBtn.addEventListener('click', ()=>{ sfx.on=!sfx.on; soundBtn.classList.toggle('muted', !sfx.on); if(sfx.on) setTimeout(()=>sfx.tick(), 30); });
 
 function showToast(msg){toast.textContent=msg; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'),1600);}
 
@@ -294,11 +340,13 @@ function showToast(msg){toast.textContent=msg; toast.classList.add('show'); setT
 const langSwitch=document.getElementById('langSwitch'), askSub=document.getElementById('askSub');
 let shufflePhase='idle'; // idle -> dealing (-> idle once the fan is dealt / the card is back on the deck)
 function showStart(on){
-  [askSub, spreadOpts, langSwitch].forEach(e=>e.classList.toggle('gone', !on));
+  [askSub, spreadOpts, langSwitch, soundBtn].forEach(e=>e.classList.toggle('gone', !on));
 }
 spreadOpts.querySelectorAll('.opt').forEach(o=>o.addEventListener('click', ()=>{
   if(shufflePhase!=='idle' || busy || !deckAtRest()) return;
+  if(o.dataset.mode==='day' && dayDone && DAY_LOCK) return;
   mode=o.dataset.mode;
+  if(mode==='day') markDayDrawn();
   busy=true; shufflePhase='dealing';
   askTiltPermission(); tiltDeck(0, 0, .4); deckStack.classList.remove('lit');
   showStart(false);
@@ -321,6 +369,7 @@ function shufflePass(){
   const card=deckStack.lastElementChild, w=deckStack.offsetWidth, h=deckStack.offsetHeight;
   // far enough out that even the tilted card's corners clear the deck and the cards peeking from under it
   const rot=passSide*6, out=passSide*((w*Math.cos(.105)+h*Math.sin(.105))/2+w/2+10);
+  sfx.slide(.8, .5);
   gsap.timeline({onComplete:()=>gsap.delayedCall(.15, shufflePass)})
     .to(card,{x:out, y:-4, rotation:rot, duration:.55, ease:'power2.inOut'})
     .call(()=>{
@@ -329,7 +378,8 @@ function shufflePass(){
       [...deckStack.children].forEach((c,i)=>c.style.zIndex=i ? 2 : 0);
       [...deckStack.children].slice(1).forEach((c,i)=>gsap.to(c,{...DECK_REST[i+1], duration:.55, ease:'power2.inOut'}));
     })
-    .to(card,{...DECK_REST[0], duration:.55, ease:'power2.inOut'});
+    .call(()=>sfx.slide(.5, .45))
+    .to(card,{...DECK_REST[0], duration:.55, ease:'power2.inOut', onComplete:()=>sfx.tick(.5)});
 }
 // runs `then` once the deck is whole again: at once, or when the card now out of the deck is back in
 function afterShufflePass(then){ passing ? afterPass=then : then(); }
@@ -389,6 +439,7 @@ function drawFromDeck(dip){
   render(); fan.appendChild(el); topImg.style.visibility='hidden';
   busy=true; activeCard=el;
   const pose=openedPose(el, card);
+  sfx.slide(.8, .8);
   gsap.timeline()
     .to(s,{y:s.y-s.h*.45, duration:.9, ease:'sine.in', onUpdate:render})
     // the deck ends up under the description, so it fades back to keep the text readable
@@ -404,7 +455,7 @@ function returnToDeck(el, onBack){
     .to(s,{...rest, y:rest.y-rest.h*.45, duration:1.1, ease:'power2.inOut', onUpdate:render})
     .to(s,{y:rest.y, duration:.5, ease:'sine.out', onUpdate:render})
     .call(()=>{
-      topImg.style.visibility=''; el.remove(); fanScreen.hidden=true; activeCard=null;
+      sfx.tick(.6); topImg.style.visibility=''; el.remove(); fanScreen.hidden=true; activeCard=null;
       settleDeck(dip, ()=>{
         if(onBack) onBack(); else endReading();
         busy=false;
@@ -544,6 +595,7 @@ function buildFan(onReady){
         el.dataset.angle=angle; el.dataset.radius=radius;
         el.style.transform=`rotate(${angle}deg) translateY(-${radius}px)`;
         fan.insertBefore(el, mover);
+        sfx.tick(.7);
       }
     };
   };
@@ -705,7 +757,7 @@ function openCard(el, card){
     .to(s,{...arcState(el, cardH), duration:.35, ease:'power1.in', onUpdate:render})
     .call(()=>{
       // clear of its own arc now, so rising above everything shows no jump
-      el.style.zIndex=1000;
+      el.style.zIndex=1000; sfx.slide(1, .6);
       document.querySelectorAll('.fcard').forEach(c=>{ if(c!==el) c.classList.add('dim'); });
       dimOverlay.classList.add('on');
     })
@@ -775,7 +827,7 @@ function pickCard(el){
   const k=spread.cards.indexOf(el);
   if(k>=0){ spread.cards.splice(k,1); el.classList.remove('picked'); updatePickList(); return; }
   if(spread.cards.length>=POSITIONS.length) return;
-  spread.cards.push(el); el.classList.add('picked'); loadFace(el);
+  spread.cards.push(el); el.classList.add('picked'); loadFace(el); sfx.slide(.5, .25);
   if(hoverCard!==el) animateCard(el, arcState(el, cardH/2), {duration:.3, ease:'power2.out'});
   updatePickList();
 }
@@ -797,7 +849,7 @@ function drawSpreadCard(i){
   spread.cards.push(el);
   const place=()=>{ el.style.zIndex=1000; renderCard(el,s); fan.appendChild(el); };
   if(i===POSITIONS.length-1){
-    place();
+    place(); sfx.slide(.8, .8);
     gsap.to(s,{y:s.y-s.h*.45, duration:.9, ease:'sine.in', onUpdate:()=>renderCard(el,s), onComplete:()=>openSpreadCard(i)});
     return;
   }
@@ -806,7 +858,7 @@ function drawSpreadCard(i){
   const out=(rest.h*Math.cos(.07)+rest.w*Math.sin(.07))/2+rest.h/2+10;
   const c=deckStack.firstElementChild.cloneNode(true);
   if(i===0){ deckStack.prepend(c); c.style.zIndex=0; } else { deckStack.append(c); c.style.zIndex=1; }
-  gsap.set(c,{x:0, y:0, rotation:0});
+  gsap.set(c,{x:0, y:0, rotation:0}); sfx.slide(.8, .9);
   const to=i===0 ? {x:0, y:out, rotation:4} : {x:rest.w*.2, y:out, rotation:-4};
   gsap.to(c,{...to, duration:1.1, ease:'power2.inOut', onComplete:()=>{
     Object.assign(s,{x:rest.x+to.x, y:rest.y+to.y, rot:to.rotation});
@@ -824,7 +876,7 @@ function openSpreadCard(i){
   gsap.killTweensOf(s);
   // out of the arc first (desktop), so rising above its neighbours shows no jump
   if(!el._fromDeck) tl.to(s,{...arcState(el, cardH), duration:.35, ease:'power1.in', onUpdate:render});
-  tl.call(()=>{ el.style.zIndex=1000; })
+  tl.call(()=>{ el.style.zIndex=1000; sfx.slide(1, .7); })
     .to(s,{...pose, duration:1.3, ease:'power2.inOut', onUpdate:render, onComplete:()=>onCardOpened(el)});
 }
 // "Далее": desktop - the open card lies back face up just out of its arc slot and the next one opens;
@@ -1303,7 +1355,7 @@ function gatherDeck(el, extras=[]){
   const place=()=>{ const t=pop.a*Math.PI/180; s.x=pivotX+pop.r*Math.sin(t); s.y=pivotY-pop.r*Math.cos(t); s.rot=pop.a; render(); };
   const cards=[...fan.querySelectorAll('.fcard:not(.mover)')].filter(c=>c!==el && !extras.includes(c));
   // a card is taken the moment the pile lies right over it, so it vanishes under the pile unseen
-  const picker=(list, taken)=>()=>{ for(let i=list.length-1;i>=0;i--) if(taken(+list[i].dataset.angle)){ list[i].remove(); list.splice(i,1); } };
+  const picker=(list, taken)=>()=>{ for(let i=list.length-1;i>=0;i--) if(taken(+list[i].dataset.angle)){ list[i].remove(); list.splice(i,1); sfx.tick(.6); } };
   const lower=cards.filter(c=>c.classList.contains('mirrored')), upper=cards.filter(c=>!c.classList.contains('mirrored'));
   const pickLower=picker(lower, a=>a<=pop.a+1e-6), pickUpper=picker(upper, a=>a>=pop.a-1e-6);
   const sweepDur=count=>Math.max(.45, count*.022);
@@ -1349,7 +1401,7 @@ function endReading(){
   setAskSub(); showStart(true);
 }
 // once the card of the day is drawn, the line under the options counts down to the next one, at local
-// midnight, and the option dims (for now it can still be drawn, for testing)
+// midnight, and the option dims and stops responding
 function setAskSub(){
   const sub=askSub;
   spreadOpts.querySelector('[data-mode=day]').classList.toggle('done', dayDone);
@@ -1361,6 +1413,7 @@ function setAskSub(){
   return true;
 }
 function tickCountdown(){
+  if(dayDone && dayDrawn!==dayKey()){ dayDone=false; setAskSub(); return; }
   const cd=document.querySelector('#askSub .countdown'); if(!cd) return;
   const now=new Date(), next=new Date(now); next.setHours(24,0,0,0);
   const t=Math.floor((next-now)/1000), pad=v=>String(v).padStart(2,'0');

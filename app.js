@@ -860,8 +860,12 @@ function flyHome(el){
 // time left until the next card of the day, at local midnight; for now the ask button stays, for testing
 function showComeBack(){
   const sub=document.getElementById('askSub');
-  sub.innerHTML='возвращайся через <span class="countdown"></span>';
-  tickCountdown(); sub.classList.remove('gone');
+  sub.innerHTML='<span class="cd-phrase">возвращайся через</span><span class="countdown"></span>';
+  tickCountdown();
+  const cd=sub.querySelector('.countdown'), W=sub.querySelector('.cd-phrase').getBoundingClientRect().width;
+  cd.style.fontSize='';
+  for(let i=0;i<3;i++) cd.style.fontSize=parseFloat(getComputedStyle(cd).fontSize)*W/cd.getBoundingClientRect().width+'px';
+  sub.classList.remove('gone');
   showAskBtn(ASK_HTML);
 }
 function tickCountdown(){

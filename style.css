@@ -79,8 +79,10 @@ body:not(.fonts-ready) .ask-btn, body:not(.fonts-ready) h1.title, body:not(.font
 /* one line tall whatever it holds: the countdown hangs below it, so the deck above never shifts */
 .ask-sub{margin-top:6px; height:1.3em; line-height:1.3em; overflow:visible; color:var(--muted); font-size:16px; font-style:italic; letter-spacing:1px; transition:opacity .5s ease-in-out;}
 .ask-sub.gone{opacity:0;}
-.ask-sub .countdown{display:block; margin-top:6px; font-family:var(--head-font); font-style:normal; font-size:22px;
-  letter-spacing:4px; color:var(--accent); font-variant-numeric:tabular-nums;}
+/* scaled in showComeBack to the phrase's width; the negative margin cancels the spacing after the last digit */
+.ask-sub .countdown{display:block; width:fit-content; margin:6px auto 0; font-family:var(--head-font); font-style:normal; font-size:22px;
+  line-height:1; letter-spacing:.18em; color:var(--accent); font-variant-numeric:tabular-nums;}
+.ask-sub .countdown::after{content:''; margin-right:-.18em;}
 body:not(.fonts-ready) .ask-sub{visibility:hidden;}
 @keyframes pulse{0%,100%{opacity:.45}50%{opacity:1}}
 

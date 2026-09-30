@@ -745,11 +745,18 @@ fan.addEventListener('click', e=>{
 // Draws a random orientation for the card, fills the description and places it; returns the pose
 // of the opened card (face up): card + description fit the viewport minus FIT_MARGIN, the
 // description right under the card.
+// the suit's own drawing over the name of a Minor Arcana card; the Major Arcana go without
+const SUIT_ICON={w:'wand', c:'cup', s:'sword', p:'pentacle'};
+function setSuitIcon(img, card){
+  img.hidden=!card.suit;
+  if(card.suit){ img.src=`assets/elements/${SUIT_ICON[card.suit]}.png`; img.className='suit-icon '+SUIT_ICON[card.suit]; }
+}
 function openedPose(el, card){
   const reversed = Math.random()<0.5; el.dataset.reversed=reversed;
   loadFace(el); el.querySelector('.fart').classList.toggle('reversed', reversed);
   // fill the description first so its real height is known
   document.getElementById('mPos').textContent=spread ? POSITIONS[spread.i] : '';
+  setSuitIcon(document.getElementById('mSuit'), card);
   document.getElementById('mName').textContent=card.name;
   document.getElementById('mTitle').textContent=card.title ? tr('q')(card.title) : '';
   document.getElementById('mOrient').textContent=tr(reversed ? 'reversed' : 'upright');
@@ -978,6 +985,7 @@ function stackPose(d){
 function fillCarouselText(el){
   const card=el._card, rev=el.dataset.reversed==='true';
   document.getElementById('fPos').textContent=POSITIONS[spread.cards.indexOf(el)];
+  setSuitIcon(document.getElementById('fSuit'), card);
   document.getElementById('fName').textContent=card.name;
   document.getElementById('fTitle').textContent=card.title ? tr('q')(card.title) : '';
   document.getElementById('fOrient').textContent=tr(rev ? 'reversed' : 'upright');
@@ -1439,7 +1447,8 @@ function setAskSub(){
   const sub=askSub;
   spreadOpts.querySelector('[data-mode=day]').classList.toggle('done', dayDone);
   if(!dayDone){ sub.textContent=''; return false; }
-  sub.innerHTML=`<span class="cd-phrase">${tr('comeBack')}</span><span class="countdown"></span>`;
+  sub.innerHTML=`<span class="cd-phrase">${tr('comeBack')}</span>`+
+    `<span class="cd-row"><img class="cd-cup" src="assets/elements/cup.png" alt=""><span class="countdown"></span></span>`;
   tickCountdown();
   return true;
 }

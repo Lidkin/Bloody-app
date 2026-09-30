@@ -312,6 +312,15 @@ const DAY_LOCK=!/[?&]test\b/.test(location.search);
 const dayKey=()=>{ const d=new Date(); return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`; };
 let dayDrawn=null; try{ dayDrawn=localStorage.getItem('dayDrawn'); }catch(e){}
 let dayDone=DAY_LOCK && dayDrawn===dayKey();
+// the date in file names: 2026-09-30
+const isoDay=()=>{ const d=new Date(), p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`; };
+// three-card readings are numbered afresh each day, for the names of their pictures
+let spreadNo=0;
+function countSpread(){
+  let k={}; try{ k=JSON.parse(localStorage.getItem('spreadNo'))||{}; }catch(e){}
+  spreadNo=k.day===isoDay() ? k.n+1 : 1;
+  try{ localStorage.setItem('spreadNo', JSON.stringify({day:isoDay(), n:spreadNo})); }catch(e){}
+}
 function markDayDrawn(){ dayDrawn=dayKey(); if(DAY_LOCK) try{ localStorage.setItem('dayDrawn', dayDrawn); }catch(e){} }
 
 // Card sounds, synthesised from filtered noise: a short tick for a card laid on cards, a swish for a card
@@ -372,7 +381,7 @@ spreadOpts.querySelectorAll('.opt').forEach(o=>o.addEventListener('click', ()=>{
   if(shufflePhase!=='idle' || busy || !deckAtRest()) return;
   if(o.dataset.mode==='day' && dayDone && DAY_LOCK) return;
   mode=o.dataset.mode;
-  if(mode==='day') markDayDrawn();
+  if(mode==='day') markDayDrawn(); else countSpread();
   busy=true; shufflePhase='dealing';
   askTiltPermission(); tiltDeck(0, 0, .4); deckStack.classList.remove('lit');
   showStart(false);
@@ -1545,7 +1554,7 @@ let story=null, storyJob=null; // story: {file, title, text} once drawn
 function prepareStory(els){
   story=null;
   const job=storyJob=(els.length===1 ? drawCardStory(els[0]) : drawSpreadStory(els))
-    .then(d=>new Promise(r=>d.c.toBlob(b=>r({file:new File([b], d.name, {type:'image/png'}), title:d.title, text:d.text}), 'image/png')))
+    .then(d=>new Promise(r=>d.c.toBlob(b=>r({file:new File([b], d.name, {type:'image/jpeg'}), title:d.title, text:d.text}), 'image/jpeg', .9)))
     .then(st=>{ if(job===storyJob) story=st; return st; });
 }
 async function shareStory(){
@@ -1581,7 +1590,7 @@ async function drawCardStory(el){
   lines.forEach((l,i)=>text(l, cy+ch+72+i*lh, font, '#d9d4ce'));
   // an invitation to whoever sees the story, in the red of the card backs
   text(tr('storyAsk'), askY(ch), '500 44px Oswald', '#e42423', 6, W/2, W-160);
-  return {c, name:'card-of-the-day.png', title:tr('optDay'), text:`${tr('shareDay')(card.name)} Bloody Feast Tarot: ${ETSY_URL}`};
+  return {c, name:`card-of-the-day-${isoDay()}.jpg`, title:tr('optDay'), text:`${tr('shareDay')(card.name)} Bloody Feast Tarot: ${ETSY_URL}`};
 }
 // the spread: its three cards side by side, each under its position and over its name, then the summary
 async function drawSpreadStory(els){
@@ -1597,7 +1606,7 @@ async function drawSpreadStory(els){
   // the summary, wrapped to the width of the row
   const font='italic 500 40px "Cormorant Garamond"';
   wrapLines(x, spreadSummary(els), font, W-160).forEach((l,i)=>text(l, cy+ch+150+i*54, font, '#d9d4ce'));
-  return {c, name:'three-cards.png', title:tr('optThree'),
+  return {c, name:`three-cards-${isoDay()}-${spreadNo||1}.jpg`, title:tr('optThree'),
     text:`${tr('shareSpreadText')(els.map((e,i)=>POSITIONS[i]+' — '+e._card.name).join(', '))} Bloody Feast Tarot: ${ETSY_URL}`};
 }
 

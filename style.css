@@ -91,7 +91,7 @@ body:not(.fonts-ready) .ask-sub{visibility:hidden;}
 
 /* the two readings under the deck, each one starts its own; above the swirling cards (z up to ~2000) */
 .spread-options{position:relative; z-index:3000; display:flex; gap:44px; justify-content:center; margin-top:34px; transition:opacity .5s ease-in-out;}
-.spread-options.gone{opacity:0; pointer-events:none;}
+.spread-options.gone{opacity:0; pointer-events:none; transition-delay:.35s;}
 /* "Далее" / "Завершить" / "Узнать" fill with red from the left while pointed at or tapped; the red band has
    half a word of plain colour on each side, so no glyph reaching past its box (the foot of Д) catches a sliver
    of it at rest */
@@ -114,13 +114,13 @@ body:not(.fonts-ready) .ask-sub{visibility:hidden;}
    drawn, only "Три карты" keeps calling. It lies outside the words' box, so nothing moves */
 @media not all and (hover:hover) and (pointer:fine){
   .opt::before{content:''; position:absolute; top:0; bottom:0; left:-18px; right:-15px; border:1px solid rgba(var(--accent-rgb),.55);
-    border-radius:24px; opacity:0; animation:frame 4s ease-in-out infinite; pointer-events:none;}
-  .opt-col + .opt::before{animation-delay:2s;}
+    border-radius:24px; opacity:0; animation:frame 8s ease-in-out infinite; pointer-events:none; transition:border-color .35s ease;}
+  .opt-col + .opt::before{animation-delay:4s;}
   .opt.done::before{animation:none; opacity:0;}
-  .opt:not(.done):active{color:var(--red); text-shadow:0 0 10px rgba(228,36,35,.7), 0 0 24px rgba(228,36,35,.45);}
-  .opt:not(.done):active::before{animation:none; opacity:1; border-color:var(--red);}
+  .opt:not(.done):active, .opt.tap{color:var(--red); text-shadow:0 0 10px rgba(228,36,35,.7), 0 0 24px rgba(228,36,35,.45);}
+  .opt:not(.done):active::before, .opt.tap::before{animation:none; opacity:1; border-color:var(--red);}
 }
-@keyframes frame{0%{opacity:0;} 15%, 35%{opacity:1;} 50%, 100%{opacity:0;}}
+@keyframes frame{0%{opacity:0;} 20%, 30%{opacity:1;} 50%, 100%{opacity:0;}}
 body:not(.fonts-ready) .spread-options{visibility:hidden;}
 
 /* ---------- FAN ---------- */

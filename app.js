@@ -375,12 +375,14 @@ function showToast(msg){toast.textContent=msg; toast.classList.add('show'); setT
 const langSwitch=document.getElementById('langSwitch'), askSub=document.getElementById('askSub'), whisper=document.getElementById('whisper');
 let shufflePhase='idle'; // idle -> dealing (-> idle once the fan is dealt / the card is back on the deck)
 function showStart(on){
+  if(on) spreadOpts.querySelectorAll('.opt').forEach(o=>o.classList.remove('tap'));
   [askSub, spreadOpts, langSwitch, soundBtn, whisper].forEach(e=>e?.classList.toggle('gone', !on));
 }
 spreadOpts.querySelectorAll('.opt').forEach(o=>o.addEventListener('click', ()=>{
   if(shufflePhase!=='idle' || busy || !deckAtRest()) return;
   if(o.dataset.mode==='day' && dayDone && DAY_LOCK) return;
   mode=o.dataset.mode;
+  o.classList.add('tap'); // phones: the chosen word stays red as the options fade away
   if(mode==='day') markDayDrawn(); else countSpread();
   busy=true; shufflePhase='dealing';
   askTiltPermission(); tiltDeck(0, 0, .4); deckStack.classList.remove('lit');
@@ -418,9 +420,8 @@ function shufflePass(){
 }
 // runs `then` once the deck is whole again: at once, or when the card now out of the deck is back in
 function afterShufflePass(then){ passing ? afterPass=then : then(); }
-// phones: until the deck has once been touched, the whisper now and then gives way to "коснись колоды"
-let deckTouched=false; try{ deckTouched=DAY_LOCK && localStorage.getItem('deckTouched')==='1'; }catch(e){}
-let hintShown=false;
+// phones: until the deck is touched in this visit, the whisper now and then gives way to "коснись колоды"
+let deckTouched=false, hintShown=false;
 setInterval(()=>{
   if(isDesktop() || whisper.classList.contains('gone') || (deckTouched && !hintShown)) return;
   whisper.classList.add('swap');
@@ -429,9 +430,9 @@ setInterval(()=>{
     whisper.textContent=tr(hintShown ? 'touchDeck' : 'whisper'); whisper.classList.remove('swap');
   }, 800);
 }, 4000);
-deckStack.addEventListener('pointerenter', ()=>{
+deckStack.addEventListener('pointerenter', e=>{
   deckHovered=true;
-  if(!deckTouched){ deckTouched=true; try{ localStorage.setItem('deckTouched', '1'); }catch(e){} }
+  if(e.pointerType==='touch') deckTouched=true;
   if(deckAtRest()){ deckStack.classList.add('lit'); if(!passing) shufflePass(); }
 });
 deckStack.addEventListener('pointerleave', ()=>{ deckHovered=false; deckStack.classList.remove('lit'); });

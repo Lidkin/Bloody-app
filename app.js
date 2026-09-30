@@ -243,6 +243,22 @@ en:{title:'Tarot by Lidiia Khait', comeBack:'come back in', whisper:'do you want
     'Two cards are reversed — first deal with what is holding you back.',
     'All cards are reversed — time to look within before you act.']}
 };
+// Line breaks: short prepositions, conjunctions and particles go to the next line with their word
+// ("в доме", "и мы"), "же / ли / бы" stay with the word before, a dash never starts a line and a number
+// stays with what it counts - all through non-breaking spaces, so every text (and the story picture) obeys
+const NBSP='\u00A0';
+function nb(s){
+  if(typeof s!=='string') return s;
+  const short=/(?<=^|[\s(«„“"—])(?!(?:же|ли|ль|бы)\s)([а-яёa-z]{1,2}|без|для|над|под|при|про|или|что|как|the|and|for|but)\s+/gi;
+  return s.replace(short, '$1'+NBSP).replace(/\s+(же|ли|ль|бы|ж|б)(?=[\s.,!?…:;)»]|$)/gi, NBSP+'$1')
+    .replace(/\s+—/g, NBSP+'—')
+    .replace(/(\d)\s+(?=\S)/g, '$1'+NBSP);
+}
+const nbDeep=v=>typeof v==='string' ? nb(v) : typeof v==='function' ? (...a)=>nb(v(...a)) : Array.isArray(v) ? v.map(nbDeep) : v;
+for(const l of Object.keys(UI)){
+  DATA[l].CARDS=DATA[l].CARDS.map(row=>row.map(nb));
+  for(const k in UI[l]) UI[l][k]=nbDeep(UI[l][k]);
+}
 let lang=(()=>{ try{ const l=localStorage.getItem('lang'); if(UI[l]) return l; }catch(e){}
   return /^ru|^uk|^be/i.test(navigator.language||'') ? 'ru' : 'en'; })();
 const tr=k=>UI[lang][k];
@@ -1065,9 +1081,10 @@ function revealEnd(at){
 function inkReveal(el, {byWord=false, delay=0, stagger=.05, dur=.9}={}){
   const text=el.textContent, color=getComputedStyle(el).color, units=[];
   el.textContent='';
-  text.split(/(\s+)/).forEach(tok=>{
+  // split at ordinary spaces only: words joined by a non-breaking space stay one unbreakable unit
+  text.split(/([ \t\n]+)/).forEach(tok=>{
     if(!tok) return;
-    if(/^\s+$/.test(tok)){ el.appendChild(document.createTextNode(tok)); return; }
+    if(/^[ \t\n]+$/.test(tok)){ el.appendChild(document.createTextNode(tok)); return; }
     const w=document.createElement('span'); w.className='ink-word';
     if(byWord){ w.textContent=tok; units.push(w); }
     else [...tok].forEach(ch=>{ const c=document.createElement('span'); c.className='ink'; c.textContent=ch; w.appendChild(c); units.push(c); });

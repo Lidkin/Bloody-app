@@ -92,16 +92,18 @@ body:not(.fonts-ready) .ask-sub{visibility:hidden;}
 /* the two readings under the deck, each one starts its own; above the swirling cards (z up to ~2000) */
 .spread-options{position:relative; z-index:3000; display:flex; gap:44px; justify-content:center; margin-top:34px; transition:opacity .5s ease-in-out;}
 .spread-options.gone{opacity:0; pointer-events:none;}
-/* words that ask to be pressed: red keeps passing through their letters, in from the left and out to the
-   right; the red band has half a word of plain colour on each side, so no glyph reaching past its box (the
-   foot of Д) catches a sliver of it at rest. Pointed at or tapped, the word stays red */
+/* words that ask to be pressed fill with red from the left while pointed at or tapped; the red band has half
+   a word of plain colour on each side, so no glyph reaching past its box (the foot of Д) catches a sliver of
+   it at rest */
 .opt, .finish-btn .fill{color:transparent; -webkit-background-clip:text; background-clip:text;
   background-image:linear-gradient(90deg, var(--accent) 37.5%, var(--red) 37.5% 62.5%, var(--accent) 62.5%);
-  background-size:400% 100%; background-position:100% 0; animation:call 3.6s ease-in-out infinite;}
+  background-size:400% 100%; background-position:100% 0; transition:background-position .6s ease;}
+/* without a pointer to hover with (phones), red keeps passing through them, so they read as buttons */
+@media not all and (hover:hover) and (pointer:fine){ .opt, .finish-btn .fill{animation:call 3.6s ease-in-out infinite;} }
 @keyframes call{0%{background-position:100% 0;} 28%, 58%{background-position:50% 0;} 86%, 100%{background-position:0 0;}}
 .opt{position:relative; border:none; padding:8px 0; font-family:var(--head-font); font-size:19px;
   letter-spacing:3px; margin-right:-3px; cursor:pointer; text-transform:uppercase;
-  filter:drop-shadow(0 0 6px rgba(var(--accent-rgb),.35)); transition:filter .35s ease, opacity .35s ease;}
+  filter:drop-shadow(0 0 6px rgba(var(--accent-rgb),.35)); transition:background-position .6s ease, filter .35s ease, opacity .35s ease;}
 .opt + .opt, .opt-col + .opt{animation-delay:1.8s;} /* the two readings take turns */
 .opt::after{content:''; position:absolute; left:0; right:3px; bottom:0; height:1px; background:var(--red);
   transform:scaleX(0); transition:transform .35s ease;}
@@ -229,12 +231,12 @@ body:not(.noir) .big-name{font-family:'Cinzel',serif; color:#5e4c25;}
 .end-rule{width:1px; height:22px; background:var(--red); opacity:.7; transform-origin:50% 50%;}
 .finish-btn{background:none; border:none; padding:6px 0; cursor:pointer;}
 .finish-btn .fill{display:inline-block;}
-.finish-btn .arrow{margin-left:4px; animation-delay:.35s; transition:transform .35s ease;} /* red reaches it after the word */
+.finish-btn .arrow{margin-left:4px; animation-delay:.35s; transition:background-position .35s ease, transform .35s ease;} /* red reaches it after the word */
 /* hover effects only where there is a pointer: a phone keeps "hovering" the spot last tapped, and the next
    button showing up under the finger would already look pressed. There a tap fills it (.tap, app.js) */
 @media (hover:hover) and (pointer:fine){
   .finish-btn:hover .fill{animation:none; background-position:50% 0;}
-  .finish-btn:hover .arrow{transform:translateX(5px);}
+  .finish-btn:hover .arrow{transform:translateX(5px); transition-delay:.35s, 0s;}
   .return-btn:hover{background:rgba(var(--accent-rgb),.12);}
   body.noir .return-btn:hover{background:rgba(228,36,35,.15); border-color:var(--red);}
   .cta:hover{transform:translateY(-1px); box-shadow:0 0 26px rgba(var(--accent-rgb),.55);}

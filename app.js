@@ -11,7 +11,8 @@ const CARD_ASPECT=CUT.w/CUT.h, CARD_RADIUS=40/CUT.w; // corner radius as a share
 })(document.documentElement.style);
 // every GSAP animation runs a quarter slower than its written duration, for a calmer, smoother feel
 gsap.globalTimeline.timeScale(.8);
-const ART = [null, "assets/the-magician.png"];
+// every card face is its own picture, named after the card's place in the deck (00 The Fool ... 77 King of Pentacles)
+const artSrc=i=>`assets/cards/${String(i).padStart(2,'0')}.webp`;
 /* ---------- deck data ---------- */
 // the deck in both languages; a card's name and meanings follow the current language (see "language" below)
 // every card as [name, upright, reversed, title]; titles (from the guidebook) only for the Minor Arcana
@@ -190,7 +191,7 @@ const SUIT_KEYS=['w','c','s','p'];
 function cardText(l, i){ return DATA[l].CARDS[i]; } // [name, up, rev, title] of card i in language l
 const textOf=c=>cardText(lang, c.id);
 for(let i=0;i<78;i++){
-  const major=i<22, c={id:id++, art:major && ART[i] ? i : null, major};
+  const major=i<22, c={id:id++, art:artSrc(i), major};
   if(major) c.num=ROMAN[i]; else c.suit=SUIT_KEYS[Math.floor((i-22)/14)];
   Object.defineProperties(c,{name:{get(){return textOf(c)[0];}}, up:{get(){return textOf(c)[1];}}, rev:{get(){return textOf(c)[2];}},
     title:{get(){return textOf(c)[3];}}});
@@ -509,8 +510,8 @@ function makeCard(card, pivotX, pivotY){
   inner.innerHTML=`<div class="face back"><img src="${IMG_BACK}"><div class="paper"></div></div><div class="face front"></div>`;
   const front=inner.querySelector('.face.front');
   if(card.art!==null){
-    front.innerHTML='<img class="fart"><div class="paper"></div>';
-    front.querySelector('.fart').src=ART[card.art];
+    front.innerHTML='<img class="fart" alt=""><div class="paper"></div>';
+    front.querySelector('.fart').dataset.src=card.art;
   } else {
     front.innerHTML='<div class="tface fart"><div class="tframe"></div><div class="fnum"></div><div class="ftext"></div></div>';
     front.querySelector('.fnum').textContent=card.num||'';
@@ -520,6 +521,13 @@ function makeCard(card, pivotX, pivotY){
   el.appendChild(inner);
   el._card=card;
   return el;
+}
+
+// a card's face is loaded only once it may be seen - pointed at, picked, drawn or opened - so dealing
+// the fan does not fetch the whole deck
+function loadFace(el){
+  const img=el && el.querySelector('img.fart');
+  if(img && !img.getAttribute('src')){ img.onload=()=>img.classList.add('loaded'); img.src=img.dataset.src; }
 }
 
 function buildFan(onReady){
@@ -652,6 +660,7 @@ function cardAt(x, y){
   if(!best && hoverCard && inCard(hoverCard._state||arcState(hoverCard), x, y)) return hoverCard;
   return best;
 }
+let faceTimer=0;
 function setHover(el){
   if(el===hoverCard) return;
   // a card picked for the spread stays slid out
@@ -661,6 +670,8 @@ function setHover(el){
       animateCard(prev, arcState(prev), {duration:.3, ease:'power2.inOut', onComplete:()=>restoreInArc(prev)});
   }
   hoverCard=el;
+  // a card only swept over on the way to another is not loaded
+  clearTimeout(faceTimer); if(el) faceTimer=setTimeout(()=>loadFace(el), 150);
   fan.style.cursor = el ? 'pointer' : '';
   if(el){ el.classList.add('lit'); if(!el.classList.contains('picked')) animateCard(el, arcState(el, cardH/2), {duration:.3, ease:'power2.out'}); }
 }
@@ -681,7 +692,7 @@ fan.addEventListener('click', e=>{
 // description right under the card.
 function openedPose(el, card){
   const reversed = Math.random()<0.5; el.dataset.reversed=reversed;
-  el.querySelector('.fart').classList.toggle('reversed', reversed);
+  loadFace(el); el.querySelector('.fart').classList.toggle('reversed', reversed);
   // fill the description first so its real height is known
   document.getElementById('mPos').textContent=spread ? POSITIONS[spread.i] : '';
   document.getElementById('mName').textContent=card.name;
@@ -784,7 +795,7 @@ function pickCard(el){
   const k=spread.cards.indexOf(el);
   if(k>=0){ spread.cards.splice(k,1); el.classList.remove('picked'); updatePickList(); return; }
   if(spread.cards.length>=POSITIONS.length) return;
-  spread.cards.push(el); el.classList.add('picked');
+  spread.cards.push(el); el.classList.add('picked'); loadFace(el);
   if(hoverCard!==el) animateCard(el, arcState(el, cardH/2), {duration:.3, ease:'power2.out'});
   updatePickList();
 }
@@ -801,7 +812,7 @@ function drawSpreadCard(i){
   const rest={x:r.left+r.width/2, y:r.top+r.height/2, rot:0, w:r.width, h:r.height, ry:0, tx:0, ty:0};
   const used=spread.cards.map(c=>c._card), pool=DECK.filter(c=>!used.includes(c));
   const el=makeCard(pool[Math.floor(Math.random()*pool.length)], 0, 0);
-  el.classList.add('picked'); el._fromDeck={topImg:null, dip:0, rest};
+  el.classList.add('picked'); el._fromDeck={topImg:null, dip:0, rest}; loadFace(el);
   const s=el._state={...rest};
   spread.cards.push(el);
   const place=()=>{ el.style.zIndex=1000; renderCard(el,s); fan.appendChild(el); };
@@ -1073,9 +1084,8 @@ let showcase=[];
 function showShowcase(el){
   if(!isDesktop()) return;
   const s=el._state, others=DECK.filter(c=>c!==el._card);
-  const withArt=others.filter(c=>c.art!==null), majors=others.filter(c=>c.art===null && c.major);
-  for(let i=majors.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [majors[i],majors[j]]=[majors[j],majors[i]]; }
-  const picks=[...withArt, ...majors].slice(0,4); // illustrated cards first, they take the inner places
+  for(let i=others.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [others[i],others[j]]=[others[j],others[i]]; }
+  const picks=others.slice(0,4);
   let h=s.h*.62, w=h*CARD_ASPECT;
   const k=Math.min(1, (innerWidth/2-16-s.w/2-24)/(1.6*w)); // the outer ones must stay in view
   if(k<.55) return;
@@ -1083,7 +1093,7 @@ function showShowcase(el){
   [-1,1,-2,2].forEach((side,i)=>{
     const card=picks[i]; if(!card) return;
     const far=Math.abs(side)-1, dir=Math.sign(side);
-    const c=makeCard(card, 0, 0); c.classList.add('showcase'); c.title=tr('etsy');
+    const c=makeCard(card, 0, 0); c.classList.add('showcase'); c.title=tr('etsy'); loadFace(c);
     c.style.zIndex=990-far;
     c.addEventListener('click', ()=>window.open(document.getElementById('etsyBtn').href, '_blank', 'noopener'));
     c._state={x:s.x, y:s.y, rot:0, w, h, ry:180, tx:0, ty:0};
@@ -1385,7 +1395,7 @@ async function drawStoryCard(x, card, reversed, cx, cy, cw){
   x.save(); x.beginPath(); x.roundRect(cx,cy,cw,ch,radius); x.clip();
   if(reversed){ x.translate(cx+cw/2, cy+ch/2); x.rotate(Math.PI); x.translate(-(cx+cw/2), -(cy+ch/2)); }
   if(card.art!==null){
-    const img=new Image(); img.src=ART[card.art];
+    const img=new Image(); img.src=card.art;
     await img.decode().catch(()=>{});
     const f=img.naturalWidth/CUT.fileW;
     x.drawImage(img, CUT.left*f, CUT.top*f, CUT.w*f, CUT.h*f, cx, cy, cw, ch);

@@ -147,6 +147,10 @@ body:not(.fonts-ready) .spread-options{visibility:hidden;}
 .fcard.mirrored .face.back{box-shadow:1px .5px 0 #d6cfc6, 1.8px .9px 0 #6f675f, 0 7px 16px rgba(20,2,2,.85);} /* lower arc: overlaps its right neighbour */
 .face.front{transform:rotateY(180deg); background:#1a0f14;}
 .face.front .reversed{transform:rotate(180deg);}
+/* a face with artwork is white paper until its picture has loaded, then the picture fades in */
+.face.front:has(> img.fart){background:#fff;}
+.face.front img.fart{opacity:0; transition:opacity .3s ease;}
+.face.front img.fart.loaded{opacity:1;}
 /* sheen of glossy paper; renderCard moves and fades it with the card's tilt */
 .face.front .gloss{position:absolute; inset:0; pointer-events:none; opacity:0; background-size:300% 300%;
   background-image:linear-gradient(115deg, rgba(0,0,0,.07) 0%, transparent 38%, rgba(255,255,255,.55) 49%, rgba(255,255,255,.12) 55%, transparent 64%, rgba(0,0,0,.07) 100%);}

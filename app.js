@@ -649,8 +649,8 @@ function drawSpreadCard(i){
 function openSpreadCard(i){
   const el=spread.cards[i]; spread.i=i;
   busy=true; activeCard=el;
-  document.querySelectorAll('.fcard').forEach(c=>c.classList.toggle('dim', c!==el));
-  dimOverlay.classList.add('on'); showCaps(false); el.classList.remove('lit');
+  // desktop: the table goes fully dark only once the card's name surfaces (onCardOpened)
+  setDim(el._fromDeck ? 2 : 1, el); showCaps(false); el.classList.remove('lit');
   if(el._fromDeck) gsap.to(deckStack,{opacity:.3, duration:.8});
   const s=el._state, pose=openedPose(el, el._card), render=()=>renderCard(el,s), tl=gsap.timeline();
   gsap.killTweensOf(s);
@@ -665,6 +665,7 @@ function nextSpreadCard(){
   busy=true; const el=activeCard, s=el._state, render=()=>renderCard(el,s);
   meaningPanel.classList.remove('show'); hideBigName(); el.classList.remove('lit');
   gsap.killTweensOf(s);
+  if(!el._fromDeck) setDim(1, el);
   if(el._fromDeck){
     gsap.to(s,{x:-s.w*.7, rot:-14, tx:0, ty:0, duration:.8, ease:'power2.in', onUpdate:render, onComplete:()=>{
       el.style.visibility='hidden';
@@ -693,8 +694,9 @@ function showSpreadSummary(){
   });
   gsap.delayedCall(1.2, ()=>{ spread.summary=true; showCaps(true); finale.classList.add('show'); busy=false; });
 }
-// phones: the three cards in a carousel - one in front, the other two peeking out from behind it on either
-// side; a tap on one of them or a swipe brings the next one forward, and its description with it
+// phones: the three cards lie face up in a small stack, the past on top; a swipe to the left (or a tap)
+// slides the top card out sideways until it is clear of the stack and tucks it in under it, a swipe to the
+// right pulls the bottom card out the other way and lays it on top - the description follows the top card
 const fCard=document.getElementById('fCard');
 function showCarousel(){
   const els=spread.cards;
@@ -703,28 +705,21 @@ function showCarousel(){
   fCard.style.minHeight='';
   const hMax=Math.max(...els.map(c=>{ fillCarouselText(c); return fCard.offsetHeight; }));
   fCard.style.minHeight=hMax+'px';
-  spread.carousel={f:0, pose:fitAbove(finale)};
+  spread.carousel={order:els.map((_,i)=>i), pose:fitAbove(finale)};
+  // they come back from where they were put away, the bottom of the stack first
   els.forEach(c=>{ c.classList.remove('dim'); c.style.visibility=''; });
-  layoutCarousel(1.1);
-  gsap.delayedCall(1.2, ()=>{ spread.summary=true; finale.classList.add('show'); busy=false; });
-}
-function carouselPose(j){
-  const {f, pose}=spread.carousel, rel=(j-f+POSITIONS.length)%POSITIONS.length;
-  if(!rel) return pose;
-  const side=rel===1 ? 1 : -1, k=.72;
-  return {...pose, x:pose.x+side*pose.w*.78, y:pose.y+pose.h*.04, w:pose.w*k, h:pose.h*k, rot:side*6};
-}
-function layoutCarousel(dur=.6){
-  const {f}=spread.carousel;
-  spread.cards.forEach((c,j)=>{
-    const s=c._state, front=j===f;
-    c.style.zIndex=front ? 1000 : 990; c.classList.toggle('aside', !front);
+  spread.carousel.order.forEach((j,d)=>{
+    const c=els[j], s=c._state; c.style.zIndex=1000-d;
     gsap.killTweensOf(s);
-    gsap.to(s,{...carouselPose(j), duration:dur, ease:'power2.inOut', onUpdate:()=>renderCard(c,s)});
+    gsap.to(s,{...stackPose(d), duration:1, delay:(els.length-1-d)*.15, ease:'power2.out', onUpdate:()=>renderCard(c,s)});
   });
-  activeCard=spread.cards[f];
-  fillCarouselText(spread.cards[f]);
-  gsap.fromTo(fCard,{opacity:0},{opacity:1, duration:.5, delay:dur*.4});
+  fillCarouselText(els[0]); activeCard=els[0];
+  gsap.delayedCall(1.4, ()=>{ spread.summary=true; finale.classList.add('show'); busy=false; });
+}
+// depth 0 is the top card; the ones under it lie a little askew, so their edges show
+function stackPose(d){
+  const P=spread.carousel.pose, SKEW=[[0,0,0],[4,.03,2],[-3.5,-.03,4]][d];
+  return {...P, rot:SKEW[0], x:P.x+P.w*SKEW[1], y:P.y+SKEW[2]};
 }
 function fillCarouselText(el){
   const card=el._card, rev=el.dataset.reversed==='true';
@@ -733,18 +728,40 @@ function fillCarouselText(el){
   document.getElementById('fOrient').textContent=rev ? 'Перевёрнутое положение' : 'Прямое положение';
   document.getElementById('fText').textContent=rev ? card.rev : card.up;
 }
-function turnCarousel(to){
-  if(busy || to===spread.carousel.f) return;
-  spread.carousel.f=(to+POSITIONS.length)%POSITIONS.length; layoutCarousel();
+// dir 1: the top card goes under the stack; -1: the bottom card comes on top
+function turnStack(dir){
+  if(busy) return;
+  busy=true;
+  const C=spread.carousel, els=spread.cards, n=C.order.length, P=C.pose;
+  const j=dir>0 ? C.order[0] : C.order[n-1], c=els[j], s=c._state, render=()=>renderCard(c,s);
+  C.order=dir>0 ? [...C.order.slice(1), j] : [j, ...C.order.slice(0, -1)];
+  // far enough out that the tilted card clears the stack
+  const out=(P.w*Math.cos(.14)+P.h*Math.sin(.14))/2+P.w/2+12, side=dir>0 ? -1 : 1;
+  gsap.to(fCard,{opacity:0, duration:.3});
+  gsap.killTweensOf(s);
+  gsap.timeline({onComplete:()=>{
+      activeCard=els[C.order[0]]; fillCarouselText(activeCard);
+      gsap.to(fCard,{opacity:1, duration:.4}); busy=false;
+    }})
+    .to(s,{x:P.x+side*out, y:P.y-6, rot:side*8, duration:.5, ease:'power2.inOut', onUpdate:render})
+    .call(()=>{
+      // clear of the stack now: it changes sides with no jump, and the others settle into their new depths
+      C.order.forEach((k,d)=>{
+        els[k].style.zIndex=1000-d;
+        if(k===j) return;
+        const o=els[k], os=o._state;
+        gsap.to(os,{...stackPose(d), duration:.5, ease:'power2.inOut', onUpdate:()=>renderCard(o,os)});
+      });
+    })
+    .to(s,{...stackPose(C.order.indexOf(j)), duration:.5, ease:'power2.inOut', onUpdate:render});
 }
 let swipeX=null;
 fan.addEventListener('pointerdown', e=>{ if(spread?.carousel) swipeX=e.clientX; });
 fan.addEventListener('pointerup', e=>{
   if(!spread?.carousel || swipeX===null) return;
   const dx=e.clientX-swipeX; swipeX=null;
-  if(Math.abs(dx)>40){ turnCarousel(spread.carousel.f+(dx<0 ? 1 : -1)); return; }
-  const j=spread.cards.findIndex(c=>c.classList.contains('aside') && inCard(c._state, e.clientX, e.clientY));
-  if(j>=0) turnCarousel(j);
+  if(Math.abs(dx)>40) turnStack(dx<0 ? 1 : -1);
+  else if(inCard(spread.cards[spread.carousel.order[0]]._state, e.clientX, e.clientY)) turnStack(1);
 });
 // poses of n face-up cards side by side that, with their captions above and `panel` under them, fit the viewport
 function fitRow(panel, n){
@@ -777,11 +794,20 @@ function spreadSummary(els){
   return out.join(' ');
 }
 
+// how dark the table around `except` is: 0 not at all, 1 half, 2 fully
+function setDim(level, except){
+  document.querySelectorAll('.fcard').forEach(c=>{
+    c.classList.toggle('dim', level===2 && c!==except); c.classList.toggle('dim-soft', level===1 && c!==except);
+  });
+  dimOverlay.classList.toggle('on', level===2); dimOverlay.classList.toggle('soft', level===1);
+}
+
 const isDesktop=()=>matchMedia('(hover:hover) and (pointer:fine)').matches;
 
 // The card lies open: its description surfaces, and on desktop its name, huge, behind it.
 function onCardOpened(el){
   setEndRow(spread && spread.i<POSITIONS.length-1);
+  if(spread && !el._fromDeck) setDim(2, el);
   meaningPanel.classList.add('show'); busy=false;
   inkReveal(document.getElementById('mName'), {delay:.3});
   const mText=document.getElementById('mText'), words=mText.textContent.trim().split(/\s+/).length;
@@ -1055,7 +1081,7 @@ function tuckUnderDeck(els, onBack){
   dimOverlay.classList.remove('on'); gsap.to(deckStack,{opacity:1, duration:.8});
   const tl=gsap.timeline();
   els.forEach((el,i)=>{
-    const s=el._state; gsap.killTweensOf(s); el.classList.remove('dim'); el.style.zIndex=1000+i;
+    const s=el._state; gsap.killTweensOf(s); el.classList.remove('dim', 'dim-soft', 'lit'); el.style.zIndex=1000+i;
     tl.to(s,{x:rest.x, y:rest.y+out, rot, w, h, ry:0, tx:0, ty:0, duration:1.2, ease:'power2.inOut', onUpdate:()=>renderCard(el,s)}, i*.15);
   });
   tl.call(()=>{
@@ -1083,8 +1109,7 @@ function resetDeckStack(){
 function gatherDeck(el, extras=[]){
   const s=el._state, render=()=>renderCard(el,s);
   gsap.killTweensOf(s);
-  document.querySelectorAll('.fcard').forEach(c=>c.classList.remove('dim'));
-  dimOverlay.classList.remove('on');
+  setDim(0);
   const {angleStart, angleEnd, rOuter, rInner, pivotX, pivotY}=fanLayout;
   const pop={a:angleStart, r:rInner};
   const place=()=>{ const t=pop.a*Math.PI/180; s.x=pivotX+pop.r*Math.sin(t); s.y=pivotY-pop.r*Math.cos(t); s.rot=pop.a; render(); };

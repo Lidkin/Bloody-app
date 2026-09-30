@@ -78,10 +78,8 @@ body:not(.fonts-ready) h1.title{visibility:hidden;}
 /* the negative margin cancels the spacing after the last digit */
 .ask-sub .countdown{display:block; width:fit-content; margin:3px auto 0; font-family:var(--head-font); font-style:normal; font-size:16px;
   line-height:1; letter-spacing:.18em; color:var(--accent); opacity:.8; font-variant-numeric:tabular-nums;}
-/* the coffee cup of the altar cloth beside the countdown: come back tomorrow, with your morning coffee */
 .ask-sub .cd-row{display:flex; align-items:center; justify-content:center; gap:7px; margin-top:3px;}
 .ask-sub .cd-row .countdown{margin:0;}
-.ask-sub .cd-cup{height:24px; width:auto; opacity:.85; margin-left:-30px;}
 /* the fortune-teller's whisper under the choice of readings, answered by "Теперь ты знаешь" at the end; it keeps
    room above it for the countdown hanging under "Карта дня", so the two never meet on a short screen */
 .whisper{position:relative; margin-top:66px; z-index:5; text-align:center;
@@ -211,10 +209,6 @@ body:not(.noir) .big-name{font-family:'Cinzel',serif; color:#5e4c25;}
   text-transform:uppercase; margin-bottom:6px;}
 .meaning-panel .pos-label:empty{display:none;}
 /* the suit's drawing over the name: the long wand and sword by width, the cup and pentacle by height */
-.meaning-panel .suit-icon{display:block; margin:0 auto 6px; opacity:.8; height:auto;}
-.meaning-panel .suit-icon[hidden]{display:none;}
-.suit-icon.wand{width:92px;} .suit-icon.sword{width:78px;}
-.suit-icon.cup, .suit-icon.pentacle{width:auto; height:30px;}
 .meaning-panel h2{font-family:var(--head-font); color:var(--accent); letter-spacing:1.5px; font-size:19px; margin:0 0 2px;}
 /* the card's own title from the guidebook, Minor Arcana only */
 .meaning-panel .card-title{display:block; font-style:italic; color:var(--ink); opacity:.8; font-size:16px; margin:0 0 4px;}
@@ -269,8 +263,6 @@ body.noir .cta{background:var(--red); color:#fff; box-shadow:0 0 18px rgba(228,3
 .finale-row .cta{order:-2;}
 .finale-row .row-break{order:-1; flex-basis:100%; height:14px;}
 .finale #fDeck{margin-bottom:14px;}
-/* the knife from the altar cloth parts what the cards said from the way to the deck */
-.finale .divider{display:block; width:150px; height:auto; margin:4px auto 14px; opacity:.5;}
 @media (hover:hover) and (pointer:fine) and (min-width:760px){
   .finale{max-width:760px;}
   .finale #fDeck{max-width:none; white-space:nowrap;}

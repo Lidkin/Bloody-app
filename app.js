@@ -1231,17 +1231,15 @@ function wrapLines(x, str, font, maxW){
   str.split(' ').forEach(w=>{ const t=(lines.at(-1)+' '+w).trim(); x.measureText(t).width>maxW ? lines.push(w) : lines[lines.length-1]=t; });
   return lines;
 }
-// The card always stands upright, so its picture reads well; a reversed one says so in words, and the
-// meaning given is the reversed one
+// the card lies as it fell; the meaning given is the one of that position
 async function drawCardStory(el){
   const card=el._card, reversed=el.dataset.reversed==='true';
   const {c, x, W, text}=storyCanvas('КАРТА ДНЯ');
   text(card.name.toUpperCase(), 280, '500 84px Oswald', '#f2efea', 6, W/2, W-120);
-  const cw=580, cy=350, ch=await drawStoryCard(x, card, false, (W-cw)/2, cy, cw);
-  text(reversed ? 'ВЫПАЛА В ПЕРЕВЁРНУТОМ ПОЛОЖЕНИИ' : 'ПРЯМОЕ ПОЛОЖЕНИЕ', cy+ch+90, '500 32px Oswald', '#e42423', 6);
+  const cw=580, cy=350, ch=await drawStoryCard(x, card, reversed, (W-cw)/2, cy, cw);
   const font='italic 500 46px "Cormorant Garamond"';
   const meaning=reversed ? card.rev : card.up;
-  wrapLines(x, meaning[0].toUpperCase()+meaning.slice(1), font, W-200).forEach((l,i)=>text(l, cy+ch+160+i*60, font, '#d9d4ce'));
+  wrapLines(x, meaning[0].toUpperCase()+meaning.slice(1), font, W-200).forEach((l,i)=>text(l, cy+ch+110+i*60, font, '#d9d4ce'));
   return {c, name:'card-of-the-day.png', title:'Карта дня', text:`Моя карта дня — ${card.name}. Bloody Feast Tarot: ${ETSY_URL}`};
 }
 // the spread: its three cards side by side, each under its position and over its name, then the summary
@@ -1252,14 +1250,12 @@ async function drawSpreadStory(els){
   for(const [i, el] of els.entries()){
     const cx=left+i*(cw+gap), mid=cx+cw/2;
     text(POSITIONS[i].toUpperCase(), cy-40, '500 30px Oswald', '#e42423', 6, mid);
-    // upright like the card of the day, a reversed one marked under its name
-    ch=await drawStoryCard(x, el._card, false, cx, cy, cw);
+    ch=await drawStoryCard(x, el._card, el.dataset.reversed==='true', cx, cy, cw);
     text(el._card.name.toUpperCase(), cy+ch+64, '500 32px Oswald', '#f2efea', 2, mid, cw+gap-10);
-    if(el.dataset.reversed==='true') text('ПЕРЕВЁРНУТАЯ', cy+ch+108, '500 24px Oswald', '#e42423', 4, mid);
   }
   // the summary, wrapped to the width of the row
   const font='italic 500 40px "Cormorant Garamond"';
-  wrapLines(x, spreadSummary(els), font, W-160).forEach((l,i)=>text(l, cy+ch+200+i*54, font, '#d9d4ce'));
+  wrapLines(x, spreadSummary(els), font, W-160).forEach((l,i)=>text(l, cy+ch+170+i*54, font, '#d9d4ce'));
   return {c, name:'three-cards.png', title:'Три карты',
     text:`Мой расклад: ${els.map((e,i)=>POSITIONS[i]+' — '+e._card.name).join(', ')}. Bloody Feast Tarot: ${ETSY_URL}`};
 }

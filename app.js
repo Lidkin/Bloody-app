@@ -212,7 +212,7 @@ ru:{title:'Таро Лидии Хаит', comeBack:'возвращайся че�
   next:'Далее', finish:'Завершить', nowYouKnow:'Теперь ты знаешь',
   deckOne:'Эта карта — из колоды <b>Bloody Feast Tarot</b>: все 78 карт с авторской графикой в файле для печати на Etsy.',
   deckMany:'Эти карты — из колоды <b>Bloody Feast Tarot</b>: все 78 карт с авторской графикой в файле для печати на Etsy.',
-  etsy:'Купить колоду', etsyPrint:'Колода для печати · купить на Etsy', rotate:'Поверни телефон вертикально', heading:'Таро «Кровавый пир» от Лидии Хаит', share:'Поделиться', gather:'Собрать колоду', onceMore:'<span class="ic">↺</span> Ещё раз',
+  etsy:'Купить колоду', etsyPrint:'Колода для печати · купить на Etsy', rotate:'Поверни телефон вертикально', touchDeck:'коснись колоды', heading:'Таро «Кровавый пир» от Лидии Хаит', share:'Поделиться', gather:'Собрать колоду', onceMore:'<span class="ic">↺</span> Ещё раз',
   again:'↺ Новое гадание', saved:'Картинка сохранена — её можно выложить в сторис',
   storyDay:'КАРТА ДНЯ', storyThree:'ТРИ КАРТЫ', storyAsk:'А ЧТО ВЫПАДЕТ ТЕБЕ?',
   shareDay:name=>`Моя карта дня — ${name}.`, shareSpreadText:list=>`Мой расклад: ${list}.`,
@@ -233,7 +233,7 @@ en:{title:'Tarot by Lidiia Khait', comeBack:'come back in', whisper:'do you want
   next:'Next', finish:'Finish', nowYouKnow:'Now you know',
   deckOne:'This card comes from the <b>Bloody Feast Tarot</b> deck: all 78 cards with original artwork in a printable file on Etsy.',
   deckMany:'These cards come from the <b>Bloody Feast Tarot</b> deck: all 78 cards with original artwork in a printable file on Etsy.',
-  etsy:'Buy the deck', etsyPrint:'Printable deck · buy on Etsy', rotate:'Turn your phone upright', heading:'Bloody Feast Tarot deck by Lidiia Khait', share:'Share', gather:'Gather the deck', onceMore:'<span class="ic">↺</span> Once more',
+  etsy:'Buy the deck', etsyPrint:'Printable deck · buy on Etsy', rotate:'Turn your phone upright', touchDeck:'touch the deck', heading:'Bloody Feast Tarot deck by Lidiia Khait', share:'Share', gather:'Gather the deck', onceMore:'<span class="ic">↺</span> Once more',
   again:'↺ New reading', saved:'Image saved — you can post it to your story',
   storyDay:'CARD OF THE DAY', storyThree:'THREE CARDS', storyAsk:'WHAT WILL YOU DRAW?',
   shareDay:name=>`My card of the day: ${name}.`, shareSpreadText:list=>`My spread: ${list}.`,
@@ -409,8 +409,20 @@ function shufflePass(){
 }
 // runs `then` once the deck is whole again: at once, or when the card now out of the deck is back in
 function afterShufflePass(then){ passing ? afterPass=then : then(); }
+// phones: until the deck has once been touched, the whisper now and then gives way to "коснись колоды"
+let deckTouched=false; try{ deckTouched=DAY_LOCK && localStorage.getItem('deckTouched')==='1'; }catch(e){}
+let hintShown=false;
+setInterval(()=>{
+  if(isDesktop() || whisper.classList.contains('gone') || (deckTouched && !hintShown)) return;
+  whisper.classList.add('swap');
+  setTimeout(()=>{
+    hintShown=!hintShown && !deckTouched;
+    whisper.textContent=tr(hintShown ? 'touchDeck' : 'whisper'); whisper.classList.remove('swap');
+  }, 800);
+}, 4000);
 deckStack.addEventListener('pointerenter', ()=>{
   deckHovered=true;
+  if(!deckTouched){ deckTouched=true; try{ localStorage.setItem('deckTouched', '1'); }catch(e){} }
   if(deckAtRest()){ deckStack.classList.add('lit'); if(!passing) shufflePass(); }
 });
 deckStack.addEventListener('pointerleave', ()=>{ deckHovered=false; deckStack.classList.remove('lit'); });
@@ -971,7 +983,26 @@ function showCarousel(){
     gsap.to(s,{...stackPose(d), duration:1, delay:(els.length-1-d)*.15, ease:'power2.out', onUpdate:()=>renderCard(c,s)});
   });
   fillCarouselText(els[0]); activeCard=els[0];
-  gsap.delayedCall(1.4, ()=>{ spread.summary=true; finale.classList.add('show'); busy=false; });
+  fan.classList.add('carousel'); placeCarArrows();
+  gsap.delayedCall(1.4, ()=>{ spread.summary=true; finale.classList.add('show'); busy=false; gsap.delayedCall(.6, peekStack); });
+}
+// the arrows stand in the margins just beside the stack, level with its middle
+const carPrev=document.getElementById('carPrev'), carNext=document.getElementById('carNext');
+function placeCarArrows(){
+  const P=spread.carousel.pose, d=Math.min(P.w/2+46, innerWidth/2-22);
+  carPrev.style.left=P.x-d+'px'; carNext.style.left=P.x+d+'px';
+  carPrev.style.top=carNext.style.top=P.y+'px';
+}
+carPrev.addEventListener('click', ()=>spread?.carousel && turnStack(-1));
+carNext.addEventListener('click', ()=>spread?.carousel && turnStack(1));
+// once, as the stack is laid out, its top card slides a little aside and back: the cards can be turned
+function peekStack(){
+  const C=spread?.carousel; if(!C || busy) return;
+  const c=spread.cards[C.order[0]], s=c._state, P=C.pose, render=()=>renderCard(c,s);
+  busy=true;
+  gsap.timeline({onComplete:()=>{ busy=false; }})
+    .to(s,{x:P.x-P.w*.3, y:P.y-4, rot:-6, duration:.5, ease:'power2.out', onUpdate:render})
+    .to(s,{...stackPose(0), duration:.6, ease:'power2.inOut', onUpdate:render});
 }
 // depth 0 is the top card; the ones under it lie a little askew, so their edges show
 function stackPose(d){
@@ -1441,7 +1472,7 @@ function flyHome(el){
 // the deck is back on the velvet: after the card of the day the time left until the next one is shown
 function endReading(){
   if(mode==='day') dayDone=true;
-  spread=null; fan.querySelectorAll('.spread-cap, .pick-list').forEach(e=>e.remove());
+  spread=null; fan.classList.remove('carousel'); fan.querySelectorAll('.spread-cap, .pick-list').forEach(e=>e.remove());
   setAskSub(); showStart(true);
 }
 // once the card of the day is drawn, the line under the options counts down to the next one, at local

@@ -84,7 +84,7 @@ body:not(.fonts-ready) h1.title{visibility:hidden;}
    room above it for the countdown hanging under "Карта дня", so the two never meet on a short screen */
 .whisper{position:relative; margin-top:66px; z-index:5; text-align:center;
   color:var(--muted); font-size:18px; font-style:italic; letter-spacing:1px; opacity:.8; pointer-events:none; transition:opacity .8s ease-in-out;}
-.whisper.gone{opacity:0;}
+.whisper.gone, .whisper.swap{opacity:0;}
 body:not(.fonts-ready) .whisper{visibility:hidden;}
 .ask-sub .countdown::after{content:''; margin-right:-.18em;}
 body:not(.fonts-ready) .ask-sub{visibility:hidden;}
@@ -92,26 +92,35 @@ body:not(.fonts-ready) .ask-sub{visibility:hidden;}
 /* the two readings under the deck, each one starts its own; above the swirling cards (z up to ~2000) */
 .spread-options{position:relative; z-index:3000; display:flex; gap:44px; justify-content:center; margin-top:34px; transition:opacity .5s ease-in-out;}
 .spread-options.gone{opacity:0; pointer-events:none;}
-/* words that ask to be pressed fill with red from the left while pointed at or tapped; the red band has half
-   a word of plain colour on each side, so no glyph reaching past its box (the foot of Д) catches a sliver of
-   it at rest */
-.opt, .finish-btn .fill{color:transparent; -webkit-background-clip:text; background-clip:text;
+/* "Далее" / "Завершить" / "Узнать" fill with red from the left while pointed at or tapped; the red band has
+   half a word of plain colour on each side, so no glyph reaching past its box (the foot of Д) catches a sliver
+   of it at rest */
+.finish-btn .fill{color:transparent; -webkit-background-clip:text; background-clip:text;
   background-image:linear-gradient(90deg, var(--accent) 37.5%, var(--red) 37.5% 62.5%, var(--accent) 62.5%);
   background-size:400% 100%; background-position:100% 0; transition:background-position .6s ease;}
 /* without a pointer to hover with (phones), red keeps passing through them, so they read as buttons */
-@media not all and (hover:hover) and (pointer:fine){ .opt, .finish-btn .fill{animation:call 3.6s ease-in-out infinite;} }
+@media not all and (hover:hover) and (pointer:fine){ .finish-btn .fill{animation:call 3.6s ease-in-out infinite;} }
 @keyframes call{0%{background-position:100% 0;} 28%, 58%{background-position:50% 0;} 86%, 100%{background-position:0 0;}}
-.opt{position:relative; border:none; padding:8px 0; font-family:var(--head-font); font-size:19px;
-  letter-spacing:3px; margin-right:-3px; cursor:pointer; text-transform:uppercase;
-  filter:drop-shadow(0 0 6px rgba(var(--accent-rgb),.35)); transition:background-position .6s ease, filter .35s ease, opacity .35s ease;}
-.opt + .opt, .opt-col + .opt{animation-delay:1.8s;} /* the two readings take turns */
+.opt{position:relative; background:none; border:none; padding:8px 0; font-family:var(--head-font); font-size:19px;
+  letter-spacing:3px; margin-right:-3px; color:var(--accent); cursor:pointer; text-transform:uppercase;
+  text-shadow:0 0 12px rgba(var(--accent-rgb),.45); transition:color .35s ease, text-shadow .35s ease, opacity .35s ease;}
 .opt::after{content:''; position:absolute; left:0; right:3px; bottom:0; height:1px; background:var(--red);
   transform:scaleX(0); transition:transform .35s ease;}
-.opt.done{opacity:.45; filter:none; cursor:default; animation:none;}
+.opt.done{opacity:.45; text-shadow:none; cursor:default;}
 @media (hover:hover) and (pointer:fine){
   .opt:not(.done):hover::after{transform:scaleX(1);}
 }
-@media not all and (hover:hover) and (pointer:fine){ .opt:not(.done):active{animation:none; background-position:50% 0; filter:drop-shadow(0 0 8px rgba(228,36,35,.6));} }
+/* phones: a thin frame shows round one reading, then round the other - pick one; once the card of the day is
+   drawn, only "Три карты" keeps calling. It lies outside the words' box, so nothing moves */
+@media not all and (hover:hover) and (pointer:fine){
+  .opt::before{content:''; position:absolute; top:0; bottom:0; left:-18px; right:-15px; border:1px solid rgba(var(--accent-rgb),.55);
+    border-radius:24px; opacity:0; animation:frame 4s ease-in-out infinite; pointer-events:none;}
+  .opt-col + .opt::before{animation-delay:2s;}
+  .opt.done::before{animation:none; opacity:0;}
+  .opt:not(.done):active{color:var(--red); text-shadow:0 0 10px rgba(228,36,35,.7), 0 0 24px rgba(228,36,35,.45);}
+  .opt:not(.done):active::before{animation:none; opacity:1; border-color:var(--red);}
+}
+@keyframes frame{0%{opacity:0;} 15%, 35%{opacity:1;} 50%, 100%{opacity:0;}}
 body:not(.fonts-ready) .spread-options{visibility:hidden;}
 
 /* ---------- FAN ---------- */
@@ -331,3 +340,9 @@ body.noir h1.title{opacity:.75;}
     gap:14px; background:#050303; color:var(--ink); font-size:19px; font-style:italic; letter-spacing:.5px; text-align:center;}
   .rotate-note .rot-ic{font-size:34px; font-style:normal; color:var(--red); line-height:1;}
 }
+/* phones, three cards: arrows in the free margins beside the stack; placeCarArrows (app.js) sets their height */
+.car-arrow{position:fixed; z-index:1200; transform:translate(-50%,-50%); background:none; border:none; padding:14px 12px;
+  font-family:var(--head-font); font-size:40px; line-height:1; color:var(--accent); opacity:0; pointer-events:none;
+  text-shadow:0 0 10px rgba(0,0,0,.8); transition:opacity .5s ease-in-out, color .2s;}
+.fan.carousel ~ .finale.show ~ .car-arrow{opacity:.75; pointer-events:auto;}
+.car-arrow:active{color:var(--red); opacity:1 !important;}

@@ -153,10 +153,14 @@ body:not(.fonts-ready) .spread-options{visibility:hidden;}
 /* a card lying face down in an arc: a thin paper edge along its left side, where it overlaps its neighbour */
 .face.back{box-shadow:-1px .5px 0 #d6cfc6, -1.8px .9px 0 #6f675f, 0 7px 16px rgba(20,2,2,.85);}
 .fcard.mirrored .face.back{box-shadow:1px .5px 0 #d6cfc6, 1.8px .9px 0 #6f675f, 0 7px 16px rgba(20,2,2,.85);} /* lower arc: overlaps its right neighbour */
-.face.front{transform:rotateY(180deg); background:#1a0f14;}
-.face.front .reversed{transform:rotate(180deg);}
+.face.front{transform:rotateY(180deg);}
+.face.front::before{content:''; position:absolute; inset:0; background:#1a0f14;}
+/* every layer that fills a whole card rounds its own corners, for the same iOS reason as the card images */
+.paper, .face.front .gloss, .face.front .tface, .face.front::before{clip-path:var(--card-clip); -webkit-clip-path:var(--card-clip);}
+/* the bleed is uneven, so a card turned upside down is cut along the mirrored line to still fill its card exactly */
+.face.front .reversed{transform:rotate(180deg); clip-path:var(--img-clip-rev); -webkit-clip-path:var(--img-clip-rev);}
 /* a face with artwork is white paper until its picture has loaded, then the picture fades in */
-.face.front:has(> img.fart){background:#fff;}
+.face.front:has(> img.fart)::before{background:#fff;}
 .face.front img.fart{opacity:0; transition:opacity .3s ease;}
 .face.front img.fart.loaded{opacity:1;}
 img{-webkit-user-drag:none; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none;}

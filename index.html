@@ -13,6 +13,7 @@
 <canvas id="dust"></canvas>
 <div class="vignette"></div>
 <h1 class="title">Deck by Lidiia Khait</h1>
+<div class="lang-switch" id="langSwitch"><button data-lang="ru">RU</button><span>/</span><button data-lang="en">EN</button></div>
 
 <div class="scene" id="opening">
   <div class="velvet" id="velvet">
@@ -20,11 +21,11 @@
       <div class="dcard"><img src="assets/card-back.png" alt=""><div class="paper"></div></div><div class="dcard"><img src="assets/card-back.png" alt=""><div class="paper"></div></div><div class="dcard"><img src="assets/card-back.png" alt=""><div class="paper"></div></div>
     </div>
   </div>
-  <button class="ask-btn" id="askBtn">Задать вопрос</button>
+  <button class="ask-btn" id="askBtn" data-i18n="ask">Задать вопрос</button>
   <div class="ask-sub" id="askSub">ты хочешь знать?</div>
   <div class="spread-options" id="spreadOpts">
-    <button class="opt active" data-mode="day">Карта дня</button>
-    <button class="opt" data-mode="three">Три карты</button>
+    <button class="opt active" data-mode="day" data-i18n="optDay">Карта дня</button>
+    <button class="opt" data-mode="three" data-i18n="optThree">Три карты</button>
   </div>
 </div>
 
@@ -38,7 +39,7 @@
     <span class="orient" id="mOrient"></span>
     <p id="mText"></p>
     <div class="meaning-end">
-      <span class="end-phrase" id="endPhrase">Теперь ты знаешь</span>
+      <span class="end-phrase" id="endPhrase" data-i18n="nowYouKnow">Теперь ты знаешь</span>
       <span class="end-rule" id="endRule"></span>
       <button class="finish-btn" id="finishBtn"><span class="fill">Завершить</span> <span class="fill arrow">→</span></button>
     </div>
@@ -51,12 +52,12 @@
       <p id="fText"></p>
     </div>
     <p class="summary" id="fSummary" hidden></p>
-    <p><span id="fWhat">Эта карта</span> — из колоды <b>Bloody Feast Tarot</b>: все 78 карт с авторской графикой в файле для печати.</p>
-    <a class="cta" id="etsyBtn" target="_blank" rel="noopener">Колода на Etsy</a>
+    <p id="fDeck"></p>
+    <a class="cta" id="etsyBtn" target="_blank" rel="noopener" data-i18n="etsy">Колода на Etsy</a>
     <div class="finale-row">
       <button class="return-btn" id="shareBtn">Поделиться картой</button>
-      <button class="link-btn" id="gatherBtn">Собрать колоду</button>
-      <button class="link-btn" id="againBtn" hidden>↺ Новое гадание</button>
+      <button class="link-btn" id="gatherBtn" data-i18n="gather">Собрать колоду</button>
+      <button class="link-btn" id="againBtn" hidden data-i18n="again">↺ Новое гадание</button>
     </div>
   </div>
   <div class="toast" id="toast"></div>

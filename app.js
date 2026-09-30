@@ -13,7 +13,10 @@ const CARD_ASPECT=CUT.w/CUT.h, CARD_RADIUS=40/CUT.w; // corner radius as a share
 gsap.globalTimeline.timeScale(.8);
 const ART = [null, "assets/the-magician.png"];
 /* ---------- deck data ---------- */
-const MAJOR = [
+// the deck in both languages; a card's name and meanings follow the current language (see "language" below)
+const DATA={
+ru:{
+MAJOR:[
 ["Шут","Начало пути, спонтанность, безрассудная свобода.","Опрометчивость, страх сделать первый шаг."],
 ["Маг","Воля, мастерство — все ресурсы уже в ваших руках.","Манипуляция, нереализованный потенциал, обман."],
 ["Верховная Жрица","Интуиция, тайное знание, тишина перед ответом.","Скрытые мотивы, отрыв от внутреннего голоса."],
@@ -36,23 +39,114 @@ const MAJOR = [
 ["Солнце","Радость, ясность, успех и жизненная сила.","Временное затмение радости, завышенные ожидания."],
 ["Суд","Пробуждение, возрождение, итог и призвание.","Самокритика, отказ услышать зов, застревание."],
 ["Мир","Завершение цикла, целостность, достижение цели.","Незавершённость, задержка финала."]
-];
-const SUITS = {w:["Жезлов","энергию и действие"],c:["Кубков","чувства и отношения"],s:["Мечей","мысли и конфликты"],p:["Пентаклей","материю и стабильность"]};
-const RANKS = ["Туз","Двойка","Тройка","Четвёрка","Пятёрка","Шестёрка","Семёрка","Восьмёрка","Девятка","Десятка","Паж","Рыцарь","Королева","Король"];
-const RMEAN = ["новое начало и потенциал","выбор и баланс сил","рост через сотрудничество","передышка и переоценка","испытание и трение",
+],
+SUITS:{w:["Жезлов","энергию и действие"],c:["Кубков","чувства и отношения"],s:["Мечей","мысли и конфликты"],p:["Пентаклей","материю и стабильность"]},
+RANKS:["Туз","Двойка","Тройка","Четвёрка","Пятёрка","Шестёрка","Семёрка","Восьмёрка","Девятка","Десятка","Паж","Рыцарь","Королева","Король"],
+RMEAN:["новое начало и потенциал","выбор и баланс сил","рост через сотрудничество","передышка и переоценка","испытание и трение",
   "движение к гармонии","переоценка стратегии","сосредоточенное усилие","почти достигнутая цель","итог цикла, полнота",
-  "любопытство и весть","решительное движение","зрелое владение темой","полная реализация и власть"];
+  "любопытство и весть","решительное движение","зрелое владение темой","полная реализация и власть"],
+minor:(rank,suit,mean,theme)=>[rank+" "+suit, mean+" — через призму "+theme+".", "блок, задержка или искажение в теме «"+theme+"»."]
+},
+en:{
+MAJOR:[
+["The Fool","New beginnings, spontaneity, reckless freedom.","Recklessness, fear of taking the first step."],
+["The Magician","Willpower, mastery — every resource is already in your hands.","Manipulation, untapped potential, deceit."],
+["The High Priestess","Intuition, secret knowledge, the silence before the answer.","Hidden motives, losing touch with your inner voice."],
+["The Empress","Abundance, creativity, care and fertility.","Stagnation, smothering, creative block."],
+["The Emperor","Structure, authority, stability through discipline.","Tyranny, rigidity, loss of control."],
+["The Hierophant","Tradition, learning, spiritual guidance.","Dogma, rebellion against the system, false authority."],
+["The Lovers","Choice, union, harmony of values.","Discord, a wrong choice, imbalance."],
+["The Chariot","Victory through will, moving forward.","Loss of direction, aggression, getting stuck."],
+["Strength","Inner fortitude, gently taming the passions.","Weak will, self-doubt, hidden rage."],
+["The Hermit","Solitude, searching for the truth within.","Isolation, refusing help, loneliness."],
+["Wheel of Fortune","Change, the cycles of fate, a turning point.","Resisting change, bad luck, stagnation."],
+["Justice","Cause and effect, honesty, balance.","Injustice, dodging responsibility."],
+["The Hanged Man","A pause, a new perspective, sacrifice for the sake of insight.","Pointless sacrifice, getting stuck, delay."],
+["Death","Endings, transformation, letting go of the old.","Resisting the end, fear of change."],
+["Temperance","Harmony, patience, the alchemy of opposites.","Imbalance, extremes, impatience."],
+["The Devil","Attachment, temptation, the illusion of being trapped.","Breaking free from dependence, insight."],
+["The Tower","Sudden collapse, revelation, a liberating crisis.","A delayed collapse, fear of change, avoidance."],
+["The Star","Hope, inspiration, healing after the storm.","Despair, loss of faith, exhaustion."],
+["The Moon","Uncertainty, the subconscious, hidden fears.","Illusions clearing, coming out of the fog."],
+["The Sun","Joy, clarity, success and vitality.","Joy briefly eclipsed, inflated expectations."],
+["Judgement","Awakening, rebirth, reckoning and calling.","Self-criticism, refusing to hear the call, getting stuck."],
+["The World","The completion of a cycle, wholeness, reaching the goal.","Something left unfinished, a delayed ending."]
+],
+SUITS:{w:["Wands","energy and action"],c:["Cups","feelings and relationships"],s:["Swords","thoughts and conflicts"],p:["Pentacles","material matters and stability"]},
+RANKS:["Ace","Two","Three","Four","Five","Six","Seven","Eight","Nine","Ten","Page","Knight","Queen","King"],
+RMEAN:["a new beginning and potential","choice and a balance of forces","growth through cooperation","a respite and reassessment","trial and friction",
+  "moving towards harmony","rethinking the strategy","focused effort","a goal almost reached","the end of a cycle, fullness",
+  "curiosity and news","decisive movement","mature command of the matter","full realisation and power"],
+minor:(rank,suit,mean,theme)=>[rank+" of "+suit, mean+" — through the lens of "+theme+".", "a block, delay or distortion in "+theme+"."]
+}};
 
 let DECK = [];
 let id=0;
 const ROMAN=["0","I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII","XIII","XIV","XV","XVI","XVII","XVIII","XIX","XX","XXI"];
-MAJOR.forEach((m,i)=>DECK.push({id:id++, name:m[0], up:m[1], rev:m[2], art:ART[i]?i:null, major:true, num:ROMAN[i]}));
-Object.entries(SUITS).forEach(([k,[label,theme]])=>{
-  RANKS.forEach((r,i)=>{
-    DECK.push({id:id++, name:r+" "+label, up:RMEAN[i]+" — через призму "+theme+".",
-      rev:"блок, задержка или искажение в теме «"+theme+"».", art:null, major:false, suit:k});
-  });
-});
+const SUIT_KEYS=['w','c','s','p'];
+function cardText(l, i){ // [name, up, rev] of card i in language l
+  const d=DATA[l];
+  if(i<22) return d.MAJOR[i];
+  const k=SUIT_KEYS[Math.floor((i-22)/14)], r=(i-22)%14;
+  return d.minor(d.RANKS[r], d.SUITS[k][0], d.RMEAN[r], d.SUITS[k][1]);
+}
+const textOf=c=>cardText(lang, c.id);
+for(let i=0;i<78;i++){
+  const major=i<22, c={id:id++, art:major && ART[i] ? i : null, major};
+  if(major) c.num=ROMAN[i]; else c.suit=SUIT_KEYS[Math.floor((i-22)/14)];
+  Object.defineProperties(c,{name:{get(){return textOf(c)[0];}}, up:{get(){return textOf(c)[1];}}, rev:{get(){return textOf(c)[2];}}});
+  DECK.push(c);
+}
+
+/* ---------- language ---------- */
+const UI={
+ru:{title:'Таро Лидии Хаит', ask:'Задать вопрос', askSub:'ты хочешь знать?', comeBack:'возвращайся через',
+  optDay:'Карта дня', optThree:'Три карты', positions:['Прошлое','Настоящее','Будущее'],
+  upright:'Прямое положение', reversed:'Перевёрнутое положение', pickHint:'выбери три карты', reveal:'Узнать',
+  next:'Далее', finish:'Завершить', nowYouKnow:'Теперь ты знаешь',
+  deckOne:'Эта карта — из колоды <b>Bloody Feast Tarot</b>: все 78 карт с авторской графикой в файле для печати.',
+  deckMany:'Эти карты — из колоды <b>Bloody Feast Tarot</b>: все 78 карт с авторской графикой в файле для печати.',
+  etsy:'Колода на Etsy', shareCard:'Поделиться картой', shareSpread:'Поделиться раскладом', gather:'Собрать колоду',
+  again:'↺ Новое гадание', saved:'Картинка сохранена — её можно выложить в сторис',
+  storyDay:'КАРТА ДНЯ', storyThree:'ТРИ КАРТЫ',
+  shareDay:name=>`Моя карта дня — ${name}.`, shareSpreadText:list=>`Мой расклад: ${list}.`,
+  q:n=>`«${n}»`,
+  majors:['Старших арканов нет — всё решается в повседневном, и многое в твоих руках.',
+    n=>`${n} — единственный Старший аркан и главная точка расклада.`,
+    'Два Старших аркана — за вопросом стоят большие перемены.',
+    'Все три карты — Старшие арканы: это важный этап жизни, а не случайность.'],
+  suit:(three,k)=>`${three ? 'Все три карты' : 'Две карты'} — масти ${DATA.ru.SUITS[k][0]}: в центре вопроса ${{w:'энергия и действие', c:'чувства и отношения', s:'мысли и конфликты', p:'материя и стабильность'}[k]}.`,
+  sameCard:'Эта же карта',
+  revs:['Все карты прямые — ничто не мешает движению.',
+    n=>`${n} легла перевёрнутой — здесь энергия застревает.`,
+    'Две карты перевёрнуты — сначала стоит разобраться с тем, что мешает.',
+    'Все карты перевёрнуты — время посмотреть внутрь себя, прежде чем действовать.']},
+en:{title:'Tarot by Lidiia Khait', ask:'Ask a question', askSub:'do you want to know?', comeBack:'come back in',
+  optDay:'Card of the day', optThree:'Three cards', positions:['Past','Present','Future'],
+  upright:'Upright', reversed:'Reversed', pickHint:'choose three cards', reveal:'Reveal',
+  next:'Next', finish:'Finish', nowYouKnow:'Now you know',
+  deckOne:'This card comes from the <b>Bloody Feast Tarot</b> deck: all 78 cards with original artwork in a printable file.',
+  deckMany:'These cards come from the <b>Bloody Feast Tarot</b> deck: all 78 cards with original artwork in a printable file.',
+  etsy:'Get the deck on Etsy', shareCard:'Share the card', shareSpread:'Share the spread', gather:'Gather the deck',
+  again:'↺ New reading', saved:'Image saved — you can post it to your story',
+  storyDay:'CARD OF THE DAY', storyThree:'THREE CARDS',
+  shareDay:name=>`My card of the day: ${name}.`, shareSpreadText:list=>`My spread: ${list}.`,
+  q:n=>`“${n}”`,
+  majors:['No Major Arcana — it all comes down to everyday matters, and much is in your hands.',
+    n=>`${n} is the only Major Arcana card and the key point of the spread.`,
+    'Two Major Arcana — big changes stand behind the question.',
+    'All three cards are Major Arcana: this is an important stage of life, not a coincidence.'],
+  suit:(three,k)=>`${three ? 'All three cards are' : 'Two cards are'} ${DATA.en.SUITS[k][0]}: the question centres on ${DATA.en.SUITS[k][1]}.`,
+  sameCard:'The same card',
+  revs:['All cards are upright — nothing stands in the way.',
+    n=>`${n} fell reversed — this is where the energy gets stuck.`,
+    'Two cards are reversed — first deal with what is holding you back.',
+    'All cards are reversed — time to look within before you act.']}
+};
+let lang=(()=>{ try{ const l=localStorage.getItem('lang'); if(UI[l]) return l; }catch(e){}
+  return /^ru|^uk|^be/i.test(navigator.language||'') ? 'ru' : 'en'; })();
+const tr=k=>UI[lang][k];
+const POSITIONS=[...UI[lang].positions];
 
 document.fonts.ready.then(()=>document.body.classList.add('fonts-ready'));
 
@@ -97,8 +191,7 @@ function showToast(msg){toast.textContent=msg; toast.classList.add('show'); setT
 
 // The ask button starts the shuffle and then turns into "Довольно": the deck keeps shuffling until
 // the user stops it, like in a real reading.
-const askBtn=document.getElementById('askBtn');
-const ASK_HTML=askBtn.innerHTML;
+const askBtn=document.getElementById('askBtn'), langSwitch=document.getElementById('langSwitch');
 let shufflePhase='idle'; // idle -> dealing (-> idle once the fan is dealt / the card is back on the deck)
 function hideAskBtn(then){
   // the pulse keyframes would override the inline opacity, so freeze the pulse where it is and fade from there
@@ -119,7 +212,7 @@ askBtn.addEventListener('click', ()=>{
   if(shufflePhase!=='idle' || busy) return;
   busy=true; shufflePhase='dealing';
   askTiltPermission(); tiltDeck(0, 0, .4); deckStack.classList.remove('lit');
-  document.getElementById('askSub').classList.add('gone'); spreadOpts.classList.add('gone');
+  document.getElementById('askSub').classList.add('gone'); spreadOpts.classList.add('gone'); langSwitch.classList.add('gone');
   hideAskBtn();
   afterShufflePass(()=> isPortraitMobile() ? (mode==='three' ? drawSpreadCard(0) : drawFromDeck(0))
     : (shufflePhase='idle', flyToFan()));
@@ -233,7 +326,7 @@ function returnToDeck(el, onBack){
     .call(()=>{
       topImg.style.visibility=''; el.remove(); fanScreen.hidden=true; activeCard=null;
       settleDeck(dip, ()=>{
-        if(onBack) onBack(); else { showAskBtn(ASK_HTML); document.getElementById('askSub').classList.remove('gone'); }
+        if(onBack) onBack(); else { showAskBtn(tr('ask')); document.getElementById('askSub').classList.remove('gone'); }
         busy=false;
       });
     });
@@ -493,7 +586,7 @@ function openedPose(el, card){
   // fill the description first so its real height is known
   document.getElementById('mPos').textContent=spread ? POSITIONS[spread.i] : '';
   document.getElementById('mName').textContent=card.name;
-  document.getElementById('mOrient').textContent=reversed?'Перевёрнутое положение':'Прямое положение';
+  document.getElementById('mOrient').textContent=tr(reversed ? 'reversed' : 'upright');
   document.getElementById('mText').textContent=reversed?card.rev:card.up;
   return fitAbove(meaningPanel);
 }
@@ -533,7 +626,6 @@ function openCard(el, card){
    open side by side with a summary of the whole spread. Phones: each card is drawn from the deck only when
    its turn comes - the past from the bottom of the deck, the present from its middle, the future from the
    top - and put away once read; at last all three come back as a carousel. */
-const POSITIONS=['Прошлое','Настоящее','Будущее'];
 let spread=null; // {cards, caps, list, i: the card open now, summary, carousel}
 function startSpread(desktop){
   spread={cards:[], caps:[], i:0};
@@ -557,8 +649,8 @@ const showCaps=on=>spread && spread.caps.forEach(c=>c.classList.toggle('on', on)
 function buildPickList(){
   const {rInner, pivotX, pivotY}=fanLayout, R=rInner-cardH-8;
   const list=document.createElement('div'); list.className='pick-list';
-  list.innerHTML='<div class="pick-hint">выбери три карты</div>'+POSITIONS.map(p=>`<div class="pick-line">${p}</div>`).join('')+
-    '<button class="finish-btn pick-go"><span class="fill">Узнать</span><span class="fill arrow">→</span></button>';
+  list.innerHTML=`<div class="pick-hint">${tr('pickHint')}</div>`+POSITIONS.map(p=>`<div class="pick-line">${p}</div>`).join('')+
+    `<button class="finish-btn pick-go"><span class="fill">${tr('reveal')}</span><span class="fill arrow">→</span></button>`;
   list.style.left=pivotX+'px';
   list.querySelector('.pick-go').addEventListener('click', e=>{
     e.stopPropagation();
@@ -706,7 +798,7 @@ function fillCarouselText(el){
   const card=el._card, rev=el.dataset.reversed==='true';
   document.getElementById('fPos').textContent=POSITIONS[spread.cards.indexOf(el)];
   document.getElementById('fName').textContent=card.name;
-  document.getElementById('fOrient').textContent=rev ? 'Перевёрнутое положение' : 'Прямое положение';
+  document.getElementById('fOrient').textContent=tr(rev ? 'reversed' : 'upright');
   document.getElementById('fText').textContent=rev ? card.rev : card.up;
 }
 // dir 1: the top card goes under the stack; -1: the bottom card comes on top
@@ -755,23 +847,15 @@ function fitRow(panel, n){
   return [...Array(n)].map((_,i)=>({x:innerWidth/2+(i-(n-1)/2)*w*(1+SP), y:top+h/2, rot:0, w, h, ry:180, tx:0, ty:0}));
 }
 // a few words on the spread as a whole: how many Major Arcana, a repeated suit, how many reversed cards
-const SUIT_THEME={w:'энергия и действие', c:'чувства и отношения', s:'мысли и конфликты', p:'материя и стабильность'};
 function spreadSummary(els){
-  const cards=els.map(e=>e._card), out=[];
+  const cards=els.map(e=>e._card), out=[], say=(line,n)=>typeof line==='function' ? line(n) : line;
   const majors=cards.filter(c=>c.major), revs=els.filter(e=>e.dataset.reversed==='true');
-  out.push([
-    'Старших арканов нет — всё решается в повседневном, и многое в твоих руках.',
-    `«${majors[0]?.name}» — единственный Старший аркан и главная точка расклада.`,
-    'Два Старших аркана — за вопросом стоят большие перемены.',
-    'Все три карты — Старшие арканы: это важный этап жизни, а не случайность.'][majors.length]);
+  out.push(say(tr('majors')[majors.length], majors[0] && tr('q')(majors[0].name)));
   const suits={}; cards.forEach(c=>c.suit && (suits[c.suit]=(suits[c.suit]||0)+1));
   const [suit, count]=Object.entries(suits).sort((a,b)=>b[1]-a[1])[0] || [];
-  if(count>=2) out.push(`${count===3 ? 'Все три карты' : 'Две карты'} — масти ${SUITS[suit][0]}: в центре вопроса ${SUIT_THEME[suit]}.`);
-  out.push([
-    'Все карты прямые — ничто не мешает движению.',
-    `${majors.length===1 && revs[0]?._card===majors[0] ? 'Эта же карта' : `«${revs[0]?._card.name}»`} легла перевёрнутой — здесь энергия застревает.`,
-    'Две карты перевёрнуты — сначала стоит разобраться с тем, что мешает.',
-    'Все карты перевёрнуты — время посмотреть внутрь себя, прежде чем действовать.'][revs.length]);
+  if(count>=2) out.push(tr('suit')(count===3, suit));
+  out.push(say(tr('revs')[revs.length],
+    majors.length===1 && revs[0]?._card===majors[0] ? tr('sameCard') : revs[0] && tr('q')(revs[0]._card.name)));
   return out.join(' ');
 }
 
@@ -801,7 +885,7 @@ const endPhrase=document.getElementById('endPhrase'), endRule=document.getElemen
 // between the cards of a spread there is only the way on to the next one
 function setEndRow(next){
   endPhrase.style.display=endRule.style.display=next ? 'none' : '';
-  document.querySelector('#finishBtn .fill').textContent=next ? 'Далее' : 'Завершить';
+  document.querySelector('#finishBtn .fill').textContent=tr(next ? 'next' : 'finish');
 }
 function revealEnd(at){
   const btn=document.getElementById('finishBtn');
@@ -889,7 +973,7 @@ function showShowcase(el){
   [-1,1,-2,2].forEach((side,i)=>{
     const card=picks[i]; if(!card) return;
     const far=Math.abs(side)-1, dir=Math.sign(side);
-    const c=makeCard(card, 0, 0); c.classList.add('showcase'); c.title='Колода на Etsy';
+    const c=makeCard(card, 0, 0); c.classList.add('showcase'); c.title=tr('etsy');
     c.style.zIndex=990-far;
     c.addEventListener('click', ()=>window.open(document.getElementById('etsyBtn').href, '_blank', 'noopener'));
     c._state={x:s.x, y:s.y, rot:0, w, h, ry:180, tx:0, ty:0};
@@ -1008,8 +1092,8 @@ function setFinale(els){
   const one=els.length===1, sum=document.getElementById('fSummary');
   prepareStory(els);
   document.getElementById('etsyBtn').href=etsyLink(els[0]._card);
-  document.getElementById('fWhat').textContent=one ? 'Эта карта' : 'Эти карты';
-  shareBtnEl.textContent=one ? 'Поделиться картой' : 'Поделиться раскладом';
+  document.getElementById('fDeck').innerHTML=tr(one ? 'deckOne' : 'deckMany');
+  shareBtnEl.textContent=tr(one ? 'shareCard' : 'shareSpread');
   sum.hidden=one; sum.textContent=one ? '' : spreadSummary(els);
   fCard.hidden=true;
 }
@@ -1140,15 +1224,15 @@ function endReading(){
   if(mode==='day') dayDone=true;
   spread=null; fan.querySelectorAll('.spread-cap, .pick-list').forEach(e=>e.remove());
   const still=setAskSub();
-  document.getElementById('askSub').classList.remove('gone'); spreadOpts.classList.remove('gone');
-  showAskBtn(ASK_HTML, still);
+  document.getElementById('askSub').classList.remove('gone'); spreadOpts.classList.remove('gone'); langSwitch.classList.remove('gone');
+  showAskBtn(tr('ask'), still);
 }
 // the line under the ask button: the question, or once the card of the day is drawn, the time left until
 // the next one, at local midnight (for now the ask button stays, for testing); true for the countdown
 function setAskSub(){
   const sub=document.getElementById('askSub');
-  if(mode!=='day' || !dayDone){ sub.textContent='ты хочешь знать?'; return false; }
-  sub.innerHTML='<span class="cd-phrase">возвращайся через</span><span class="countdown"></span>';
+  if(mode!=='day' || !dayDone){ sub.textContent=tr('askSub'); return false; }
+  sub.innerHTML=`<span class="cd-phrase">${tr('comeBack')}</span><span class="countdown"></span>`;
   tickCountdown();
   const cd=sub.querySelector('.countdown'), W=sub.querySelector('.cd-phrase').getBoundingClientRect().width;
   for(let i=0;i<3;i++) cd.style.fontSize=parseFloat(getComputedStyle(cd).fontSize)*W/cd.getBoundingClientRect().width+'px';
@@ -1224,7 +1308,7 @@ async function shareStory(){
   }
   const a=document.createElement('a'); a.href=URL.createObjectURL(st.file); a.download=st.file.name; a.click();
   setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
-  showToast('Картинка сохранена — её можно выложить в сторис');
+  showToast(tr('saved'));
 }
 // the lines of `str` in `font`, each at most maxW wide
 function wrapLines(x, str, font, maxW){
@@ -1236,17 +1320,17 @@ function wrapLines(x, str, font, maxW){
 // the card lies as it fell; the meaning given is the one of that position
 async function drawCardStory(el){
   const card=el._card, reversed=el.dataset.reversed==='true';
-  const {c, x, W, text}=storyCanvas('КАРТА ДНЯ');
+  const {c, x, W, text}=storyCanvas(tr('storyDay'));
   text(card.name.toUpperCase(), SAFE.top+162, '500 72px Oswald', '#f2efea', 6, W/2, W-120);
   const cw=440, cy=SAFE.top+200, ch=await drawStoryCard(x, card, reversed, (W-cw)/2, cy, cw);
   const font='italic 500 42px "Cormorant Garamond"';
   const meaning=reversed ? card.rev : card.up;
   wrapLines(x, meaning[0].toUpperCase()+meaning.slice(1), font, W-200).forEach((l,i)=>text(l, cy+ch+72+i*54, font, '#d9d4ce'));
-  return {c, name:'card-of-the-day.png', title:'Карта дня', text:`Моя карта дня — ${card.name}. Bloody Feast Tarot: ${ETSY_URL}`};
+  return {c, name:'card-of-the-day.png', title:tr('optDay'), text:`${tr('shareDay')(card.name)} Bloody Feast Tarot: ${ETSY_URL}`};
 }
 // the spread: its three cards side by side, each under its position and over its name, then the summary
 async function drawSpreadStory(els){
-  const {c, x, W, text}=storyCanvas('ТРИ КАРТЫ');
+  const {c, x, W, text}=storyCanvas(tr('storyThree'));
   const cw=290, gap=45, left=(W-3*cw-2*gap)/2, cy=SAFE.top+220;
   let ch=0;
   for(const [i, el] of els.entries()){
@@ -1258,6 +1342,21 @@ async function drawSpreadStory(els){
   // the summary, wrapped to the width of the row
   const font='italic 500 40px "Cormorant Garamond"';
   wrapLines(x, spreadSummary(els), font, W-160).forEach((l,i)=>text(l, cy+ch+150+i*54, font, '#d9d4ce'));
-  return {c, name:'three-cards.png', title:'Три карты',
-    text:`Мой расклад: ${els.map((e,i)=>POSITIONS[i]+' — '+e._card.name).join(', ')}. Bloody Feast Tarot: ${ETSY_URL}`};
+  return {c, name:'three-cards.png', title:tr('optThree'),
+    text:`${tr('shareSpreadText')(els.map((e,i)=>POSITIONS[i]+' — '+e._card.name).join(', '))} Bloody Feast Tarot: ${ETSY_URL}`};
 }
+
+// the language is chosen on the resting deck, like the spread; the choice is remembered
+function applyLang(){
+  document.documentElement.lang=lang; document.title=tr('title');
+  POSITIONS.splice(0, POSITIONS.length, ...tr('positions'));
+  document.querySelectorAll('[data-i18n]').forEach(e=>e.textContent=tr(e.dataset.i18n));
+  langSwitch.querySelectorAll('button').forEach(b=>b.classList.toggle('active', b.dataset.lang===lang));
+  setAskSub();
+}
+langSwitch.querySelectorAll('button').forEach(b=>b.addEventListener('click', ()=>{
+  if(!deckAtRest() || b.dataset.lang===lang) return;
+  lang=b.dataset.lang; try{ localStorage.setItem('lang', lang); }catch(e){}
+  applyLang();
+}));
+applyLang();

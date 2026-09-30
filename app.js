@@ -50,7 +50,7 @@ MAJOR.forEach((m,i)=>DECK.push({id:id++, name:m[0], up:m[1], rev:m[2], art:ART[i
 Object.entries(SUITS).forEach(([k,[label,theme]])=>{
   RANKS.forEach((r,i)=>{
     DECK.push({id:id++, name:r+" "+label, up:RMEAN[i]+" — через призму "+theme+".",
-      rev:"блок, задержка или искажение в теме «"+theme+"».", art:null, major:false});
+      rev:"блок, задержка или искажение в теме «"+theme+"».", art:null, major:false, suit:k});
   });
 });
 
@@ -109,8 +109,8 @@ const openingEl=document.getElementById('opening'), fanScreen=document.getElemen
   deckStack=document.getElementById('deckStack'), dimOverlay=document.getElementById('dimOverlay'),
   meaningPanel=document.getElementById('meaningPanel'), spreadOpts=document.getElementById('spreadOpts');
 let mode='day', deckOrder=[], activeCard=null, busy=false, cardH=118, cardW=cardH*CARD_ASPECT;
-const SHOW_SPREAD_OPTS=false; // spread choice (day / three cards / Celtic cross) is hidden for now
-if(!SHOW_SPREAD_OPTS) spreadOpts.style.display='none';
+// the card of the day has been drawn today (kept only until the page reloads, for now)
+let dayDone=false;
 
 function showToast(msg){toast.textContent=msg; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'),1600);}
 
@@ -138,10 +138,19 @@ askBtn.addEventListener('click', ()=>{
   if(shufflePhase!=='idle' || busy) return;
   busy=true; shufflePhase='dealing';
   askTiltPermission(); tiltDeck(0, 0, .4); deckStack.classList.remove('lit');
-  document.getElementById('askSub').classList.add('gone');
+  document.getElementById('askSub').classList.add('gone'); spreadOpts.classList.add('gone');
   hideAskBtn();
-  afterShufflePass(()=> isPortraitMobile() ? drawFromDeck(0) : (shufflePhase='idle', flyToFan()));
+  afterShufflePass(()=> isPortraitMobile() ? (mode==='three' ? dealThreeFromDeck() : drawFromDeck(0))
+    : (shufflePhase='idle', flyToFan()));
 });
+// the spread is chosen on the resting deck; the line under the ask button follows the choice
+spreadOpts.querySelectorAll('.opt').forEach(o=>o.addEventListener('click', ()=>{
+  if(!deckAtRest() || o.dataset.mode===mode) return;
+  spreadOpts.querySelectorAll('.opt').forEach(x=>x.classList.toggle('active', x===o));
+  mode=o.dataset.mode;
+  const still=setAskSub();
+  askBtn.classList.toggle('still', still); if(!still) askBtn.style.animation='';
+}));
 
 // Shuffle: pointing at the resting deck (or holding a finger on it) shuffles it - again and again the
 // top card slides out sideways until it is fully clear of the deck, and only then slides back in under
@@ -215,7 +224,7 @@ const isPortraitMobile=()=>matchMedia('(orientation: portrait)').matches &&
 // grows and flips face up around its vertical axis into the same pose as a card drawn from the fan.
 // A real card element takes the place of the top image of the deck for this.
 function drawFromDeck(dip){
-  fanScreen.hidden=false; gsap.set(spreadOpts,{opacity:0});
+  fanScreen.hidden=false;
   fan.innerHTML=''; fan.appendChild(dimOverlay); dimOverlay.classList.remove('on');
   const topImg=deckStack.lastElementChild, r=topImg.getBoundingClientRect();
   const card=DECK[Math.floor(Math.random()*DECK.length)];
@@ -251,7 +260,7 @@ function returnToDeck(el, onBack){
 
 // The deck flies from the velvet to the first slot of the upper arc; dealing starts from there.
 function flyToFan(){
-  fanScreen.hidden=false; gsap.set(spreadOpts,{opacity:0}); // spreadOpts must be laid out to measure the fan
+  fanScreen.hidden=false;
   const L=layoutFan(), a=L.angleStart*Math.PI/180;
   const tx=L.pivotX+L.rOuter*Math.sin(a), ty=L.pivotY-L.rOuter*Math.cos(a);
   const r=deckStack.getBoundingClientRect();
@@ -270,12 +279,6 @@ function flyToFan(){
     duration:DUR, ease:EASE, delay:DELAY,
     onComplete:()=>{ deckStack.style.willChange=''; buildFan(()=>{ openingEl.hidden=true; busy=false; }); }});
 }
-document.querySelectorAll('.opt').forEach(o=>o.addEventListener('click',()=>{
-  if(o.dataset.mode!=='day'){ showToast('Этот расклад скоро добавим ✦'); return; }
-  document.querySelectorAll('.opt').forEach(x=>x.classList.remove('active'));
-  o.classList.add('active'); mode='day';
-}));
-
 /* Cards deal out from the common centre of two concentric arcs (a downward-opening rainbow):
    the outer band first, then the inner band. */
 let fanLayout=null, dealTl=null;
@@ -286,7 +289,7 @@ function layoutFan(){
   // each card's centre sits on its arc. The radial distance between the arcs is one card
   // height plus the required gap of 2/3 card height, so the arcs never touch.
   const ASPECT=CARD_ASPECT, GAP=2/3, MIN_STEP=0.28; // MIN_STEP: neighbour spacing on the inner arc, in card widths
-  const topMargin = (SHOW_SPREAD_OPTS ? spreadOpts : document.querySelector('h1.title')).getBoundingClientRect().bottom + 40;
+  const topMargin = document.querySelector('h1.title').getBoundingClientRect().bottom + 40;
   const bottomMargin = 24 + (parseFloat(getComputedStyle(document.documentElement).paddingBottom)||0);
   const sideMargin = 16;
   const availW=innerWidth-sideMargin*2, availH=innerHeight-topMargin-bottomMargin;
@@ -348,7 +351,7 @@ function makeCard(card, pivotX, pivotY){
 
 function buildFan(onReady){
   hoverCard=null; fan.innerHTML=''; fan.appendChild(dimOverlay); dimOverlay.classList.remove('on');
-  meaningPanel.classList.remove('show'); finale.classList.remove('show'); gsap.to(spreadOpts,{opacity:1,duration:.4});
+  meaningPanel.classList.remove('show'); finale.classList.remove('show');
   deckOrder=[...DECK.keys()];
   for(let i=deckOrder.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[deckOrder[i],deckOrder[j]]=[deckOrder[j],deckOrder[i]];}
   const {nOuter, angleStart, angleEnd, rOuter, rInner, pivotX, pivotY} = fanLayout || layoutFan();
@@ -392,9 +395,11 @@ function buildFan(onReady){
   const img=mover.querySelector('img');
   (img.decode ? img.decode().catch(()=>{}) : Promise.resolve()).then(()=>{
     onReady&&onReady();
+    if(mode==='three') startSpread(hollowSlots());
     const tl=dealTl=gsap.timeline({onComplete:()=>{
       dealTl=null;
       gsap.to(mover,{opacity:0,duration:.2,onComplete:()=>mover.remove()});
+      if(spread) showSlots(true);
     }});
     tl.to(pop,{a:angleEnd,duration:sweepDur(outerIdx.length),ease:'sine.inOut',
       onStart:dropOuter, onUpdate:()=>{ setMover(); dropOuter(); }, onComplete:dropOuter});
@@ -468,7 +473,7 @@ function inCard(s, x, y){
 }
 function cardAt(x, y){
   let best=null;
-  fan.querySelectorAll('.fcard:not(.mover)').forEach(el=>{
+  fan.querySelectorAll('.fcard:not(.mover):not(.picked)').forEach(el=>{
     if((!best || +el.dataset.z>+best.dataset.z) && inCard(arcState(el), x, y)) best=el;
   });
   if(!best && hoverCard && inCard(hoverCard._state||arcState(hoverCard), x, y)) return hoverCard;
@@ -493,7 +498,7 @@ fan.addEventListener('click', e=>{
   if(dealTl){ dealTl.timeScale(Math.max(1, (dealTl.duration()-dealTl.time())/SKIP_TIME)); return; }
   if(!fanIdle()) return;
   const el=cardAt(e.clientX, e.clientY);
-  if(el) openCard(el, el._card);
+  if(el) spread ? pickCard(el) : openCard(el, el._card);
 });
 
 // Draws a random orientation for the card, fills the description and places it; returns the pose
@@ -503,6 +508,7 @@ function openedPose(el, card){
   const reversed = Math.random()<0.5; el.dataset.reversed=reversed;
   el.querySelector('.fart').classList.toggle('reversed', reversed);
   // fill the description first so its real height is known
+  document.getElementById('mPos').textContent=spread ? POSITIONS[spread.i] : '';
   document.getElementById('mName').textContent=card.name;
   document.getElementById('mOrient').textContent=reversed?'Перевёрнутое положение':'Прямое положение';
   document.getElementById('mText').textContent=reversed?card.rev:card.up;
@@ -535,15 +541,155 @@ function openCard(el, card){
       el.style.zIndex=1000;
       document.querySelectorAll('.fcard').forEach(c=>{ if(c!==el) c.classList.add('dim'); });
       dimOverlay.classList.add('on');
-      gsap.to(spreadOpts,{opacity:0,duration:.3});
     })
     .to(s,{...pose, duration:1, ease:'power2.out', onUpdate:render, onComplete:()=>onCardOpened(el)});
+}
+
+/* ---------- three cards: past, present, future ----------
+   Three cards are laid face down in a row (desktop: picked from the fan into the hollow under the lower
+   arc; phones: dealt from the deck under it), then open one by one, each with its description, and at
+   last lie open side by side with a summary of the whole spread. */
+const POSITIONS=['Прошлое','Настоящее','Будущее'];
+let spread=null; // {cards, slots, caps, i: the card open now}
+function startSpread(slots){
+  spread={cards:[], slots, caps:[], i:0};
+  slots.forEach((sl,i)=>{
+    if(!isPortraitMobile()){
+      const o=document.createElement('div'); o.className='spread-slot';
+      Object.assign(o.style,{left:sl.x+'px', top:sl.y+'px', width:sl.w+'px', height:sl.h+'px', borderRadius:sl.w*CARD_RADIUS+'px'});
+      fan.appendChild(o);
+    }
+    const cap=document.createElement('div'); cap.className='spread-cap';
+    cap.innerHTML=`<span class="cap-pos">${POSITIONS[i]}</span><span class="cap-name"></span>`;
+    fan.appendChild(cap); spread.caps.push(cap);
+    placeCap(i, sl.x, sl.y+sl.h/2+10, false);
+  });
+}
+// a caption right under (or above) a card
+function placeCap(i, x, y, above){
+  const cap=spread.caps[i];
+  cap.style.left=x+'px'; cap.style.top=y+'px'; cap.classList.toggle('above', above);
+}
+const showCaps=on=>spread && spread.caps.forEach(c=>c.classList.toggle('on', on));
+function showSlots(on){ fan.querySelectorAll('.spread-slot').forEach(o=>o.classList.toggle('on', on)); showCaps(on); }
+// desktop: the three places in the hollow under the lower arc - as big as fits between its cards and the
+// bottom of the screen, room left under them for the captions
+function hollowSlots(){
+  const {rInner, pivotX, pivotY}=fanLayout, R=rInner-cardH/2-12, SP=.2, CAP=30;
+  let k=.85, w, h, y;
+  for(;k>.4;k-=.05){
+    w=cardW*k; h=cardH*k; y=Math.min(innerHeight-CAP-8-h/2, pivotY-h/2);
+    if(Math.hypot(w*(1.5+SP), pivotY-(y-h/2))<=R) break;
+  }
+  return POSITIONS.map((_,i)=>({x:pivotX+(i-1)*w*(1+SP), y, w, h}));
+}
+// desktop: the picked card slides out of the arc and is laid face down in the next free place
+function pickCard(el){
+  const i=spread.cards.length, sl=spread.slots[i];
+  busy=true; hoverCard=null; fan.style.cursor='';
+  el.classList.add('picked'); el.classList.remove('lit'); spread.cards.push(el);
+  const s=el._state || (el._state=arcState(el)), render=()=>renderCard(el,s);
+  gsap.killTweensOf(s);
+  gsap.timeline()
+    .to(s,{...arcState(el, cardH), duration:.35, ease:'power1.in', onUpdate:render})
+    .call(()=>{ el.style.zIndex=1000+i; })
+    .to(s,{x:sl.x, y:sl.y, w:sl.w, h:sl.h, rot:0, duration:.8, ease:'power2.inOut', onUpdate:render})
+    .call(()=>{
+      if(i<POSITIONS.length-1){ busy=false; return; }
+      showSlots(false); gsap.delayedCall(.5, ()=>openSpreadCard(0));
+    });
+}
+// phones: three cards slide off the top of the deck one after another into a row under it
+function dealThreeFromDeck(){
+  fanScreen.hidden=false;
+  fan.innerHTML=''; fan.appendChild(dimOverlay); dimOverlay.classList.remove('on');
+  const r=deckStack.lastElementChild.getBoundingClientRect();
+  const rest={x:r.left+r.width/2, y:r.top+r.height/2, rot:0, w:r.width, h:r.height, ry:0, tx:0, ty:0};
+  const w=rest.w*.6, h=rest.h*.6, SP=.18;
+  startSpread(POSITIONS.map((_,i)=>({x:innerWidth/2+(i-1)*w*(1+SP), y:r.bottom+24+h/2, w, h})));
+  const pool=[...DECK];
+  const tl=gsap.timeline({onComplete:()=>{ showCaps(true); gsap.delayedCall(.9, ()=>openSpreadCard(0)); }});
+  spread.slots.forEach((sl,i)=>{
+    const card=pool.splice(Math.floor(Math.random()*pool.length),1)[0];
+    const el=makeCard(card, 0, 0); el.style.zIndex=1000+i; el.classList.add('picked');
+    el._fromDeck={topImg:null, dip:0, rest};
+    const s=el._state={...rest};
+    tl.call(()=>{ renderCard(el,s); fan.appendChild(el); }, null, i*.5)
+      .to(s,{x:sl.x, y:sl.y, w:sl.w, h:sl.h, rot:(i-1)*1.5, duration:.8, ease:'power2.inOut', onUpdate:()=>renderCard(el,s)}, i*.5);
+    spread.cards.push(el);
+  });
+}
+// a card of the spread grows out of its place and opens, the rest of the table sinks into the dark
+function openSpreadCard(i){
+  const el=spread.cards[i]; spread.i=i;
+  busy=true; activeCard=el;
+  document.querySelectorAll('.fcard').forEach(c=>c.classList.toggle('dim', c!==el));
+  spread.cards.forEach(c=>c.style.zIndex=c===el ? 1000 : 900);
+  dimOverlay.classList.add('on'); showCaps(false);
+  if(el._fromDeck) gsap.to(deckStack,{opacity:.3, duration:.8});
+  const s=el._state, pose=openedPose(el, el._card);
+  gsap.killTweensOf(s);
+  gsap.to(s,{...pose, duration:1.3, ease:'power2.inOut', onUpdate:()=>renderCard(el,s), onComplete:()=>onCardOpened(el)});
+}
+// "Далее": the open card lies back in its place, face up, and the next one opens
+function nextSpreadCard(){
+  busy=true; const el=activeCard, s=el._state, sl=spread.slots[spread.i];
+  meaningPanel.classList.remove('show'); hideBigName(); el.classList.remove('lit');
+  gsap.killTweensOf(s);
+  gsap.to(s,{x:sl.x, y:sl.y, w:sl.w, h:sl.h, rot:0, tx:0, ty:0, duration:.9, ease:'power2.inOut', onUpdate:()=>renderCard(el,s),
+    onComplete:()=>openSpreadCard(spread.i+1)});
+}
+// "Завершить": all three lie open side by side, captioned, above the summary and the way to the shop
+function showSpreadSummary(){
+  busy=true; const el=activeCard, els=spread.cards;
+  meaningPanel.classList.remove('show'); hideBigName(); el.classList.remove('lit');
+  setFinale(els);
+  const poses=fitRow(finale, els.length);
+  els.forEach((c,i)=>{
+    const s=c._state; gsap.killTweensOf(s); c.classList.remove('dim');
+    spread.caps[i].querySelector('.cap-name').textContent=c._card.name;
+    spread.caps[i].style.width=poses[i].w*1.1+'px'; // a long name wraps instead of running into the next one
+    placeCap(i, poses[i].x, poses[i].y-poses[i].h/2-10, true);
+    gsap.to(s,{...poses[i], duration:1, delay:.08*i, ease:'power2.inOut', onUpdate:()=>renderCard(c,s)});
+  });
+  gsap.delayedCall(1.2, ()=>{ spread.summary=true; showCaps(true); finale.classList.add('show'); busy=false; });
+}
+// poses of n face-up cards side by side that, with their captions above and `panel` under them, fit the viewport
+function fitRow(panel, n){
+  const GAP=16, CAP=46, SP=.14, side=isPortraitMobile() ? 16 : FIT_MARGIN, panelH=panel.offsetHeight;
+  const minTop=Math.max(FIT_MARGIN, document.querySelector('h1.title').getBoundingClientRect().bottom+24)+CAP;
+  const availW=innerWidth-2*side, availH=innerHeight-minTop-FIT_MARGIN-GAP-panelH;
+  const h=Math.min(availH, availW/(CARD_ASPECT*(n+(n-1)*SP))), w=h*CARD_ASPECT;
+  const top=Math.max(minTop, (innerHeight-(h+GAP+panelH)+CAP)/2);
+  panel.style.top=(top+h+GAP)+'px'; panel.style.bottom='auto';
+  return [...Array(n)].map((_,i)=>({x:innerWidth/2+(i-(n-1)/2)*w*(1+SP), y:top+h/2, rot:0, w, h, ry:180, tx:0, ty:0}));
+}
+// a few words on the spread as a whole: how many Major Arcana, a repeated suit, how many reversed cards
+const SUIT_THEME={w:'энергия и действие', c:'чувства и отношения', s:'мысли и конфликты', p:'материя и стабильность'};
+function spreadSummary(els){
+  const cards=els.map(e=>e._card), out=[];
+  const majors=cards.filter(c=>c.major), revs=els.filter(e=>e.dataset.reversed==='true');
+  out.push([
+    'Старших арканов нет — всё решается в повседневном, и многое в твоих руках.',
+    `«${majors[0]?.name}» — единственный Старший аркан и главная точка расклада.`,
+    'Два Старших аркана — за вопросом стоят большие перемены.',
+    'Все три карты — Старшие арканы: это важный этап жизни, а не случайность.'][majors.length]);
+  const suits={}; cards.forEach(c=>c.suit && (suits[c.suit]=(suits[c.suit]||0)+1));
+  const [suit, count]=Object.entries(suits).sort((a,b)=>b[1]-a[1])[0] || [];
+  if(count>=2) out.push(`${count===3 ? 'Все три карты' : 'Две карты'} — масти ${SUITS[suit][0]}: в центре вопроса ${SUIT_THEME[suit]}.`);
+  out.push([
+    'Все карты прямые — ничто не мешает движению.',
+    `${majors.length===1 && revs[0]?._card===majors[0] ? 'Эта же карта' : `«${revs[0]?._card.name}»`} легла перевёрнутой — здесь энергия застревает.`,
+    'Две карты перевёрнуты — сначала стоит разобраться с тем, что мешает.',
+    'Все карты перевёрнуты — время посмотреть внутрь себя, прежде чем действовать.'][revs.length]);
+  return out.join(' ');
 }
 
 const isDesktop=()=>matchMedia('(hover:hover) and (pointer:fine)').matches;
 
 // The card lies open: its description surfaces, and on desktop its name, huge, behind it.
 function onCardOpened(el){
+  setEndRow(spread && spread.i<POSITIONS.length-1);
   meaningPanel.classList.add('show'); busy=false;
   inkReveal(document.getElementById('mName'), {delay:.3});
   const mText=document.getElementById('mText'), words=mText.textContent.trim().split(/\s+/).length;
@@ -553,6 +699,11 @@ function onCardOpened(el){
 
 // "Теперь ты знаешь" and the way out appear only once everything above has surfaced
 const endPhrase=document.getElementById('endPhrase'), endRule=document.getElementById('endRule');
+// between the cards of a spread there is only the way on to the next one
+function setEndRow(next){
+  endPhrase.style.display=endRule.style.display=next ? 'none' : '';
+  document.querySelector('#finishBtn .fill').textContent=next ? 'Далее' : 'Завершить';
+}
 function revealEnd(at){
   const btn=document.getElementById('finishBtn');
   gsap.killTweensOf([endRule, btn]);
@@ -666,7 +817,7 @@ function tuckCard(c, then){
 let sharePreview=false;
 const shareBtnEl=document.getElementById('shareBtn');
 shareBtnEl.addEventListener('pointerenter', e=>{
-  if(e.pointerType!=='mouse' || !activeCard || busy) return;
+  if(e.pointerType!=='mouse' || !activeCard || busy || spread) return;
   sharePreview=true;
   const el=activeCard, s=el._state;
   gsap.to(s,{tx:0, ty:0, duration:.5, ease:'power2.out', overwrite:'auto', onUpdate:()=>renderCard(el,s)});
@@ -692,7 +843,7 @@ function hideShowcase(then){
 // phone itself; nx, ny in -1..1
 const TILT_X=7, TILT_Y=9, clamp1=v=>Math.max(-1, Math.min(1, v));
 function tiltTo(nx, ny, dur=.5){
-  const el=activeCard; if(!el || busy || !el._state) return;
+  const el=activeCard; if(!el || busy || !el._state || spread?.summary) return;
   const s=el._state;
   gsap.to(s,{ty:nx*TILT_Y, tx:-ny*TILT_X, duration:dur, ease:'power2.out', overwrite:'auto', onUpdate:()=>renderCard(el,s)});
 }
@@ -701,6 +852,10 @@ window.addEventListener('pointermove', e=>{
     if(!deckAtRest() || (e.pointerType==='touch' && !e.buttons)) return;
     const r=deckStack.getBoundingClientRect();
     tiltDeck(clamp1((e.clientX-r.left-r.width/2)/(r.width*1.6)), clamp1((e.clientY-r.top-r.height/2)/(r.height*1.1)));
+    return;
+  }
+  if(spread?.summary){ // the open spread: the card under the cursor lights up
+    spread.cards.forEach(c=>c.classList.toggle('lit', e.pointerType==='mouse' && inCard(c._state, e.clientX, e.clientY)));
     return;
   }
   const s=activeCard._state; if(!s || sharePreview) return;
@@ -733,21 +888,32 @@ function askTiltPermission(){
 const ETSY_URL='https://illusbyme.etsy.com/il-en/listing/4487488141/bloody-feast-tarot-deck-printable-dark';
 const finale=document.getElementById('finale');
 // tagged so the shop's stats show visits coming from the app and which card led to them
-const etsyLink=card=>`${ETSY_URL}?utm_source=tarot-app&utm_medium=card-of-the-day&utm_content=${encodeURIComponent(card.id)}`;
+const etsyLink=card=>`${ETSY_URL}?utm_source=tarot-app&utm_medium=${mode==='three' ? 'three-cards' : 'card-of-the-day'}&utm_content=${encodeURIComponent(card.id)}`;
 
 // "Завершить гадание": the description gives way to the closing screen, the card makes room for it
 document.getElementById('finishBtn').addEventListener('click', ()=>{
   if(!activeCard || busy) return;
+  if(spread){ spread.i<POSITIONS.length-1 ? nextSpreadCard() : showSpreadSummary(); return; }
   busy=true; const el=activeCard, s=el._state;
   meaningPanel.classList.remove('show');
-  document.getElementById('etsyBtn').href=etsyLink(el._card);
+  setFinale([el]);
   hideBigName();
   const pose=fitAbove(finale);
   gsap.killTweensOf(s);
   gsap.to(s,{...pose, duration:.7, ease:'power2.inOut', onUpdate:()=>renderCard(el,s),
     onComplete:()=>{ finale.classList.add('show'); busy=false; showShowcase(el); }});
 });
-document.getElementById('shareBtn').addEventListener('click', ()=>{ if(activeCard) shareCard(activeCard); });
+document.getElementById('shareBtn').addEventListener('click', ()=>{
+  if(spread) shareSpread(spread.cards); else if(activeCard) shareCard(activeCard);
+});
+// the closing screen speaks of one card or of the whole spread
+function setFinale(els){
+  const one=els.length===1, sum=document.getElementById('fSummary');
+  document.getElementById('etsyBtn').href=etsyLink(els[0]._card);
+  document.getElementById('fWhat').textContent=one ? 'Эта карта' : 'Эти карты';
+  shareBtnEl.textContent=one ? 'Поделиться картой' : 'Поделиться раскладом';
+  sum.hidden=one; sum.textContent=one ? '' : spreadSummary(els);
+}
 
 // "Новое гадание": the card goes back where it came from - into its arc slot, or onto the deck on phones
 document.getElementById('againBtn').addEventListener('click', ()=>{
@@ -767,10 +933,7 @@ function returnToArc(el){
   dimOverlay.classList.remove('on');
   gsap.timeline()
     .to(s,{...arcState(el, cardH), duration:.9, ease:'power2.inOut', onUpdate:render})
-    .call(()=>{
-      el.style.zIndex=el.dataset.z;
-      gsap.to(spreadOpts,{opacity:1,duration:.3});
-    })
+    .call(()=>{ el.style.zIndex=el.dataset.z; })
     .to(s,{...arcState(el), duration:.35, ease:'power2.out', onUpdate:render,
       onComplete:()=>{ restoreInArc(el); activeCard=null; busy=false; }});
 }
@@ -782,27 +945,35 @@ document.getElementById('gatherBtn').addEventListener('click', ()=>{
   busy=true; const el=activeCard;
   finale.classList.remove('show'); hideBigName();
   el.classList.remove('lit');
-  hideShowcase(()=>el._fromDeck ? tuckUnderDeck(el, showComeBack) : gatherDeck(el));
+  const els=spread ? spread.cards : [el];
+  els.forEach(c=>c.classList.remove('lit'));
+  showCaps(false);
+  hideShowcase(()=>el._fromDeck ? tuckUnderDeck(els, endReading) : gatherDeck(els[0], els.slice(1)));
 });
 // portrait phones: the card of the day turns face down and goes to the bottom of the deck it was drawn
 // from - like a shuffled card, it first slides out just below the deck (a narrow screen has no room
 // beside it) until it is clear of it, and only then slips in under it
-function tuckUnderDeck(el, onBack){
-  const {topImg, dip, rest}=el._fromDeck, s=el._state, render=()=>renderCard(el,s);
+// Several cards (a spread) gather into one pile below the deck first and go under it together.
+function tuckUnderDeck(els, onBack){
+  const {topImg, dip, rest}=els[0]._fromDeck;
   const {w, h}=rest, rot=4, out=(h*Math.cos(.07)+w*Math.sin(.07))/2+h/2+10;
-  gsap.killTweensOf(s);
+  // a card of the day takes back the place of the top image it was drawn as, a spread takes the top card of the deck
+  const img=topImg || deckStack.lastElementChild;
   dimOverlay.classList.remove('on'); gsap.to(deckStack,{opacity:1, duration:.8});
-  gsap.timeline()
-    .to(s,{x:rest.x, y:rest.y+out, rot, w, h, ry:0, tx:0, ty:0, duration:1.2, ease:'power2.inOut', onUpdate:render})
-    .call(()=>{
-      // clear of the deck now: the card becomes the deck's bottom card, still lying below it
-      deckStack.prepend(topImg);
+  const tl=gsap.timeline();
+  els.forEach((el,i)=>{
+    const s=el._state; gsap.killTweensOf(s); el.classList.remove('dim'); el.style.zIndex=1000+i;
+    tl.to(s,{x:rest.x, y:rest.y+out, rot, w, h, ry:0, tx:0, ty:0, duration:1.2, ease:'power2.inOut', onUpdate:()=>renderCard(el,s)}, i*.15);
+  });
+  tl.call(()=>{
+      // clear of the deck now: the pile becomes the deck's bottom card, still lying below it
+      deckStack.prepend(img);
       [...deckStack.children].forEach((c,i)=>c.style.zIndex=i ? 2 : 0);
-      gsap.set(topImg,{x:0, y:out, rotation:rot}); topImg.style.visibility='';
-      el.remove(); fanScreen.hidden=true; activeCard=null;
+      gsap.set(img,{x:0, y:out, rotation:rot}); img.style.visibility='';
+      els.forEach(el=>el.remove()); fanScreen.hidden=true; activeCard=null;
       [...deckStack.children].slice(1).forEach((c,i)=>gsap.to(c,{...DECK_REST[i+1], duration:.6, ease:'power2.inOut'}));
     })
-    .to(topImg,{...DECK_REST[0], duration:.6, ease:'power2.inOut'})
+    .to(img,{...DECK_REST[0], duration:.6, ease:'power2.inOut'})
     .call(()=>settleDeck(dip, ()=>{ onBack(); busy=false; }));
 }
 // the deck as it lies on the velvet, undoing its flight into the fan
@@ -815,7 +986,8 @@ function resetDeckStack(){
 // The card of the day turns face down and is laid where the dealing ended, the left end of the lower arc.
 // From there it is the pile: it slides along the lower arc picking up every card it covers, steps up to
 // the upper arc's right end, sweeps it back to its left end, and flies home onto the velvet.
-function gatherDeck(el){
+// The other cards of a spread (extras) land there just before it, and it covers them.
+function gatherDeck(el, extras=[]){
   const s=el._state, render=()=>renderCard(el,s);
   gsap.killTweensOf(s);
   document.querySelectorAll('.fcard').forEach(c=>c.classList.remove('dim'));
@@ -823,16 +995,22 @@ function gatherDeck(el){
   const {angleStart, angleEnd, rOuter, rInner, pivotX, pivotY}=fanLayout;
   const pop={a:angleStart, r:rInner};
   const place=()=>{ const t=pop.a*Math.PI/180; s.x=pivotX+pop.r*Math.sin(t); s.y=pivotY-pop.r*Math.cos(t); s.rot=pop.a; render(); };
-  const cards=[...fan.querySelectorAll('.fcard:not(.mover)')].filter(c=>c!==el);
+  const cards=[...fan.querySelectorAll('.fcard:not(.mover)')].filter(c=>c!==el && !extras.includes(c));
   // a card is taken the moment the pile lies right over it, so it vanishes under the pile unseen
   const picker=(list, taken)=>()=>{ for(let i=list.length-1;i>=0;i--) if(taken(+list[i].dataset.angle)){ list[i].remove(); list.splice(i,1); } };
   const lower=cards.filter(c=>c.classList.contains('mirrored')), upper=cards.filter(c=>!c.classList.contains('mirrored'));
   const pickLower=picker(lower, a=>a<=pop.a+1e-6), pickUpper=picker(upper, a=>a>=pop.a-1e-6);
   const sweepDur=count=>Math.max(.7, count*.04);
   const t=angleStart*Math.PI/180;
-  gsap.timeline({onComplete:()=>flyHome(el)})
-    .to(s,{x:pivotX+rInner*Math.sin(t), y:pivotY-rInner*Math.cos(t), w:cardW, h:cardH, rot:angleStart, ry:0, tx:0, ty:0,
-      duration:1.2, ease:'power2.inOut', onUpdate:render})
+  const laid={x:pivotX+rInner*Math.sin(t), y:pivotY-rInner*Math.cos(t), w:cardW, h:cardH, rot:angleStart, ry:0, tx:0, ty:0};
+  const tl=gsap.timeline({onComplete:()=>flyHome(el)});
+  el.style.zIndex=1000;
+  extras.forEach((c,i)=>{
+    const cs=c._state; gsap.killTweensOf(cs); c.style.zIndex=997+i;
+    tl.to(cs,{...laid, duration:1.2, ease:'power2.inOut', onUpdate:()=>renderCard(c,cs)}, i*.12);
+  });
+  tl.to(s,{...laid, duration:1.2, ease:'power2.inOut', onUpdate:render}, extras.length*.12)
+    .call(()=>extras.forEach(c=>c.remove()))
     .to(pop,{a:angleEnd, duration:sweepDur(lower.length), ease:'sine.inOut', onStart:pickLower, onUpdate:()=>{ place(); pickLower(); }, onComplete:pickLower})
     .to(pop,{r:rOuter, duration:.5, ease:'power2.inOut', onUpdate:place})
     .to(pop,{a:angleStart, duration:sweepDur(upper.length), ease:'sine.inOut', onStart:pickUpper, onUpdate:()=>{ place(); pickUpper(); }, onComplete:pickUpper});
@@ -857,18 +1035,26 @@ function flyHome(el){
     onComplete:()=>gsap.set(c,{clearProps:'borderRadius'})}));
   tweenDeckEdge(rest.x, rest.y, {duration:DUR, ease:EASE});
   gsap.to(deckStack,{x:0, y:0, rotation:0, scaleX:1, scaleY:1, duration:DUR, ease:EASE,
-    onComplete:()=>{ activeCard=null; hoverCard=null; shufflePhase='idle'; busy=false; showComeBack(); }});
+    onComplete:()=>{ activeCard=null; hoverCard=null; shufflePhase='idle'; busy=false; endReading(); }});
 }
-// time left until the next card of the day, at local midnight; for now the ask button stays, for testing
-function showComeBack(){
+// the deck is back on the velvet: after the card of the day the time left until the next one is shown
+function endReading(){
+  if(mode==='day') dayDone=true;
+  spread=null; fan.querySelectorAll('.spread-cap, .spread-slot').forEach(e=>e.remove());
+  const still=setAskSub();
+  document.getElementById('askSub').classList.remove('gone'); spreadOpts.classList.remove('gone');
+  showAskBtn(ASK_HTML, still);
+}
+// the line under the ask button: the question, or once the card of the day is drawn, the time left until
+// the next one, at local midnight (for now the ask button stays, for testing); true for the countdown
+function setAskSub(){
   const sub=document.getElementById('askSub');
+  if(mode!=='day' || !dayDone){ sub.textContent='ты хочешь знать?'; return false; }
   sub.innerHTML='<span class="cd-phrase">возвращайся через</span><span class="countdown"></span>';
   tickCountdown();
   const cd=sub.querySelector('.countdown'), W=sub.querySelector('.cd-phrase').getBoundingClientRect().width;
-  cd.style.fontSize='';
   for(let i=0;i<3;i++) cd.style.fontSize=parseFloat(getComputedStyle(cd).fontSize)*W/cd.getBoundingClientRect().width+'px';
-  sub.classList.remove('gone');
-  showAskBtn(ASK_HTML, true);
+  return true;
 }
 function tickCountdown(){
   const cd=document.querySelector('#askSub .countdown'); if(!cd) return;
@@ -878,51 +1064,84 @@ function tickCountdown(){
 }
 setInterval(tickCountdown, 1000);
 
-// A story-sized (9:16) picture of the card of the day with the deck's name and shop - shared through the
-// system share sheet where files can be shared (phones), otherwise downloaded.
-async function shareCard(el){
-  const card=el._card, reversed=el.dataset.reversed==='true';
+// A story-sized (9:16) picture of the card of the day (or of the spread) with the deck's name and shop -
+// shared through the system share sheet where files can be shared (phones), otherwise downloaded.
+function storyCanvas(title){
   const W=1080, H=1920, c=document.createElement('canvas'); c.width=W; c.height=H;
   const x=c.getContext('2d');
   const bg=x.createRadialGradient(W/2, H*.42, 0, W/2, H*.42, H*.7);
   bg.addColorStop(0,'#2a0a09'); bg.addColorStop(.5,'#160505'); bg.addColorStop(1,'#060202');
   x.fillStyle=bg; x.fillRect(0,0,W,H);
-  const text=(str, y, font, color, spacing=0)=>{
-    x.font=font; x.fillStyle=color; x.textAlign='center'; x.letterSpacing=spacing+'px'; x.fillText(str, W/2, y);
+  // a line of text centred on cx, shrunk to fit maxW if given
+  const text=(str, y, font, color, spacing=0, cx=W/2, maxW=0)=>{
+    x.font=font; x.fillStyle=color; x.textAlign='center'; x.letterSpacing=spacing+'px';
+    if(maxW){ const m=x.measureText(str).width; if(m>maxW) x.font=font.replace(/(\d+)px/, (_,n)=>Math.floor(n*maxW/m)+'px'); }
+    x.fillText(str, cx, y);
   };
-  text('КАРТА ДНЯ', 190, '500 44px Oswald', '#e9e6e1', 10);
-
-  const cw=680, ch=cw/CARD_ASPECT, cx=(W-cw)/2, cy=260, radius=cw*CARD_RADIUS;
-  x.save(); x.shadowColor='rgba(0,0,0,.7)'; x.shadowBlur=60; x.shadowOffsetY=20;
+  text(title, 190, '500 44px Oswald', '#e9e6e1', 10);
+  text('BLOODY FEAST TAROT', H-170, '500 42px Oswald', '#e9e6e1', 10);
+  text('illusbyme.etsy.com', H-110, 'italic 500 36px "Cormorant Garamond"', '#8a8784');
+  return {c, x, W, H, text};
+}
+// a card face (only what lies inside its cut line) at cx, cy, cw wide
+async function drawStoryCard(x, card, reversed, cx, cy, cw){
+  const ch=cw/CARD_ASPECT, radius=cw*CARD_RADIUS, k=cw/680;
+  x.save(); x.shadowColor='rgba(0,0,0,.7)'; x.shadowBlur=60*k; x.shadowOffsetY=20*k;
   x.fillStyle='#f4f1ec'; x.beginPath(); x.roundRect(cx,cy,cw,ch,radius); x.fill(); x.restore();
   x.save(); x.beginPath(); x.roundRect(cx,cy,cw,ch,radius); x.clip();
-  if(reversed){ x.translate(W/2, cy+ch/2); x.rotate(Math.PI); x.translate(-W/2, -(cy+ch/2)); }
+  if(reversed){ x.translate(cx+cw/2, cy+ch/2); x.rotate(Math.PI); x.translate(-(cx+cw/2), -(cy+ch/2)); }
   if(card.art!==null){
     const img=new Image(); img.src=ART[card.art];
     await img.decode().catch(()=>{});
-    const k=img.naturalWidth/CUT.fileW; // only the part inside the cut line
-    x.drawImage(img, CUT.left*k, CUT.top*k, CUT.w*k, CUT.h*k, cx, cy, cw, ch);
+    const f=img.naturalWidth/CUT.fileW;
+    x.drawImage(img, CUT.left*f, CUT.top*f, CUT.w*f, CUT.h*f, cx, cy, cw, ch);
   } else {
-    x.strokeStyle='#111'; x.lineWidth=3; x.beginPath(); x.roundRect(cx+cw*.06, cy+cw*.06, cw*.88, ch-cw*.12, cw*.05); x.stroke();
+    x.strokeStyle='#111'; x.lineWidth=3*k; x.beginPath(); x.roundRect(cx+cw*.06, cy+cw*.06, cw*.88, ch-cw*.12, cw*.05); x.stroke();
     x.textAlign='center'; x.letterSpacing='0px';
-    if(card.num){ x.font='500 96px Oswald'; x.fillStyle='#e32222'; x.fillText(card.num, W/2, cy+ch/2-60); }
-    x.font='500 72px Oswald'; x.fillStyle='#111'; x.fillText(card.name, W/2, cy+ch/2+50);
+    if(card.num){ x.font=`500 ${96*k}px Oswald`; x.fillStyle='#e32222'; x.fillText(card.num, cx+cw/2, cy+ch/2-60*k); }
+    x.font=`500 ${72*k}px Oswald`; x.fillStyle='#111';
+    const m=x.measureText(card.name).width; if(m>cw*.8) x.font=`500 ${72*k*cw*.8/m}px Oswald`;
+    x.fillText(card.name, cx+cw/2, cy+ch/2+50*k);
   }
   x.restore();
-
-  const below=cy+ch+120;
-  text(card.name, below, '500 72px Oswald', '#f2efea', 4);
-  text(reversed?'ПЕРЕВЁРНУТОЕ ПОЛОЖЕНИЕ':'ПРЯМОЕ ПОЛОЖЕНИЕ', below+64, '500 32px Oswald', '#e32222', 6);
-  text('BLOODY FEAST TAROT', H-170, '500 42px Oswald', '#e9e6e1', 10);
-  text('illusbyme.etsy.com', H-110, 'italic 500 36px "Cormorant Garamond"', '#8a8784');
-
+  return ch;
+}
+async function deliverStory(c, name, title, message){
   const blob=await new Promise(r=>c.toBlob(r,'image/png'));
-  const file=new File([blob], 'card-of-the-day.png', {type:'image/png'});
+  const file=new File([blob], name, {type:'image/png'});
   if(navigator.canShare && navigator.canShare({files:[file]})){
-    await navigator.share({files:[file], title:'Карта дня', text:`Моя карта дня — ${card.name}. Bloody Feast Tarot: ${ETSY_URL}`}).catch(()=>{});
+    await navigator.share({files:[file], title, text:message}).catch(()=>{});
   } else {
     const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=file.name; a.click();
     setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
     showToast('Картинка сохранена — её можно выложить в сторис');
   }
+}
+async function shareCard(el){
+  const card=el._card, reversed=el.dataset.reversed==='true';
+  const {c, x, W, text}=storyCanvas('КАРТА ДНЯ');
+  const cw=680, cy=260, ch=await drawStoryCard(x, card, reversed, (W-cw)/2, cy, cw);
+  const below=cy+ch+120;
+  text(card.name, below, '500 72px Oswald', '#f2efea', 4);
+  text(reversed?'ПЕРЕВЁРНУТОЕ ПОЛОЖЕНИЕ':'ПРЯМОЕ ПОЛОЖЕНИЕ', below+64, '500 32px Oswald', '#e32222', 6);
+  deliverStory(c, 'card-of-the-day.png', 'Карта дня', `Моя карта дня — ${card.name}. Bloody Feast Tarot: ${ETSY_URL}`);
+}
+// the spread: its three cards side by side, each under its position and over its name, then the summary
+async function shareSpread(els){
+  const {c, x, W, text}=storyCanvas('ТРИ КАРТЫ');
+  const cw=300, gap=45, left=(W-3*cw-2*gap)/2, cy=390;
+  let ch=0;
+  for(const [i, el] of els.entries()){
+    const cx=left+i*(cw+gap), mid=cx+cw/2;
+    text(POSITIONS[i].toUpperCase(), cy-40, '500 30px Oswald', '#e32222', 6, mid);
+    ch=await drawStoryCard(x, el._card, el.dataset.reversed==='true', cx, cy, cw);
+    text(el._card.name.toUpperCase(), cy+ch+64, '500 32px Oswald', '#f2efea', 2, mid, cw+gap-10);
+  }
+  // the summary, wrapped to the width of the row
+  x.font='italic 500 40px "Cormorant Garamond"'; x.letterSpacing='0px';
+  const words=spreadSummary(els).split(' '), lines=[''];
+  words.forEach(w=>{ const t=(lines.at(-1)+' '+w).trim(); x.measureText(t).width>W-160 ? lines.push(w) : lines[lines.length-1]=t; });
+  lines.forEach((l,i)=>text(l, cy+ch+170+i*54, 'italic 500 40px "Cormorant Garamond"', '#d9d4ce'));
+  deliverStory(c, 'three-cards.png', 'Три карты',
+    `Мой расклад: ${els.map((e,i)=>POSITIONS[i]+' — '+e._card.name).join(', ')}. Bloody Feast Tarot: ${ETSY_URL}`);
 }

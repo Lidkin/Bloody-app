@@ -108,7 +108,7 @@ ru:{title:'Таро Лидии Хаит', ask:'Задать вопрос', askSu
   deckMany:'Эти карты — из колоды <b>Bloody Feast Tarot</b>: все 78 карт с авторской графикой в файле для печати.',
   etsy:'Колода на Etsy', shareCard:'Поделиться картой', shareSpread:'Поделиться раскладом', gather:'Собрать колоду',
   again:'↺ Новое гадание', saved:'Картинка сохранена — её можно выложить в сторис',
-  storyDay:'КАРТА ДНЯ', storyThree:'ТРИ КАРТЫ',
+  storyDay:'КАРТА ДНЯ', storyThree:'ТРИ КАРТЫ', storyAsk:'А ЧТО ВЫПАДЕТ ТЕБЕ?',
   shareDay:name=>`Моя карта дня — ${name}.`, shareSpreadText:list=>`Мой расклад: ${list}.`,
   q:n=>`«${n}»`,
   majors:['Старших арканов нет — всё решается в повседневном, и многое в твоих руках.',
@@ -129,7 +129,7 @@ en:{title:'Tarot by Lidiia Khait', ask:'Ask a question', askSub:'do you want to 
   deckMany:'These cards come from the <b>Bloody Feast Tarot</b> deck: all 78 cards with original artwork in a printable file.',
   etsy:'Get the deck on Etsy', shareCard:'Share the card', shareSpread:'Share the spread', gather:'Gather the deck',
   again:'↺ New reading', saved:'Image saved — you can post it to your story',
-  storyDay:'CARD OF THE DAY', storyThree:'THREE CARDS',
+  storyDay:'CARD OF THE DAY', storyThree:'THREE CARDS', storyAsk:'WHAT WILL YOU DRAW?',
   shareDay:name=>`My card of the day: ${name}.`, shareSpreadText:list=>`My spread: ${list}.`,
   q:n=>`“${n}”`,
   majors:['No Major Arcana — it all comes down to everyday matters, and much is in your hands.',
@@ -1326,10 +1326,13 @@ async function drawCardStory(el){
   const card=el._card, reversed=el.dataset.reversed==='true';
   const {c, x, W, text}=storyCanvas(tr('storyDay'));
   text(card.name.toUpperCase(), SAFE.top+162, '500 72px Oswald', '#f2efea', 6, W/2, W-120);
-  const cw=440, cy=SAFE.top+200, ch=await drawStoryCard(x, card, reversed, (W-cw)/2, cy, cw);
+  const cw=420, cy=SAFE.top+200, ch=await drawStoryCard(x, card, reversed, (W-cw)/2, cy, cw);
   const font='italic 500 42px "Cormorant Garamond"';
   const meaning=reversed ? card.rev : card.up;
-  wrapLines(x, meaning[0].toUpperCase()+meaning.slice(1), font, W-200).forEach((l,i)=>text(l, cy+ch+72+i*54, font, '#d9d4ce'));
+  const lines=wrapLines(x, meaning[0].toUpperCase()+meaning.slice(1), font, W-200);
+  lines.forEach((l,i)=>text(l, cy+ch+72+i*54, font, '#d9d4ce'));
+  // an invitation to whoever sees the story, in the red of the card backs
+  text(tr('storyAsk'), cy+ch+72+(lines.length-1)*54+100, '500 44px Oswald', '#e42423', 6, W/2, W-160);
   return {c, name:'card-of-the-day.png', title:tr('optDay'), text:`${tr('shareDay')(card.name)} Bloody Feast Tarot: ${ETSY_URL}`};
 }
 // the spread: its three cards side by side, each under its position and over its name, then the summary

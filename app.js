@@ -477,7 +477,7 @@ const isPortraitMobile=()=>matchMedia('(orientation: portrait)').matches &&
 // A real card element takes the place of the top image of the deck for this.
 function drawFromDeck(dip){
   fanScreen.hidden=false;
-  fan.innerHTML=''; fan.appendChild(dimOverlay); dimOverlay.classList.remove('on','share-bg');
+  fan.innerHTML=''; fan.appendChild(dimOverlay); resetTable();
   const topImg=deckStack.lastElementChild, r=topImg.getBoundingClientRect();
   const card=DECK[Math.floor(Math.random()*DECK.length)];
   const el=makeCard(card, 0, 0); el.style.zIndex=1000;
@@ -490,15 +490,15 @@ function drawFromDeck(dip){
   sfx.slide(.8, .8);
   gsap.timeline()
     .to(s,{y:s.y-s.h*.45, duration:.9, ease:'sine.in', onUpdate:render})
-    // the deck ends up under the description, so it fades back to keep the text readable
-    .call(()=>{ dimOverlay.classList.add('on'); gsap.to(deckStack,{opacity:.3, duration:.8}); })
+    // the deck would end up under the description, so it is cleared away
+    .call(()=>setDim(2, el))
     .to(s,{...pose, duration:1.3, ease:'power2.out', onUpdate:render, onComplete:()=>onCardOpened(el)});
 }
 // the reverse; the deck then settles and the ask button comes back for the next reading (or `onBack` runs)
 function returnToDeck(el, onBack){
   const {topImg, dip, rest}=el._fromDeck, s=el._state, render=()=>renderCard(el,s);
   gsap.killTweensOf(s);
-  dimOverlay.classList.remove('on','share-bg'); gsap.to(deckStack,{opacity:1, duration:.8});
+  setDim(0); gsap.to(deckStack,{opacity:1, duration:.8});
   gsap.timeline()
     .to(s,{...rest, y:rest.y-rest.h*.45, duration:1.1, ease:'power2.inOut', onUpdate:render})
     .to(s,{y:rest.y, duration:.5, ease:'sine.out', onUpdate:render})
@@ -611,7 +611,7 @@ function loadFace(el){
 }
 
 function buildFan(onReady){
-  hoverCard=null; fan.innerHTML=''; fan.appendChild(dimOverlay); dimOverlay.classList.remove('on','share-bg');
+  hoverCard=null; fan.innerHTML=''; fan.appendChild(dimOverlay); resetTable();
   meaningPanel.classList.remove('show'); finale.classList.remove('show');
   deckOrder=[...DECK.keys()];
   for(let i=deckOrder.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[deckOrder[i],deckOrder[j]]=[deckOrder[j],deckOrder[i]];}
@@ -830,8 +830,7 @@ function openCard(el, card){
     .call(()=>{
       // clear of its own arc now, so rising above everything shows no jump
       el.style.zIndex=1000; sfx.slide(1, .6);
-      document.querySelectorAll('.fcard').forEach(c=>{ if(c!==el) c.classList.add('dim'); });
-      dimOverlay.classList.add('on');
+      setDim(2, el);
     })
     .to(s,{...pose, duration:1, ease:'power2.out', onUpdate:render, onComplete:()=>onCardOpened(el)});
 }
@@ -909,7 +908,7 @@ function pickCard(el){
 function drawSpreadCard(i){
   busy=true;
   if(!spread){
-    fanScreen.hidden=false; fan.innerHTML=''; fan.appendChild(dimOverlay); dimOverlay.classList.remove('on','share-bg');
+    fanScreen.hidden=false; fan.innerHTML=''; fan.appendChild(dimOverlay); resetTable();
     startSpread(false);
   }
   const r=deckStack.lastElementChild.getBoundingClientRect();
@@ -943,7 +942,7 @@ function openSpreadCard(i){
   busy=true; activeCard=el;
   // desktop: the table goes fully dark only once the card's name surfaces (onCardOpened)
   setDim(el._fromDeck ? 2 : 1, el); showCaps(false); el.classList.remove('lit');
-  if(el._fromDeck) gsap.to(deckStack,{opacity:.3, duration:.8});
+  if(el.classList.contains('away')) fadeInCard(el);
   const s=el._state, pose=openedPose(el, el._card), render=()=>renderCard(el,s), tl=gsap.timeline();
   gsap.killTweensOf(s);
   // out of the arc first (desktop), so rising above its neighbours shows no jump
@@ -961,13 +960,15 @@ function nextSpreadCard(){
   if(el._fromDeck){
     gsap.to(s,{x:-s.w*.7, rot:-14, tx:0, ty:0, duration:.8, ease:'power2.in', onUpdate:render, onComplete:()=>{
       el.style.visibility='hidden';
-      dimOverlay.classList.remove('on','share-bg'); gsap.to(deckStack,{opacity:1, duration:.6});
+      setDim(0); gsap.to(deckStack,{opacity:1, duration:.6});
       gsap.delayedCall(.7, ()=>drawSpreadCard(spread.i+1));
     }});
     return;
   }
+  // on a cleared table it fades on its way back and is put away with the rest
+  const cleared=tableCleared; if(cleared){ el.style.opacity='0'; fadeInCard(spread.cards[spread.i+1]); }
   gsap.to(s,{...arcState(el, cardH), ry:180, tx:0, ty:0, duration:.9, ease:'power2.inOut', onUpdate:render,
-    onComplete:()=>{ el.style.zIndex=900; openSpreadCard(spread.i+1); }});
+    onComplete:()=>{ el.style.zIndex=900; if(cleared){ el.classList.add('away'); el.style.opacity=''; } openSpreadCard(spread.i+1); }});
 }
 // "Завершить": desktop - all three lie open side by side, captioned, above the summary and the way to the
 // shop; phones - the carousel
@@ -979,8 +980,9 @@ function showSpreadSummary(){
   const poses=fitRow(finale, els.length);
   els.forEach((c,i)=>{
     const s=c._state; gsap.killTweensOf(s); c.classList.remove('dim');
-    // the cards put away rise above the dark and come out of it
-    if(+c.style.zIndex<1000){ c.style.zIndex=1000+i; gsap.fromTo(c,{filter:'brightness(.05)'},{filter:'brightness(1)', duration:.9, ease:'sine.inOut', clearProps:'filter'}); }
+    // the cards put away come back
+    if(+c.style.zIndex<1000) c.style.zIndex=1000+i;
+    if(c.classList.contains('away')) fadeInCard(c);
     spread.caps[i].querySelector('.cap-name').textContent=c._card.name;
     spread.caps[i].querySelector('.cap-title').textContent=c._card.title ? tr('q')(c._card.title) : '';
     spread.caps[i].style.width=poses[i].w*1.1+'px'; // a long name wraps instead of running into the next one
@@ -1006,7 +1008,7 @@ function showCarousel(){
   fCard.style.minHeight=hMax+'px';
   spread.carousel={order:els.map((_,i)=>i), pose:fitAbove(finale)};
   // they come back from where they were put away, the bottom of the stack first
-  els.forEach(c=>{ c.classList.remove('dim'); c.style.visibility=''; });
+  els.forEach(c=>{ c.classList.remove('dim', 'away'); c.style.visibility=''; });
   spread.carousel.order.forEach((j,d)=>{
     const c=els[j], s=c._state; c.style.zIndex=1000-d;
     gsap.killTweensOf(s);
@@ -1104,12 +1106,41 @@ function spreadSummary(els){
   return out.join(' ');
 }
 
-// how dark the table around `except` is: 0 not at all, 1 half, 2 fully
+// The table around `except`: 0 in view, 1 half veiled (desktop spreads: a card on its way), 2 cleared away -
+// the velvet covers it, the fan (or on phones the deck) leaves the page under it, and the velvet fades
+// again, so an open card lies over the live background of the start screen. Once cleared, it stays so
+// until level 0 brings it back the same way.
+let tableCleared=false;
 function setDim(level, except){
-  document.querySelectorAll('.fcard').forEach(c=>{
-    c.classList.toggle('dim', level===2 && c!==except); c.classList.toggle('dim-soft', level===1 && c!==except);
-  });
-  dimOverlay.classList.toggle('on', level===2); dimOverlay.classList.toggle('soft', level===1); dimOverlay.classList.remove('share-bg');
+  document.querySelectorAll('.fcard').forEach(c=>c.classList.toggle('dim', level>0 && c!==except));
+  dimOverlay.classList.toggle('on', level>0);
+  if(level===2 && !tableCleared){
+    tableCleared=true;
+    gsap.to(dimOverlay,{opacity:1, duration:.7, ease:'sine.inOut', overwrite:true, onComplete:()=>{
+      if(!tableCleared) return;
+      fan.querySelectorAll('.fcard').forEach(c=>{ if(c!==activeCard) c.classList.add('away'); });
+      if(!openingEl.hidden) gsap.set(deckStack,{opacity:0});
+      gsap.to(dimOverlay,{opacity:0, duration:.9, ease:'sine.inOut'});
+    }});
+  } else if(level===1 && !tableCleared){
+    gsap.to(dimOverlay,{opacity:.6, duration:.8, ease:'sine.inOut', overwrite:true});
+  } else if(level===0){
+    const away=[...fan.querySelectorAll('.fcard.away')].filter(c=>!spread?.cards.includes(c));
+    tableCleared=false;
+    if(!away.length){ gsap.to(dimOverlay,{opacity:0, duration:.8, ease:'sine.inOut', overwrite:true}); return; }
+    gsap.to(dimOverlay,{opacity:1, duration:.4, ease:'sine.inOut', overwrite:true, onComplete:()=>{
+      away.forEach(c=>c.classList.remove('away'));
+      gsap.to(dimOverlay,{opacity:0, duration:.8, ease:'sine.inOut'});
+    }});
+  }
+}
+// a card put away with the table comes back, fading in
+function fadeInCard(el){
+  el.style.opacity='0'; el.classList.remove('away'); el.offsetWidth; el.style.opacity='';
+}
+// a new fan or a new draw: nothing is veiled or put away
+function resetTable(){
+  tableCleared=false; gsap.killTweensOf(dimOverlay); gsap.set(dimOverlay,{opacity:0}); dimOverlay.classList.remove('on');
 }
 
 const isDesktop=()=>matchMedia('(hover:hover) and (pointer:fine)').matches;
@@ -1252,7 +1283,7 @@ let sharePreview=false;
 const shareBtnEl=document.getElementById('shareBtn');
 shareBtnEl.addEventListener('pointerenter', e=>{
   if(e.pointerType!=='mouse' || !activeCard || busy || spread) return;
-  sharePreview=true; dimOverlay.classList.add('share-bg');
+  sharePreview=true;
   const el=activeCard, s=el._state;
   gsap.to(s,{tx:0, ty:0, duration:.5, ease:'power2.out', overwrite:'auto', onUpdate:()=>renderCard(el,s)});
   el.classList.add('lit');
@@ -1260,7 +1291,7 @@ shareBtnEl.addEventListener('pointerenter', e=>{
 });
 shareBtnEl.addEventListener('pointerleave', ()=>{
   if(!sharePreview) return;
-  sharePreview=false; dimOverlay.classList.remove('share-bg');
+  sharePreview=false;
   if(activeCard) activeCard.classList.remove('lit');
   showcase.forEach((c,k)=>fanOutCard(c, .08*k));
 });
@@ -1346,7 +1377,7 @@ document.getElementById('finishBtn').addEventListener('click', e=>{
   gsap.to(s,{...pose, duration:.7, ease:'power2.inOut', onUpdate:()=>renderCard(el,s),
     onComplete:()=>{ finale.classList.add('show'); busy=false; showShowcase(el); }});
 });
-document.getElementById('shareBtn').addEventListener('click', ()=>{ dimOverlay.classList.add('share-bg'); shareStory(); });
+document.getElementById('shareBtn').addEventListener('click', shareStory);
 // the closing screen speaks of one card or of the whole spread
 // the meaning of a card as it fell
 const cardMeaning=el=>el.dataset.reversed==='true' ? el._card.rev : el._card.up;
@@ -1394,8 +1425,7 @@ document.getElementById('againBtn').addEventListener('click', ()=>{
 function returnToArc(el){
   const s=el._state, render=()=>renderCard(el,s);
   gsap.killTweensOf(s);
-  document.querySelectorAll('.fcard').forEach(c=>c.classList.remove('dim'));
-  dimOverlay.classList.remove('on','share-bg');
+  setDim(0);
   gsap.timeline()
     .to(s,{...arcState(el, cardH), duration:.9, ease:'power2.inOut', onUpdate:render})
     .call(()=>{ el.style.zIndex=el.dataset.z; })
@@ -1424,7 +1454,7 @@ function tuckUnderDeck(els, onBack){
   const {w, h}=rest, rot=4, out=(h*Math.cos(.07)+w*Math.sin(.07))/2+h/2+10;
   // a card of the day takes back the place of the top image it was drawn as, a spread takes the top card of the deck
   const img=topImg || deckStack.lastElementChild;
-  dimOverlay.classList.remove('on','share-bg'); gsap.to(deckStack,{opacity:1, duration:.8});
+  setDim(0); gsap.to(deckStack,{opacity:1, duration:.8});
   const tl=gsap.timeline();
   els.forEach((el,i)=>{
     const s=el._state; gsap.killTweensOf(s); el.classList.remove('dim', 'dim-soft', 'lit'); el.style.zIndex=1000+i;

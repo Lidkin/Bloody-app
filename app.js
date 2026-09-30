@@ -802,7 +802,7 @@ new MutationObserver(()=>document.body.classList.toggle('card-open', meaningPane
 function fitAbove(panel){
   const GAP=16, panelH=panel.offsetHeight, ASPECT=CARD_ASPECT;
   // the title (or, over an open card, its name) stays above the scene, so the card must keep clear of it
-  const head=panel===meaningPanel ? cardHead : document.querySelector('h1.title');
+  const head=panel===meaningPanel || document.body.classList.contains('car-open') ? cardHead : document.querySelector('h1.title');
   const minTop=Math.max(FIT_MARGIN, head.getBoundingClientRect().bottom+24);
   const availW=innerWidth-2*FIT_MARGIN;
   // the closing block stands on the bottom of the screen (style.css): the card is centred in the room above it
@@ -1006,11 +1006,12 @@ function showSpreadSummary(){
 const fCard=document.getElementById('fCard');
 function showCarousel(){
   const els=spread.cards;
-  fCard.hidden=false;
+  fCard.hidden=false; document.body.classList.add('car-open');
   // the description block keeps the height of the longest one, so nothing moves as the cards change
   fCard.style.minHeight='';
   const hMax=Math.max(...els.map(c=>{ fillCarouselText(c); return fCard.offsetHeight; }));
   fCard.style.minHeight=hMax+'px';
+  fillCarouselText(els[0]);
   spread.carousel={order:els.map((_,i)=>i), pose:fitAbove(finale)};
   // they come back from where they were put away, the bottom of the stack first
   els.forEach(c=>{ c.classList.remove('dim', 'away'); c.style.visibility=''; });
@@ -1049,7 +1050,8 @@ function stackPose(d){
 function fillCarouselText(el){
   const card=el._card, rev=el.dataset.reversed==='true';
   document.getElementById('fPos').textContent=POSITIONS[spread.cards.indexOf(el)];
-  document.getElementById('fName').textContent=card.name;
+  document.getElementById('fName').textContent=document.getElementById('mName').textContent=card.name;
+  fitCardHead();
   document.getElementById('fTitle').textContent=card.title ? tr('q')(card.title) : '';
   document.getElementById('fText').textContent=rev ? card.rev : card.up;
 }
@@ -1062,11 +1064,12 @@ function turnStack(dir){
   C.order=dir>0 ? [...C.order.slice(1), j] : [j, ...C.order.slice(0, -1)];
   // far enough out that the tilted card clears the stack
   const out=(P.w*Math.cos(.14)+P.h*Math.sin(.14))/2+P.w/2+12, side=dir>0 ? -1 : 1;
-  gsap.to(fCard,{opacity:0, duration:.3});
+  const mName=document.getElementById('mName');
+  gsap.to([fCard, mName],{opacity:0, duration:.3});
   gsap.killTweensOf(s);
   gsap.timeline({onComplete:()=>{
       activeCard=els[C.order[0]]; fillCarouselText(activeCard);
-      gsap.to(fCard,{opacity:1, duration:.4}); busy=false;
+      gsap.to([fCard, mName],{opacity:1, duration:.4}); busy=false;
     }})
     .to(s,{x:P.x+side*out, y:P.y-6, rot:side*8, duration:.5, ease:'power2.inOut', onUpdate:render})
     .call(()=>{
@@ -1452,7 +1455,7 @@ document.getElementById('gatherBtn').addEventListener('click', ()=>{
   el.classList.remove('lit');
   const els=spread ? spread.cards : [el];
   els.forEach(c=>c.classList.remove('lit'));
-  showCaps(false);
+  showCaps(false); document.body.classList.remove('car-open');
   hideShowcase(()=>el._fromDeck ? tuckUnderDeck(els, endReading) : gatherDeck(els[0], els.slice(1)));
 });
 // portrait phones: the card of the day turns face down and goes to the bottom of the deck it was drawn
@@ -1543,7 +1546,7 @@ function flyHome(el){
 // the deck is back on the velvet: after the card of the day the time left until the next one is shown
 function endReading(){
   if(mode==='day') dayDone=true;
-  spread=null; fan.classList.remove('carousel'); fan.querySelectorAll('.spread-cap, .pick-list').forEach(e=>e.remove());
+  spread=null; fan.classList.remove('carousel'); document.body.classList.remove('car-open'); fan.querySelectorAll('.spread-cap, .pick-list').forEach(e=>e.remove());
   setAskSub(); showStart(true);
 }
 // once the card of the day is drawn, the line under the options counts down to the next one, at local

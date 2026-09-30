@@ -190,9 +190,11 @@ img{-webkit-user-drag:none; user-select:none; -webkit-user-select:none; -webkit-
   cursor:-webkit-image-set(url(assets/fingerprint-cursor.png) 1x, url(assets/fingerprint-cursor-2x.png) 2x) 16 21, pointer;}
 /* the white of an illustration is shown as warm paper, like the faces without artwork;
    it turns pure white under the cursor */
-.paper{position:absolute; inset:0; pointer-events:none; background:#f4f1ec; mix-blend-mode:multiply;
-  transition:opacity .6s ease-in-out;}
-.fcard.lit .paper, .fcard.showcase:hover .paper, .deck-stack.lit .paper{opacity:0;}
+.paper{position:absolute; inset:0; pointer-events:none; background-color:#f4f1ec; mix-blend-mode:multiply;
+  transition:background-color .6s ease-in-out;}
+/* multiplied by white it vanishes; its colour is faded, not its opacity: fading the opacity of a blended layer
+   splits the card into new layers, which Chrome first shows blurred at low resolution */
+.fcard.lit .paper, .fcard.showcase:hover .paper, .deck-stack.lit .paper{background-color:#fff;}
 body.noir .face.front .tface{transition:background-color .6s ease-in-out;}
 body.noir .fcard.lit .tface{background:#fff;}
 /* desktop: the opened card's name, huge, across the screen behind the card */
@@ -336,10 +338,12 @@ body.noir h1.title, body.noir .meaning-panel h2{letter-spacing:4px; font-weight:
 body.noir h1.title{opacity:.75;}
 /* while a card lies open with its description, its name takes the title's place */
 h1.title{transition:opacity .5s ease-in-out;}
-body.card-open h1.title{opacity:0 !important;}
+body.card-open h1.title, body.car-open h1.title{opacity:0 !important;}
 .card-head{position:fixed; top:calc(14px + env(safe-area-inset-top,0px)); left:50%; transform:translateX(-50%); z-index:5;
   text-align:center; white-space:nowrap; opacity:0; pointer-events:none; transition:opacity .5s ease-in-out;}
-body.card-open .card-head{opacity:1;}
+body.card-open .card-head, body.car-open .card-head{opacity:1;}
+/* phones, the carousel of the spread: the top card's name stands in the header instead of over its description */
+body.car-open #fName{display:none;}
 .card-head h2{margin:0; font-family:var(--head-font); color:var(--accent); font-size:19px; line-height:24px; letter-spacing:4px; font-weight:500;}
 @media (hover:hover) and (pointer:fine){ .card-head{top:calc(64px + env(safe-area-inset-top,0px));} }
 /* narrow phones: a smaller title; fitTitle (app.js) keeps it on one line clear of RU / EN */

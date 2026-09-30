@@ -844,7 +844,7 @@ function buildPickList(){
   const rows=[...list.querySelectorAll('.pick-line, .pick-go')];
   for(let f=30;f>=11;f--){
     list.style.fontSize=f+'px';
-    const H=list.offsetHeight, top=Math.min(innerHeight-12, pivotY+R*.35)-H;
+    const H=list.offsetHeight, top=Math.min(innerHeight-Math.max(32, innerHeight*.045), pivotY+R*.35)-H;
     list.style.top=top+'px';
     // the top corners of every row must lie inside the free circle
     if(rows.every(r=>Math.hypot(r.offsetWidth/2, pivotY-(top+r.offsetTop))<=R)) break;

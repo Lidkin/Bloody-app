@@ -66,26 +66,18 @@ canvas#dust{position:fixed; inset:0; z-index:1; pointer-events:none;}
   width:var(--img-w,108.25%); height:var(--img-h,104.76%); left:var(--img-x,-4.04%); top:var(--img-y,-2.3%);}
 
 .ask-btn{position:relative; z-index:3000; margin-top:34px; /* above the swirling cards (z up to ~2000) */ background:none; border:none; color:var(--accent); font-family:var(--head-font);
-  font-size:14px; letter-spacing:3px; cursor:pointer; text-transform:uppercase;
+  font-size:20px; letter-spacing:3px; cursor:pointer; text-transform:uppercase;
   animation:pulse 2.4s infinite ease-in-out; text-shadow:0 0 12px rgba(var(--accent-rgb),.6);
   will-change:opacity;} /* own layer: the pulse doesn't make the glyphs re-rasterize and shimmer */
 /* the texts appear only once the web fonts are in, so they never jump from a fallback font */
 body:not(.fonts-ready) .ask-btn, body:not(.fonts-ready) h1.title, body:not(.fonts-ready) .theme-toggle{visibility:hidden;}
-/* a letter of the ask label flaring up bright red, like a speck of the dust */
-.ask-btn .ch{display:inline-block; position:relative;}
-.ask-btn .ch.flare{animation:letterFlare var(--flare,.45s) ease-out;}
-/* a soft red halo of light behind the flaring letter */
-.ask-btn .ch::after{content:''; position:absolute; left:50%; top:55%; width:2.6em; height:2.6em;
-  transform:translate(-50%,-50%); border-radius:50%; z-index:-1; pointer-events:none; opacity:0;
-  background:radial-gradient(circle, rgba(255,40,40,.55) 0%, rgba(200,20,20,.25) 35%, transparent 70%);}
-.ask-btn .ch.flare::after{animation:letterHalo var(--flare,.45s) ease-out;}
-@keyframes letterFlare{
-  0%,100%{color:inherit;}
-  20%{color:#ff2a2a; text-shadow:0 0 4px #ff3a3a, 0 0 12px #ff2222, 0 0 26px rgba(255,34,34,.8);}
+/* pointed at, the label stops flickering and lights up bright red */
+.ask-btn{transition:color .35s ease, text-shadow .35s ease;}
+@media (hover:hover){
+  .ask-btn:hover{animation:none; opacity:1; color:var(--red); text-shadow:0 0 10px rgba(227,34,34,.7), 0 0 24px rgba(227,34,34,.45);}
 }
-@keyframes letterHalo{0%,100%{opacity:0;} 20%{opacity:1;}}
 /* one line tall whatever it holds: the countdown hangs below it, so the deck above never shifts */
-.ask-sub{margin-top:6px; height:1.3em; line-height:1.3em; overflow:visible; color:var(--muted); font-size:13px; font-style:italic; letter-spacing:1px; transition:opacity .5s ease-in-out;}
+.ask-sub{margin-top:6px; height:1.3em; line-height:1.3em; overflow:visible; color:var(--muted); font-size:16px; font-style:italic; letter-spacing:1px; transition:opacity .5s ease-in-out;}
 .ask-sub.gone{opacity:0;}
 .ask-sub .countdown{display:block; margin-top:6px; font-family:var(--head-font); font-style:normal; font-size:22px;
   letter-spacing:4px; color:var(--accent); font-variant-numeric:tabular-nums;}

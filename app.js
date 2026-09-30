@@ -117,31 +117,6 @@ function showToast(msg){toast.textContent=msg; toast.classList.add('show'); setT
 // The ask button starts the shuffle and then turns into "Довольно": the deck keeps shuffling until
 // the user stops it, like in a real reading.
 const askBtn=document.getElementById('askBtn');
-// every letter of the label in its own span, so single letters can flare up like the dust
-askBtn.childNodes.forEach(n=>{
-  if(n.nodeType!==Node.TEXT_NODE) return;
-  const frag=document.createDocumentFragment();
-  [...n.textContent].forEach(ch=>{
-    if(ch.trim()){ const s=document.createElement('span'); s.className='ch'; s.textContent=ch; frag.appendChild(s); }
-    else frag.appendChild(document.createTextNode(ch));
-  });
-  n.replaceWith(frag);
-});
-// now and then a glint: usually a single letter, sometimes a quick run of 2-3 different letters
-function flareLetter(){
-  const idle=[...askBtn.querySelectorAll('.ch:not(.flare)')];
-  if(!idle.length || askBtn.style.visibility==='hidden') return;
-  const ch=idle[Math.floor(Math.random()*idle.length)];
-  ch.style.setProperty('--flare', (.35+Math.random()*.25)+'s');
-  ch.classList.add('flare');
-  ch.addEventListener('animationend', ()=>ch.classList.remove('flare'), {once:true});
-}
-(function flareBurst(){
-  const r=Math.random(), count = r<.55 ? 1 : r<.85 ? 2 : 3;
-  let at=0;
-  for(let i=0;i<count;i++){ setTimeout(flareLetter, at); at+=80+Math.random()*140; }
-  setTimeout(flareBurst, at+4000+Math.random()*5000);
-})();
 const ASK_HTML=askBtn.innerHTML;
 let shufflePhase='idle'; // idle -> dealing (-> idle once the fan is dealt / the card is back on the deck)
 function hideAskBtn(then){

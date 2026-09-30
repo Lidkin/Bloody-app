@@ -780,8 +780,29 @@ document.getElementById('gatherBtn').addEventListener('click', ()=>{
   busy=true; const el=activeCard;
   finale.classList.remove('show'); hideBigName();
   el.classList.remove('lit');
-  hideShowcase(()=>el._fromDeck ? returnToDeck(el, showComeBack) : gatherDeck(el));
+  hideShowcase(()=>el._fromDeck ? tuckUnderDeck(el, showComeBack) : gatherDeck(el));
 });
+// portrait phones: the card of the day turns face down and goes to the bottom of the deck it was drawn
+// from - like a shuffled card, it first slides out just below the deck (a narrow screen has no room
+// beside it) until it is clear of it, and only then slips in under it
+function tuckUnderDeck(el, onBack){
+  const {topImg, dip, rest}=el._fromDeck, s=el._state, render=()=>renderCard(el,s);
+  const {w, h}=rest, rot=4, out=(h*Math.cos(.07)+w*Math.sin(.07))/2+h/2+10;
+  gsap.killTweensOf(s);
+  dimOverlay.classList.remove('on'); gsap.to(deckStack,{opacity:1, duration:.8});
+  gsap.timeline()
+    .to(s,{x:rest.x, y:rest.y+out, rot, w, h, ry:0, tx:0, ty:0, duration:1.2, ease:'power2.inOut', onUpdate:render})
+    .call(()=>{
+      // clear of the deck now: the card becomes the deck's bottom card, still lying below it
+      deckStack.prepend(topImg);
+      [...deckStack.children].forEach((c,i)=>c.style.zIndex=i ? 2 : 0);
+      gsap.set(topImg,{x:0, y:out, rotation:rot}); topImg.style.visibility='';
+      el.remove(); fanScreen.hidden=true; activeCard=null;
+      [...deckStack.children].slice(1).forEach((c,i)=>gsap.to(c,{...DECK_REST[i+1], duration:.6, ease:'power2.inOut'}));
+    })
+    .to(topImg,{...DECK_REST[0], duration:.6, ease:'power2.inOut'})
+    .call(()=>settleDeck(dip, ()=>{ onBack(); busy=false; }));
+}
 // the deck as it lies on the velvet, undoing its flight into the fan
 function resetDeckStack(){
   deckStack.style.removeProperty('--edge-o');

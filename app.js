@@ -204,9 +204,9 @@ ru:{title:'Таро Лидии Хаит', comeBack:'возвращайся че�
   optDay:'Карта дня', optThree:'Три карты', positions:['Прошлое','Настоящее','Будущее'],
   upright:'Прямое положение', reversed:'Перевёрнутое положение', pickHint:'выбери три карты', reveal:'Узнать',
   next:'Далее', finish:'Завершить', nowYouKnow:'Теперь ты знаешь',
-  deckOne:'Эта карта — из колоды <b>Bloody Feast Tarot</b>: все 78 карт с авторской графикой в файле для печати.',
-  deckMany:'Эти карты — из колоды <b>Bloody Feast Tarot</b>: все 78 карт с авторской графикой в файле для печати.',
-  etsy:'Колода на Etsy', shareCard:'Поделиться картой', shareSpread:'Поделиться раскладом', gather:'Собрать колоду',
+  deckOne:'Эта карта — из колоды <b>Bloody Feast Tarot</b>: все 78 карт с авторской графикой в файле для печати на Etsy.',
+  deckMany:'Эти карты — из колоды <b>Bloody Feast Tarot</b>: все 78 карт с авторской графикой в файле для печати на Etsy.',
+  etsy:'Купить колоду', share:'Поделиться', gather:'Собрать колоду', onceMore:'<span class="ic">↺</span> Ещё раз',
   again:'↺ Новое гадание', saved:'Картинка сохранена — её можно выложить в сторис',
   storyDay:'КАРТА ДНЯ', storyThree:'ТРИ КАРТЫ', storyAsk:'А ЧТО ВЫПАДЕТ ТЕБЕ?',
   shareDay:name=>`Моя карта дня — ${name}.`, shareSpreadText:list=>`Мой расклад: ${list}.`,
@@ -225,9 +225,9 @@ en:{title:'Tarot by Lidiia Khait', comeBack:'come back in', whisper:'do you want
   optDay:'Card of the day', optThree:'Three cards', positions:['Past','Present','Future'],
   upright:'Upright', reversed:'Reversed', pickHint:'choose three cards', reveal:'Reveal',
   next:'Next', finish:'Finish', nowYouKnow:'Now you know',
-  deckOne:'This card comes from the <b>Bloody Feast Tarot</b> deck: all 78 cards with original artwork in a printable file.',
-  deckMany:'These cards come from the <b>Bloody Feast Tarot</b> deck: all 78 cards with original artwork in a printable file.',
-  etsy:'Get the deck on Etsy', shareCard:'Share the card', shareSpread:'Share the spread', gather:'Gather the deck',
+  deckOne:'This card comes from the <b>Bloody Feast Tarot</b> deck: all 78 cards with original artwork in a printable file on Etsy.',
+  deckMany:'These cards come from the <b>Bloody Feast Tarot</b> deck: all 78 cards with original artwork in a printable file on Etsy.',
+  etsy:'Buy the deck', share:'Share', gather:'Gather the deck', onceMore:'<span class="ic">↺</span> Once more',
   again:'↺ New reading', saved:'Image saved — you can post it to your story',
   storyDay:'CARD OF THE DAY', storyThree:'THREE CARDS', storyAsk:'WHAT WILL YOU DRAW?',
   shareDay:name=>`My card of the day: ${name}.`, shareSpreadText:list=>`My spread: ${list}.`,
@@ -1290,7 +1290,8 @@ function setFinale(els){
   prepareStory(els);
   document.getElementById('etsyBtn').href=etsyLink(els[0]._card);
   document.getElementById('fDeck').innerHTML=tr(one ? 'deckOne' : 'deckMany');
-  shareBtnEl.textContent=tr(one ? 'shareCard' : 'shareSpread');
+  shareBtnEl.textContent=tr('share');
+  document.getElementById('gatherBtn').innerHTML=tr(one ? 'gather' : 'onceMore');
   sum.hidden=one; sum.textContent=one ? '' : spreadSummary(els);
   sum.classList.remove('card-text'); sum.style.minHeight=''; summaryFor=null;
   // it keeps the height of the longest of those texts, so the buttons below do not jump

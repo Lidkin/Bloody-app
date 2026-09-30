@@ -110,7 +110,8 @@ body:not(.fonts-ready) .spread-options{visibility:hidden;}
 .pick-line.on, .pick-hint.on, .pick-go.on{opacity:1; transform:none;}
 .pick-line{font-family:var(--head-font); font-size:1em; line-height:1.38; text-shadow:0 0 12px #000; letter-spacing:.2em; margin-right:-.2em;
   color:var(--accent); text-transform:uppercase;}
-.pick-hint{position:absolute; top:0; font-size:.6em; font-style:italic; letter-spacing:1px; color:var(--muted); white-space:nowrap;}
+.pick-hint{position:absolute; top:1.3em; font-size:.9em; font-style:italic; letter-spacing:1px; color:var(--ink); white-space:nowrap;
+  text-shadow:0 0 12px #000, 0 0 4px #000;}
 .pick-list.on .pick-go.on{pointer-events:auto;}
 .pick-go{margin-top:.5em; font-size:max(13px, .5em);}
 /* it comes a moment after "Будущее"; its arrow sits close to the word until pointed at */

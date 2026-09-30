@@ -240,6 +240,8 @@ body.noir .cta:hover{box-shadow:0 0 28px rgba(228,36,35,.65);}
 .finale-row .cta{order:-2;}
 .finale-row .row-break{order:-1; flex-basis:100%; height:14px;}
 .finale #fDeck{margin-bottom:14px;}
+/* the knife from the altar cloth parts what the cards said from the way to the deck */
+.finale .divider{display:block; width:150px; height:auto; margin:4px auto 14px; opacity:.5;}
 @media (hover:hover) and (pointer:fine) and (min-width:760px){
   .finale{max-width:760px;}
   .finale #fDeck{max-width:none; white-space:nowrap;}

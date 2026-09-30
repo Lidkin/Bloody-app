@@ -1574,28 +1574,29 @@ function applyLang(){
   document.documentElement.lang=lang; document.title=tr('title');
   POSITIONS.splice(0, POSITIONS.length, ...tr('positions'));
   document.querySelectorAll('[data-i18n]').forEach(e=>e.textContent=tr(e.dataset.i18n));
-  langSwitch.querySelectorAll('button').forEach(b=>b.classList.toggle('active', b.dataset.lang===lang));
+  const other=lang==='ru' ? 'en' : 'ru';
+  langBtn.textContent=other.toUpperCase(); langBtn.dataset.lang=other;
   setAskSub(); fitTitle();
 }
-// the title stays on one line: centred on the screen if it clears RU / EN, otherwise centred in the room
-// left of them, its letters shrinking until it fits
+// the title stays on one line, centred on the screen; its letters shrink until it clears the language
+// button on both sides alike
 function fitTitle(){
-  const t=document.querySelector('h1.title'), GAP=12, EDGE=14;
-  t.style.fontSize=t.style.letterSpacing=t.style.left='';
-  const end=langSwitch.classList.contains('off') ? innerWidth-EDGE : langSwitch.getBoundingClientRect().left-GAP;
-  if(innerWidth/2+t.offsetWidth/2<=end) return;
-  const room=end-EDGE;
-  t.style.left=EDGE+room/2+'px';
+  const t=document.querySelector('h1.title'), GAP=10, EDGE=14;
+  t.style.fontSize=t.style.letterSpacing='';
+  const side=langSwitch.classList.contains('off') ? EDGE : innerWidth-langSwitch.getBoundingClientRect().left+GAP;
+  const room=innerWidth-2*side;
   for(let f=parseFloat(getComputedStyle(t).fontSize); f>=8 && t.offsetWidth>room; f-=.5){
     t.style.fontSize=f+'px'; t.style.letterSpacing=f*.2+'px';
   }
 }
 document.fonts.ready.then(fitTitle); addEventListener('resize', fitTitle);
-langSwitch.querySelectorAll('button').forEach(b=>b.addEventListener('click', ()=>{
-  if(!deckAtRest() || b.dataset.lang===lang) return;
-  lang=b.dataset.lang; try{ localStorage.setItem('lang', lang); }catch(e){}
+// one button, showing the language it switches to
+const langBtn=document.getElementById('langBtn');
+langBtn.addEventListener('click', ()=>{
+  if(!deckAtRest()) return;
+  lang=langBtn.dataset.lang; try{ localStorage.setItem('lang', lang); }catch(e){}
   applyLang();
-}));
+});
 // visitors whose browser speaks nothing but English are never offered Russian
 const browserLangs=navigator.languages?.length ? navigator.languages : [navigator.language||'en'];
 langSwitch.classList.toggle('off', browserLangs.every(l=>/^en\b/i.test(l)) && lang==='en');

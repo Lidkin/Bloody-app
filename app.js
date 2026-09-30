@@ -395,11 +395,11 @@ function buildFan(onReady){
   const img=mover.querySelector('img');
   (img.decode ? img.decode().catch(()=>{}) : Promise.resolve()).then(()=>{
     onReady&&onReady();
-    if(mode==='three') startSpread(hollowSlots());
+    if(mode==='three') startSpread(null);
     const tl=dealTl=gsap.timeline({onComplete:()=>{
       dealTl=null;
       gsap.to(mover,{opacity:0,duration:.2,onComplete:()=>mover.remove()});
-      if(spread) showSlots(true);
+      if(spread) updatePickList();
     }});
     tl.to(pop,{a:angleEnd,duration:sweepDur(outerIdx.length),ease:'sine.inOut',
       onStart:dropOuter, onUpdate:()=>{ setMover(); dropOuter(); }, onComplete:dropOuter});
@@ -473,7 +473,7 @@ function inCard(s, x, y){
 }
 function cardAt(x, y){
   let best=null;
-  fan.querySelectorAll('.fcard:not(.mover):not(.picked)').forEach(el=>{
+  fan.querySelectorAll('.fcard:not(.mover)').forEach(el=>{
     if((!best || +el.dataset.z>+best.dataset.z) && inCard(arcState(el), x, y)) best=el;
   });
   if(!best && hoverCard && inCard(hoverCard._state||arcState(hoverCard), x, y)) return hoverCard;
@@ -481,13 +481,15 @@ function cardAt(x, y){
 }
 function setHover(el){
   if(el===hoverCard) return;
+  // a card picked for the spread stays slid out
   if(hoverCard){
     const prev=hoverCard; prev.classList.remove('lit');
-    animateCard(prev, arcState(prev), {duration:.3, ease:'power2.inOut', onComplete:()=>restoreInArc(prev)});
+    if(!prev.classList.contains('picked'))
+      animateCard(prev, arcState(prev), {duration:.3, ease:'power2.inOut', onComplete:()=>restoreInArc(prev)});
   }
   hoverCard=el;
   fan.style.cursor = el ? 'pointer' : '';
-  if(el){ el.classList.add('lit'); animateCard(el, arcState(el, cardH/2), {duration:.3, ease:'power2.out'}); }
+  if(el){ el.classList.add('lit'); if(!el.classList.contains('picked')) animateCard(el, arcState(el, cardH/2), {duration:.3, ease:'power2.out'}); }
 }
 const fanIdle=()=>!busy && !activeCard;
 fan.addEventListener('pointermove', e=>{ if(fanIdle() && e.pointerType==='mouse') setHover(cardAt(e.clientX, e.clientY)); });
@@ -551,19 +553,17 @@ function openCard(el, card){
    last lie open side by side with a summary of the whole spread. */
 const POSITIONS=['Прошлое','Настоящее','Будущее'];
 let spread=null; // {cards, slots, caps, i: the card open now}
+// slots: the places of the cards (phones); desktop picks the cards in the arc instead, and the
+// positions line up in a column in the hollow under the lower arc as they are picked
 function startSpread(slots){
   spread={cards:[], slots, caps:[], i:0};
-  slots.forEach((sl,i)=>{
-    if(!isPortraitMobile()){
-      const o=document.createElement('div'); o.className='spread-slot';
-      Object.assign(o.style,{left:sl.x+'px', top:sl.y+'px', width:sl.w+'px', height:sl.h+'px', borderRadius:sl.w*CARD_RADIUS+'px'});
-      fan.appendChild(o);
-    }
+  POSITIONS.forEach((p,i)=>{
     const cap=document.createElement('div'); cap.className='spread-cap';
-    cap.innerHTML=`<span class="cap-pos">${POSITIONS[i]}</span><span class="cap-name"></span>`;
+    cap.innerHTML=`<span class="cap-pos">${p}</span><span class="cap-name"></span>`;
     fan.appendChild(cap); spread.caps.push(cap);
-    placeCap(i, sl.x, sl.y+sl.h/2+10, false);
+    if(slots) placeCap(i, slots[i].x, slots[i].y+slots[i].h/2+10, false);
   });
+  if(!slots) buildPickList();
 }
 // a caption right under (or above) a card
 function placeCap(i, x, y, above){
@@ -571,33 +571,39 @@ function placeCap(i, x, y, above){
   cap.style.left=x+'px'; cap.style.top=y+'px'; cap.classList.toggle('above', above);
 }
 const showCaps=on=>spread && spread.caps.forEach(c=>c.classList.toggle('on', on));
-function showSlots(on){ fan.querySelectorAll('.spread-slot').forEach(o=>o.classList.toggle('on', on)); showCaps(on); }
-// desktop: the three places in the hollow under the lower arc - as big as fits between its cards and the
-// bottom of the screen, room left under them for the captions
-function hollowSlots(){
-  const {rInner, pivotX, pivotY}=fanLayout, R=rInner-cardH/2-12, SP=.2, CAP=30;
-  let k=.85, w, h, y;
-  for(;k>.4;k-=.05){
-    w=cardW*k; h=cardH*k; y=Math.min(innerHeight-CAP-8-h/2, pivotY-h/2);
-    if(Math.hypot(w*(1.5+SP), pivotY-(y-h/2))<=R) break;
-  }
-  return POSITIONS.map((_,i)=>({x:pivotX+(i-1)*w*(1+SP), y, w, h}));
+// desktop: the column of positions in the hollow under the lower arc, "Узнать" under it
+function buildPickList(){
+  // below the reach of the lower arc's cards slid out towards the centre
+  const {rInner, pivotX, pivotY}=fanLayout, top=pivotY-rInner+cardH+10;
+  const list=document.createElement('div'); list.className='pick-list';
+  list.innerHTML='<div class="pick-hint">выбери три карты</div>'+POSITIONS.map(p=>`<div class="pick-line">${p}</div>`).join('')+
+    '<button class="finish-btn pick-go"><span class="fill">Узнать</span> <span class="fill arrow">→</span></button>';
+  // as big as fits between the arc and the bottom of the screen
+  list.style.fontSize=Math.max(15, Math.min(30, (innerHeight-top-12)/5.3))+'px';
+  list.style.left=pivotX+'px'; list.style.top=top+'px';
+  list.querySelector('.pick-go').addEventListener('click', e=>{
+    e.stopPropagation();
+    if(busy || spread.cards.length<POSITIONS.length) return;
+    busy=true; setHover(null); list.classList.remove('on');
+    gsap.delayedCall(.3, ()=>openSpreadCard(0));
+  });
+  fan.appendChild(list); spread.list=list;
 }
-// desktop: the picked card slides out of the arc and is laid face down in the next free place
+function updatePickList(){
+  const n=spread.cards.length, list=spread.list;
+  list.classList.add('on');
+  list.querySelector('.pick-hint').classList.toggle('on', n===0);
+  list.querySelectorAll('.pick-line').forEach((l,i)=>l.classList.toggle('on', i<n));
+  list.querySelector('.pick-go').classList.toggle('on', n===POSITIONS.length);
+}
+// desktop: a picked card stays slid out of the arc; picked again, it goes back
 function pickCard(el){
-  const i=spread.cards.length, sl=spread.slots[i];
-  busy=true; hoverCard=null; fan.style.cursor='';
-  el.classList.add('picked'); el.classList.remove('lit'); spread.cards.push(el);
-  const s=el._state || (el._state=arcState(el)), render=()=>renderCard(el,s);
-  gsap.killTweensOf(s);
-  gsap.timeline()
-    .to(s,{...arcState(el, cardH), duration:.35, ease:'power1.in', onUpdate:render})
-    .call(()=>{ el.style.zIndex=1000+i; })
-    .to(s,{x:sl.x, y:sl.y, w:sl.w, h:sl.h, rot:0, duration:.8, ease:'power2.inOut', onUpdate:render})
-    .call(()=>{
-      if(i<POSITIONS.length-1){ busy=false; return; }
-      showSlots(false); gsap.delayedCall(.5, ()=>openSpreadCard(0));
-    });
+  const k=spread.cards.indexOf(el);
+  if(k>=0){ spread.cards.splice(k,1); el.classList.remove('picked'); updatePickList(); return; }
+  if(spread.cards.length>=POSITIONS.length) return;
+  spread.cards.push(el); el.classList.add('picked');
+  if(hoverCard!==el) animateCard(el, arcState(el, cardH/2), {duration:.3, ease:'power2.out'});
+  updatePickList();
 }
 // phones: three cards slide off the top of the deck one after another into a row under it
 function dealThreeFromDeck(){
@@ -624,20 +630,23 @@ function openSpreadCard(i){
   const el=spread.cards[i]; spread.i=i;
   busy=true; activeCard=el;
   document.querySelectorAll('.fcard').forEach(c=>c.classList.toggle('dim', c!==el));
-  spread.cards.forEach(c=>c.style.zIndex=c===el ? 1000 : 900);
-  dimOverlay.classList.add('on'); showCaps(false);
+  dimOverlay.classList.add('on'); showCaps(false); el.classList.remove('lit');
   if(el._fromDeck) gsap.to(deckStack,{opacity:.3, duration:.8});
-  const s=el._state, pose=openedPose(el, el._card);
+  const s=el._state, pose=openedPose(el, el._card), render=()=>renderCard(el,s), tl=gsap.timeline();
   gsap.killTweensOf(s);
-  gsap.to(s,{...pose, duration:1.3, ease:'power2.inOut', onUpdate:()=>renderCard(el,s), onComplete:()=>onCardOpened(el)});
+  // out of the arc first (desktop), so rising above its neighbours shows no jump
+  if(!el._fromDeck) tl.to(s,{...arcState(el, cardH), duration:.35, ease:'power1.in', onUpdate:render});
+  tl.call(()=>{ el.style.zIndex=1000; })
+    .to(s,{...pose, duration:1.3, ease:'power2.inOut', onUpdate:render, onComplete:()=>onCardOpened(el)});
 }
-// "Далее": the open card lies back in its place, face up, and the next one opens
+// "Далее": the open card lies back, face up - in its place in the row (phones) or just out of its arc slot -
+// and the next one opens
 function nextSpreadCard(){
-  busy=true; const el=activeCard, s=el._state, sl=spread.slots[spread.i];
+  busy=true; const el=activeCard, s=el._state, sl=spread.slots ? spread.slots[spread.i] : {...arcState(el, cardH)};
   meaningPanel.classList.remove('show'); hideBigName(); el.classList.remove('lit');
   gsap.killTweensOf(s);
-  gsap.to(s,{x:sl.x, y:sl.y, w:sl.w, h:sl.h, rot:0, tx:0, ty:0, duration:.9, ease:'power2.inOut', onUpdate:()=>renderCard(el,s),
-    onComplete:()=>openSpreadCard(spread.i+1)});
+  gsap.to(s,{x:sl.x, y:sl.y, w:sl.w, h:sl.h, rot:sl.rot||0, tx:0, ty:0, duration:.9, ease:'power2.inOut', onUpdate:()=>renderCard(el,s),
+    onComplete:()=>{ el.style.zIndex=900; openSpreadCard(spread.i+1); }});
 }
 // "Завершить": all three lie open side by side, captioned, above the summary and the way to the shop
 function showSpreadSummary(){
@@ -1040,7 +1049,7 @@ function flyHome(el){
 // the deck is back on the velvet: after the card of the day the time left until the next one is shown
 function endReading(){
   if(mode==='day') dayDone=true;
-  spread=null; fan.querySelectorAll('.spread-cap, .spread-slot').forEach(e=>e.remove());
+  spread=null; fan.querySelectorAll('.spread-cap, .pick-list').forEach(e=>e.remove());
   const still=setAskSub();
   document.getElementById('askSub').classList.remove('gone'); spreadOpts.classList.remove('gone');
   showAskBtn(ASK_HTML, still);

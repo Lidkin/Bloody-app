@@ -102,9 +102,17 @@ body:not(.fonts-ready) .spread-options{visibility:hidden;}
 
 /* ---------- FAN ---------- */
 #fanScreen{justify-content:flex-start; padding-top:calc(48px + env(safe-area-inset-top,0px));}
-/* three cards: the places they are laid in, and the caption of each place */
-.spread-slot{position:fixed; transform:translate(-50%,-50%); border:1px dashed rgba(var(--accent-rgb),.3);
-  border-radius:8px; opacity:0; transition:opacity .6s ease-in-out; pointer-events:none;}
+/* three cards, desktop: the positions line up under the lower arc as the cards are picked, "Узнать" under them */
+.pick-list{position:fixed; z-index:1500; transform:translateX(-50%); display:flex; flex-direction:column; align-items:center;
+  opacity:0; transition:opacity .5s ease-in-out; pointer-events:none;}
+.pick-list.on{opacity:1;}
+.pick-line, .pick-hint, .pick-go{opacity:0; transform:translateY(8px); transition:opacity .5s ease, transform .5s ease;}
+.pick-line.on, .pick-hint.on, .pick-go.on{opacity:1; transform:none;}
+.pick-line{font-family:var(--head-font); font-size:1em; line-height:1.2; text-shadow:0 0 12px #000; letter-spacing:.2em; margin-right:-.2em;
+  color:var(--accent); text-transform:uppercase;}
+.pick-hint{position:absolute; top:0; font-size:.6em; font-style:italic; letter-spacing:1px; color:var(--muted); white-space:nowrap;}
+.pick-list.on .pick-go.on{pointer-events:auto;}
+.pick-go{margin-top:.5em; font-size:max(13px, .5em);}
 .spread-cap{position:fixed; z-index:1500; display:flex; flex-direction:column; align-items:center; gap:3px;
   text-align:center; transform:translate(-50%,0); opacity:0; transition:opacity .5s ease-in-out; pointer-events:none;}
 .spread-cap.above{transform:translate(-50%,-100%);}
@@ -180,11 +188,12 @@ body:not(.noir) .big-name{font-family:'Cinzel',serif; color:#5e4c25;}
 .end-phrase, .finish-btn{font-family:var(--head-font); font-size:13px; letter-spacing:3px; text-transform:uppercase; color:var(--accent);}
 .end-rule{width:1px; height:22px; background:var(--red); opacity:.7; transform-origin:50% 50%;}
 .finish-btn{background:none; border:none; padding:6px 0; cursor:pointer;}
-/* the letters fill with red from the left, the arrow right after them */
+/* the letters fill with red from the left, the arrow right after them; the red edge waits half a word
+   away on each side, so no glyph reaching past its box (the foot of Д) catches a sliver of red */
 .finish-btn .fill{display:inline-block; color:transparent; -webkit-background-clip:text; background-clip:text;
-  background-image:linear-gradient(90deg, var(--red) 50%, var(--accent) 50%); background-size:200% 100%;
-  background-position:100% 0; transition:background-position .45s ease;}
-.finish-btn .arrow{margin-left:4px; transition:background-position .25s ease, transform .35s ease;}
+  background-image:linear-gradient(90deg, var(--red) 50%, var(--accent) 50%); background-size:300% 100%;
+  background-position:100% 0; transition:background-position .6s ease;}
+.finish-btn .arrow{margin-left:4px; transition:background-position .35s ease, transform .35s ease;}
 .finish-btn:hover .fill{background-position:0 0;}
 .finish-btn:hover .arrow{transform:translateX(5px); transition-delay:.35s, 0s;}
 .return-btn{background:none; border:1px solid rgba(var(--accent-rgb),.4); color:var(--accent);

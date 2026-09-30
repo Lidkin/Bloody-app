@@ -319,3 +319,11 @@ body.noir h1.title, body.noir .meaning-panel h2{letter-spacing:4px; font-weight:
 body.noir h1.title{opacity:.75;}
 /* narrow phones: a smaller title; fitTitle (app.js) keeps it on one line clear of RU / EN */
 @media (max-width:480px){ body.noir h1.title{font-size:12px; letter-spacing:3px;} }
+/* a phone held sideways: the page is made for upright phones and a browser page cannot lock the rotation,
+   so it asks to turn the phone back */
+.rotate-note{display:none;}
+@media (orientation:landscape) and (max-height:500px) and (pointer:coarse){
+  .rotate-note{position:fixed; inset:0; z-index:10000; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:14px; background:#050303; color:var(--ink); font-size:19px; font-style:italic; letter-spacing:.5px; text-align:center;}
+  .rotate-note .rot-ic{font-size:34px; font-style:normal; color:var(--red); line-height:1;}
+}

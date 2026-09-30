@@ -1084,7 +1084,7 @@ function setEndRow(next){
 function revealEnd(at){
   const btn=document.getElementById('finishBtn');
   gsap.killTweensOf([endRule, btn]);
-  gsap.set(btn,{autoAlpha:0}); gsap.set(endRule,{scaleY:0});
+  gsap.set(btn,{autoAlpha:0}); gsap.set(endRule,{scaleY:0}); btn.classList.remove('tap');
   inkReveal(endPhrase, {delay:at, stagger:.035, dur:.7});
   gsap.to(endRule,{scaleY:1, duration:.45, ease:'power2.out', delay:at+.5});
   gsap.fromTo(btn,{x:-10},{autoAlpha:1, x:0, duration:.6, ease:'power2.out', delay:at+.75});
@@ -1274,8 +1274,15 @@ const finale=document.getElementById('finale');
 const etsyLink=card=>`${ETSY_URL}?utm_source=tarot-app&utm_medium=${mode==='three' ? 'three-cards' : 'card-of-the-day'}&utm_content=${encodeURIComponent(card.id)}`;
 
 // "Завершить гадание": the description gives way to the closing screen, the card makes room for it
-document.getElementById('finishBtn').addEventListener('click', ()=>{
+document.getElementById('finishBtn').addEventListener('click', e=>{
   if(!activeCard || busy) return;
+  // phones: the tapped button first fills with red, so the tap is seen, then does its work
+  const btn=e.currentTarget;
+  if(!isDesktop() && !btn._tapped){
+    btn.classList.add('tap'); btn._tapped=true; busy=true;
+    setTimeout(()=>{ busy=false; btn.click(); btn._tapped=false; }, 420);
+    return;
+  }
   if(spread){ spread.i<POSITIONS.length-1 ? nextSpreadCard() : showSpreadSummary(); return; }
   busy=true; const el=activeCard, s=el._state;
   meaningPanel.classList.remove('show');

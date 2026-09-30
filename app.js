@@ -1513,3 +1513,6 @@ langSwitch.querySelectorAll('button').forEach(b=>b.addEventListener('click', ()=
 const browserLangs=navigator.languages?.length ? navigator.languages : [navigator.language||'en'];
 langSwitch.classList.toggle('off', browserLangs.every(l=>/^en\b/i.test(l)) && lang==='en');
 applyLang();
+
+document.addEventListener('contextmenu', e=>{ if(e.target.closest('img, .card, canvas')) e.preventDefault(); });
+document.addEventListener('dragstart', e=>{ if(e.target.tagName==='IMG') e.preventDefault(); });

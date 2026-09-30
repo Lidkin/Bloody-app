@@ -186,8 +186,8 @@ img{-webkit-user-drag:none; user-select:none; -webkit-user-select:none; -webkit-
 .fcard.showcase{pointer-events:auto;}
 /* over any card but those of the fan, the pointer is a bloody fingerprint; open cards are hit-tested in
    app.js, which sets html.fp-cursor */
-.deck-stack, .fcard.showcase, html.fp-cursor, html.fp-cursor *{cursor:url(assets/fingerprint-cursor.png) 12 16, pointer;
-  cursor:-webkit-image-set(url(assets/fingerprint-cursor.png) 1x, url(assets/fingerprint-cursor-2x.png) 2x) 12 16, pointer;}
+.deck-stack, .fcard.showcase, html.fp-cursor, html.fp-cursor *{cursor:url(assets/fingerprint-cursor.png) 16 21, pointer;
+  cursor:-webkit-image-set(url(assets/fingerprint-cursor.png) 1x, url(assets/fingerprint-cursor-2x.png) 2x) 16 21, pointer;}
 /* the white of an illustration is shown as warm paper, like the faces without artwork;
    it turns pure white under the cursor */
 .paper{position:absolute; inset:0; pointer-events:none; background:#f4f1ec; mix-blend-mode:multiply;

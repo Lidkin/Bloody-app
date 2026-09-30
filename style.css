@@ -280,7 +280,7 @@ body.noir .cta{background:var(--red); color:#fff; box-shadow:0 0 18px rgba(228,3
   letter-spacing:1.5px; text-transform:uppercase; cursor:pointer; padding:9px 6px;}
 .link-btn .ic{display:inline-block; font-size:1.35em; line-height:0; vertical-align:-.08em; margin-right:2px;}
 h1.title{position:fixed; top:calc(14px + env(safe-area-inset-top,0px)); left:50%; transform:translateX(-50%);
-  margin:0; white-space:nowrap; font-family:var(--head-font); color:var(--accent);
+  margin:0; width:max-content; white-space:nowrap; font-family:var(--head-font); color:var(--accent);
   font-size:13px; line-height:20px; letter-spacing:3px; opacity:.6; z-index:5; text-transform:uppercase;}
 /* desktop: a bigger deck and the title lower */
 @media (hover:hover) and (pointer:fine){
@@ -313,6 +313,5 @@ h1.title{position:fixed; top:calc(14px + env(safe-area-inset-top,0px)); left:50%
 body:not(.fonts-ready) .lang-switch{visibility:hidden;}
 body.noir h1.title, body.noir .meaning-panel h2{letter-spacing:4px; font-weight:500;}
 body.noir h1.title{opacity:.75;}
-/* narrow phones: a tighter title leaves room for RU / EN beside it */
-@media (max-width:480px){ body.noir h1.title{font-size:12px; letter-spacing:3px; white-space:pre; line-height:17px; text-align:center;} }
-@media (max-width:340px){ body.noir h1.title{font-size:11px; letter-spacing:2px;} }
+/* narrow phones: a smaller title; fitTitle (app.js) keeps it on one line clear of RU / EN */
+@media (max-width:480px){ body.noir h1.title{font-size:12px; letter-spacing:3px;} }

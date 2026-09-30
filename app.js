@@ -212,7 +212,7 @@ ru:{title:'Таро Лидии Хаит', comeBack:'возвращайся че�
   next:'Далее', finish:'Завершить', nowYouKnow:'Теперь ты знаешь',
   deckOne:'Эта карта — из колоды <b>Bloody Feast Tarot</b>: все 78 карт с авторской графикой в файле для печати на Etsy.',
   deckMany:'Эти карты — из колоды <b>Bloody Feast Tarot</b>: все 78 карт с авторской графикой в файле для печати на Etsy.',
-  etsy:'Купить для печати на Etsy', heading:'Таро «Кровавый пир»\nот Лидии Хаит', share:'Поделиться', gather:'Собрать колоду', onceMore:'<span class="ic">↺</span> Ещё раз',
+  etsy:'Купить для печати на Etsy', heading:'Таро «Кровавый пир» от Лидии Хаит', share:'Поделиться', gather:'Собрать колоду', onceMore:'<span class="ic">↺</span> Ещё раз',
   again:'↺ Новое гадание', saved:'Картинка сохранена — её можно выложить в сторис',
   storyDay:'КАРТА ДНЯ', storyThree:'ТРИ КАРТЫ', storyAsk:'А ЧТО ВЫПАДЕТ ТЕБЕ?',
   shareDay:name=>`Моя карта дня — ${name}.`, shareSpreadText:list=>`Мой расклад: ${list}.`,
@@ -233,7 +233,7 @@ en:{title:'Tarot by Lidiia Khait', comeBack:'come back in', whisper:'do you want
   next:'Next', finish:'Finish', nowYouKnow:'Now you know',
   deckOne:'This card comes from the <b>Bloody Feast Tarot</b> deck: all 78 cards with original artwork in a printable file on Etsy.',
   deckMany:'These cards come from the <b>Bloody Feast Tarot</b> deck: all 78 cards with original artwork in a printable file on Etsy.',
-  etsy:'Printable deck on Etsy', heading:'Bloody Feast Tarot deck\nby Lidiia Khait', share:'Share', gather:'Gather the deck', onceMore:'<span class="ic">↺</span> Once more',
+  etsy:'Printable deck on Etsy', heading:'Bloody Feast Tarot deck by Lidiia Khait', share:'Share', gather:'Gather the deck', onceMore:'<span class="ic">↺</span> Once more',
   again:'↺ New reading', saved:'Image saved — you can post it to your story',
   storyDay:'CARD OF THE DAY', storyThree:'THREE CARDS', storyAsk:'WHAT WILL YOU DRAW?',
   shareDay:name=>`My card of the day: ${name}.`, shareSpreadText:list=>`My spread: ${list}.`,
@@ -1575,8 +1575,22 @@ function applyLang(){
   POSITIONS.splice(0, POSITIONS.length, ...tr('positions'));
   document.querySelectorAll('[data-i18n]').forEach(e=>e.textContent=tr(e.dataset.i18n));
   langSwitch.querySelectorAll('button').forEach(b=>b.classList.toggle('active', b.dataset.lang===lang));
-  setAskSub();
+  setAskSub(); fitTitle();
 }
+// the title stays on one line: centred on the screen if it clears RU / EN, otherwise centred in the room
+// left of them, its letters shrinking until it fits
+function fitTitle(){
+  const t=document.querySelector('h1.title'), GAP=12, EDGE=14;
+  t.style.fontSize=t.style.letterSpacing=t.style.left='';
+  const end=langSwitch.classList.contains('off') ? innerWidth-EDGE : langSwitch.getBoundingClientRect().left-GAP;
+  if(innerWidth/2+t.offsetWidth/2<=end) return;
+  const room=end-EDGE;
+  t.style.left=EDGE+room/2+'px';
+  for(let f=parseFloat(getComputedStyle(t).fontSize); f>=8 && t.offsetWidth>room; f-=.5){
+    t.style.fontSize=f+'px'; t.style.letterSpacing=f*.2+'px';
+  }
+}
+document.fonts.ready.then(fitTitle); addEventListener('resize', fitTitle);
 langSwitch.querySelectorAll('button').forEach(b=>b.addEventListener('click', ()=>{
   if(!deckAtRest() || b.dataset.lang===lang) return;
   lang=b.dataset.lang; try{ localStorage.setItem('lang', lang); }catch(e){}

@@ -606,7 +606,8 @@ function makeCard(card, pivotX, pivotY){
 // the fan does not fetch the whole deck
 function loadFace(el){
   const img=el && el.querySelector('img.fart');
-  if(img && !img.getAttribute('src')){ img.onload=()=>img.classList.add('loaded'); img.src=img.dataset.src; }
+  // decoded right away, so the picture is ready the moment the card turns over
+  if(img && !img.getAttribute('src')){ img.onload=()=>img.classList.add('loaded'); img.src=img.dataset.src; img.decode?.().catch(()=>{}); }
 }
 
 function buildFan(onReady){
@@ -690,19 +691,26 @@ const EDGE=.005, EDGE_PAPER='#d6cfc6', EDGE_DARK='#6f675f'; // card thickness, a
 function renderCard(el, s){
   // positioned by a transform, not left/top: those snap to whole pixels, and slow motion turns jerky
   el.style.left='0px'; el.style.top='0px';
-  el.style.setProperty('--cw', s.w+'px'); el.style.setProperty('--ch', s.h+'px');
+  // a card changing size is laid out in steps (each a quarter larger than the last) and scaled in between:
+  // laying out and repainting its artwork at a new size every frame is what made the motion stutter
+  const lw=Math.max(8, Math.pow(1.25, Math.ceil(Math.log(s.w)/Math.log(1.25)))), k=s.w/lw;
+  if(el._lw!==lw){ el._lw=lw; el.style.setProperty('--cw', lw+'px'); el.style.setProperty('--ch', lw*s.h/s.w+'px'); }
+  const up=s.ry>1; if(el._up!==up){ el._up=up; el.classList.toggle('up', up); }
   const tilted=s.tx||s.ty;
-  el.style.transform=`translate3d(${s.x}px,${s.y}px,0) rotate(${s.rot}deg)`+(tilted ? ` perspective(${s.h*3}px) rotateX(${s.tx}deg) rotateY(${s.ty}deg)` : '');
+  el.style.transform=`translate3d(${s.x}px,${s.y}px,0) rotate(${s.rot}deg)`+(tilted ? ` perspective(${s.h*3}px) rotateX(${s.tx}deg) rotateY(${s.ty}deg)` : '')+
+    (k!==1 ? ` scale(${k.toFixed(5)})` : '');
   el.firstElementChild.style.transform=`perspective(${s.h*4}px) rotateY(${s.ry}deg)`;
   // the thickness of a face-up card: its paper edge shows on the sides tilted towards the viewer,
   // and a little along the bottom even when it lies flat, as if seen from slightly above
   const front=el.querySelector('.face.front');
   if(s.ry>90){
-    const T=s.w*EDGE, dx=-(s.ty||0)/TILT_Y*T, dy=T*.45+(s.tx||0)/TILT_X*T*.8, n=Math.max(2, Math.ceil(Math.hypot(dx,dy)));
+    // in the card's own (unscaled) pixels, so the shadow stays put while only the scale changes
+    const T=lw*EDGE, dx=-(s.ty||0)/TILT_Y*T, dy=T*.45+(s.tx||0)/TILT_X*T*.8, n=Math.max(2, Math.ceil(Math.hypot(dx,dy)));
     const layers=[];
-    for(let i=1;i<=n;i++) layers.push(`${(dx*i/n).toFixed(2)}px ${(dy*i/n).toFixed(2)}px 0 ${i===n?EDGE_DARK:EDGE_PAPER}`);
-    front.style.boxShadow=layers.join(',')+`, ${dx.toFixed(1)}px ${(9+dy).toFixed(1)}px 22px rgba(20,2,2,.88)`;
-  } else if(front.style.boxShadow) front.style.boxShadow='';
+    for(let i=1;i<=n;i++) layers.push(`${(dx*i/n).toFixed(1)}px ${(dy*i/n).toFixed(1)}px 0 ${i===n?EDGE_DARK:EDGE_PAPER}`);
+    const bs=layers.join(',')+`, ${dx.toFixed(1)}px ${(9+dy).toFixed(1)}px 22px rgba(20,2,2,.88)`;
+    if(front._bs!==bs){ front._bs=bs; front.style.boxShadow=bs; }
+  } else if(front._bs){ front._bs=''; front.style.boxShadow=''; }
   // the sheen slides across the face against the tilt and brightens with it, like light on glossy paper
   const gloss=el.querySelector('.gloss');
   if(gloss){
@@ -717,10 +725,10 @@ function animateCard(el, to, vars){
 function restoreInArc(el){
   delete el._state;
   el.style.left=el.dataset.pivotX+'px'; el.style.top=el.dataset.pivotY+'px';
-  el.style.removeProperty('--cw'); el.style.removeProperty('--ch');
+  el.style.removeProperty('--cw'); el.style.removeProperty('--ch'); el._lw=0; el._up=false; el.classList.remove('up');
   el.style.transform=`rotate(${el.dataset.angle}deg) translateY(-${el.dataset.radius}px)`;
   el.firstElementChild.style.transform=''; el.style.zIndex=el.dataset.z;
-  el.querySelector('.face.front').style.boxShadow=''; el.classList.remove('lit');
+  const front=el.querySelector('.face.front'); front.style.boxShadow=''; front._bs=''; el.classList.remove('lit');
 }
 
 // Hit-testing uses the cards' fixed slots in the arcs, not their animated positions: otherwise a
@@ -961,6 +969,8 @@ function showSpreadSummary(){
   const poses=fitRow(finale, els.length);
   els.forEach((c,i)=>{
     const s=c._state; gsap.killTweensOf(s); c.classList.remove('dim');
+    // the cards put away rise above the dark and come out of it
+    if(+c.style.zIndex<1000){ c.style.zIndex=1000+i; gsap.fromTo(c,{filter:'brightness(.05)'},{filter:'brightness(1)', duration:.9, ease:'sine.inOut', clearProps:'filter'}); }
     spread.caps[i].querySelector('.cap-name').textContent=c._card.name;
     spread.caps[i].querySelector('.cap-title').textContent=c._card.title ? tr('q')(c._card.title) : '';
     spread.caps[i].style.width=poses[i].w*1.1+'px'; // a long name wraps instead of running into the next one

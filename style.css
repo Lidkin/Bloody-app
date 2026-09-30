@@ -82,8 +82,9 @@ body:not(.fonts-ready) h1.title{visibility:hidden;}
 .ask-sub .cd-row{display:flex; align-items:center; justify-content:center; gap:7px; margin-top:3px;}
 .ask-sub .cd-row .countdown{margin:0;}
 .ask-sub .cd-cup{height:24px; width:auto; opacity:.85; margin-left:-30px;}
-/* the fortune-teller's whisper at the foot of the resting deck, answered by "Теперь ты знаешь" at the end */
-.whisper{position:fixed; left:0; right:0; bottom:calc(5vh + env(safe-area-inset-bottom,0px)); z-index:5; text-align:center;
+/* the fortune-teller's whisper under the choice of readings, answered by "Теперь ты знаешь" at the end; it keeps
+   room above it for the countdown hanging under "Карта дня", so the two never meet on a short screen */
+.whisper{position:relative; margin-top:66px; z-index:5; text-align:center;
   color:var(--muted); font-size:18px; font-style:italic; letter-spacing:1px; opacity:.8; pointer-events:none; transition:opacity .8s ease-in-out;}
 .whisper.gone{opacity:0;}
 body:not(.fonts-ready) .whisper{visibility:hidden;}

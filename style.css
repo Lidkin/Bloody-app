@@ -185,11 +185,9 @@ img{-webkit-user-drag:none; user-select:none; -webkit-user-select:none; -webkit-
   background-image:linear-gradient(115deg, rgba(0,0,0,.07) 0%, transparent 38%, rgba(255,255,255,.55) 49%, rgba(255,255,255,.12) 55%, transparent 64%, rgba(0,0,0,.07) 100%);}
 /* desktop, closing screen: more cards of the deck, each a link to the shop */
 .fcard.showcase{pointer-events:auto;}
-/* the pointer is a bloody fingerprint; over whatever can be pressed it lights up on a soft red glow, darker
-   than the card backs and lighter than the print. The glowing one is drawn 8px wider each side, hence its
-   hotspot. The fan's cards are hit-tested in app.js, which sets the lit one on the fan */
+/* the pointer is a bloody fingerprint, the same over whatever can be pressed - only its fallback differs */
 :root{--cur:-webkit-image-set(url(assets/fingerprint-cursor.png) 1x, url(assets/fingerprint-cursor-2x.png) 2x) 16 21, auto;
-  --cur-on:-webkit-image-set(url(assets/fingerprint-cursor-on.png) 1x, url(assets/fingerprint-cursor-on-2x.png) 2x) 24 29, pointer;}
+  --cur-on:-webkit-image-set(url(assets/fingerprint-cursor.png) 1x, url(assets/fingerprint-cursor-2x.png) 2x) 16 21, pointer;}
 html{cursor:var(--cur);}
 button:not(:disabled), a[href], .deck-stack, .fcard.showcase{cursor:var(--cur-on);}
 /* the white of an illustration is shown as warm paper, like the faces without artwork;

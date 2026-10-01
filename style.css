@@ -102,11 +102,11 @@ body:not(.fonts-ready) .ask-sub{visibility:hidden;}
 @media not all and (hover:hover) and (pointer:fine){ .finish-btn .fill{animation:call 3.6s ease-in-out infinite;} }
 @keyframes call{0%{background-position:100% 0;} 28%, 58%{background-position:50% 0;} 86%, 100%{background-position:0 0;}}
 .opt{position:relative; background:none; border:none; padding:8px 0; font-family:var(--head-font); font-size:19px;
-  letter-spacing:3px; margin-right:-3px; color:var(--accent); cursor:pointer; text-transform:uppercase;
+  letter-spacing:3px; margin-right:-3px; color:var(--accent); cursor:var(--cur-on); text-transform:uppercase;
   text-shadow:0 0 12px rgba(var(--accent-rgb),.45); transition:color .35s ease, text-shadow .35s ease, opacity .35s ease;}
 .opt::after{content:''; position:absolute; left:0; right:3px; bottom:0; height:1px; background:var(--red);
   transform:scaleX(0); transition:transform .35s ease;}
-.opt.done{opacity:.45; text-shadow:none; cursor:default;}
+.opt.done{opacity:.45; text-shadow:none; cursor:var(--cur);}
 @media (hover:hover) and (pointer:fine){
   .opt:not(.done):hover::after{transform:scaleX(1);}
 }
@@ -185,10 +185,13 @@ img{-webkit-user-drag:none; user-select:none; -webkit-user-select:none; -webkit-
   background-image:linear-gradient(115deg, rgba(0,0,0,.07) 0%, transparent 38%, rgba(255,255,255,.55) 49%, rgba(255,255,255,.12) 55%, transparent 64%, rgba(0,0,0,.07) 100%);}
 /* desktop, closing screen: more cards of the deck, each a link to the shop */
 .fcard.showcase{pointer-events:auto;}
-/* over any card but those of the fan, the pointer is a bloody fingerprint; open cards are hit-tested in
-   app.js, which sets html.fp-cursor */
-.deck-stack, .fcard.showcase, html.fp-cursor, html.fp-cursor *{cursor:url(assets/fingerprint-cursor.png) 16 21, pointer;
-  cursor:-webkit-image-set(url(assets/fingerprint-cursor.png) 1x, url(assets/fingerprint-cursor-2x.png) 2x) 16 21, pointer;}
+/* the pointer is a fingerprint, pale on a dark halo; over whatever can be pressed it turns red on a light one -
+   so it shows on the velvet, the white faces, the red backs and the red button alike. A dot marks the point
+   that clicks. The fan's cards are hit-tested in app.js, which sets the red one on the fan */
+:root{--cur:-webkit-image-set(url(assets/cursor.png) 1x, url(assets/cursor-2x.png) 2x) 16 21, auto;
+  --cur-on:-webkit-image-set(url(assets/cursor-on.png) 1x, url(assets/cursor-on-2x.png) 2x) 16 21, pointer;}
+html{cursor:var(--cur);}
+button:not(:disabled), a[href], .deck-stack, .fcard.showcase{cursor:var(--cur-on);}
 /* the white of an illustration is shown as warm paper, like the faces without artwork;
    it turns pure white under the cursor */
 .paper{position:absolute; inset:0; pointer-events:none; background-color:#f4f1ec; mix-blend-mode:multiply;
@@ -244,7 +247,7 @@ body:not(.noir) .big-name{font-family:'Cinzel',serif; color:#5e4c25;}
 .finish-btn{font-family:var(--head-font); font-size:14px; letter-spacing:3px; text-transform:uppercase; color:var(--accent);}
 .end-phrase{font-size:19px; font-style:italic; letter-spacing:.5px; color:var(--ink);}
 .end-rule{width:1px; height:22px; background:var(--red); opacity:.7; transform-origin:50% 50%;}
-.finish-btn{background:none; border:none; padding:6px 0; cursor:pointer;}
+.finish-btn{background:none; border:none; padding:6px 0; cursor:var(--cur-on);}
 .finish-btn .fill{display:inline-block;}
 .finish-btn .arrow{margin-left:4px; animation-delay:.35s; transition:background-position .35s ease, transform .35s ease;} /* red reaches it after the word */
 /* hover effects only where there is a pointer: a phone keeps "hovering" the spot last tapped, and the next
@@ -265,7 +268,7 @@ body:not(.noir) .big-name{font-family:'Cinzel',serif; color:#5e4c25;}
 .link-btn:active{color:var(--ink);}
 .return-btn{background:none; border:1px solid rgba(var(--accent-rgb),.4); color:var(--accent);
   font-family:var(--head-font); font-size:14px; letter-spacing:1.5px; padding:9px 20px; border-radius:24px;
-  cursor:pointer; text-transform:uppercase; transition:.2s;}
+  cursor:var(--cur-on); text-transform:uppercase; transition:.2s;}
 /* closing screen of a reading */
 .finale{display:flex; flex-direction:column; align-items:center;}
 .finale p{max-width:340px; margin-left:auto; margin-right:auto;}
@@ -302,7 +305,7 @@ body.noir .cta{background:var(--red); color:#fff; box-shadow:0 0 18px rgba(228,3
 .finale{top:auto; bottom:calc(28px + env(safe-area-inset-bottom,0px));}
 @media (hover:hover) and (pointer:fine){ .finale{bottom:calc(40px + env(safe-area-inset-bottom,0px));} }
 .link-btn{background:none; border:none; color:var(--muted); font-family:var(--head-font); font-size:14px;
-  letter-spacing:1.5px; text-transform:uppercase; cursor:pointer; padding:9px 6px;}
+  letter-spacing:1.5px; text-transform:uppercase; cursor:var(--cur-on); padding:9px 6px;}
 .link-btn .ic{display:inline-block; font-size:1.35em; line-height:0; vertical-align:-.08em; margin-right:2px;}
 h1.title{position:fixed; top:calc(14px + env(safe-area-inset-top,0px)); left:50%; transform:translateX(-50%);
   margin:0; width:max-content; white-space:nowrap; font-family:var(--head-font); color:var(--accent);
@@ -322,7 +325,7 @@ h1.title{position:fixed; top:calc(14px + env(safe-area-inset-top,0px)); left:50%
 .lang-switch.gone, .sound-btn.gone{opacity:0; pointer-events:none;}
 .lang-switch.off{display:none;}
 .lang-switch button, .sound-btn{background:none; border:none; padding:10px 4px; margin:-10px 0; font:inherit; letter-spacing:inherit;
-  color:inherit; cursor:pointer; transition:color .3s ease, opacity .5s ease-in-out;}
+  color:inherit; cursor:var(--cur-on); transition:color .3s ease, opacity .5s ease-in-out;}
 .sound-btn{color:var(--muted); margin:0; padding:0 4px;}
 .sound-btn::before{content:''; position:absolute; inset:-10px -6px;}
 .sound-btn svg{width:15px; height:15px; display:block;}
